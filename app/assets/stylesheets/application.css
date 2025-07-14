@@ -8,3 +8,13 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+@layer base {
+  :root {
+    --color-primary: 119 119 119;
+    --color-secondary: 187 187 187;
+    --color-input: 0 15 85;
+    --color-input-dark: 163 180 255;
+    --font-input: Kalam, cursive;
+    --font-size-adjust: 0.48;
+  }
+}

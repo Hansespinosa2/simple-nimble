@@ -1,11 +1,19 @@
 <% content_for :title, "New character" %>
 
-<h1>New character</h1>
+<div class="mx-auto max-w-[600px] flex flex-col gap-1 sm:gap-2 sm:pt-1">
 
-<%= render "form", character: @character %>
+  <div class="flex flex-row justify-between -mb-1">
+    <div class="text-primary font-sans font-bold uppercase text-2xl leading-none">
+      New character
+    </div>
+    <div>
+      <%= link_to "Back to characters", characters_path %>
+    </div>
+  </div>
 
-<br>
 
-<div>
-  <%= link_to "Back to characters", characters_path %>
+
+  <%= render "form", character: @character %>
+
+  
 </div>
