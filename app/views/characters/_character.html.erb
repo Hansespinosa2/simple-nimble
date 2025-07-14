@@ -1,37 +1,50 @@
-<div id="<%= dom_id character %>">
-  <p>
-    <strong>Name:</strong>
+<div id="<%= dom_id character %>" class="w-full flex flex-col border-2 border-primary rounded-sm">
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="name" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Character Name
+    </label>
     <%= character.name %>
-  </p>
-
-  <p>
-    <strong>Race:</strong>
+  </div>
+  
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="race" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Race
+    </label>
     <%= character.race %>
-  </p>
+  </div>
 
-  <p>
-    <strong>Level:</strong>
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="level" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Level
+    </label>
     <%= character.level %>
-  </p>
+  </div>
 
-  <p>
-    <strong>Background:</strong>
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="background" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Background
+    </label>
     <%= character.background %>
-  </p>
+  </div>
 
-  <p>
-    <strong>Description:</strong>
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="description" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Description
+    </label>
     <%= character.description %>
-  </p>
+  </div>
 
-  <p>
-    <strong>Languages:</strong>
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="languages" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Languages
+    </label>
     <%= character.languages %>
-  </p>
+  </div>
 
-  <p>
-    <strong>Proficiencies:</strong>
+  <div class="flex flex-row items-center border-b border-primary/50">
+    <label for="proficencies" class="uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full">
+      Proficiencies
+    </label>
     <%= character.proficiencies %>
-  </p>
-
+  </div>
 </div>
