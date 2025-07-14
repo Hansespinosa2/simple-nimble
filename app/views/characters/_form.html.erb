@@ -1,9 +1,10 @@
-<%= form_with(model: character) do |form| %>
+<%= form_with(model: character, local: true, class: "space-y-6 max-w-xl mx-auto p-6 bg-white shadow-md rounded-md") do |form| %>
   <% if character.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(character.errors.count, "error") %> prohibited this character from being saved:</h2>
-
-      <ul>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      <h2 class="font-semibold mb-2">
+        <%= pluralize(character.errors.count, "error") %> prohibited this character from being saved:
+      </h2>
+      <ul class="list-disc list-inside text-sm">
         <% character.errors.each do |error| %>
           <li><%= error.full_message %></li>
         <% end %>
@@ -11,42 +12,43 @@
     </div>
   <% end %>
 
+  <%# Form Fields %>
   <div>
-    <%= form.label :name, style: "display: block" %>
-    <%= form.text_field :name %>
+    <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :name, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :race, style: "display: block" %>
-    <%= form.text_field :race %>
+    <%= form.label :race, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :race, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :level, style: "display: block" %>
-    <%= form.number_field :level %>
+    <%= form.label :level, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.number_field :level, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :background, style: "display: block" %>
-    <%= form.textarea :background %>
+    <%= form.label :background, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :background, rows: 3, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :description, style: "display: block" %>
-    <%= form.textarea :description %>
+    <%= form.label :description, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :description, rows: 4, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :languages, style: "display: block" %>
-    <%= form.text_field :languages %>
+    <%= form.label :languages, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :languages, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.label :proficiencies, style: "display: block" %>
-    <%= form.text_field :proficiencies %>
+    <%= form.label :proficiencies, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :proficiencies, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
   </div>
 
   <div>
-    <%= form.submit %>
+    <%= form.submit "Save Character", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
   </div>
 <% end %>
