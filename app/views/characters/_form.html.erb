@@ -1,4 +1,4 @@
-<%= form_with(model: character, local: true, class: "space-y-6 max-w-xl mx-auto p-6 bg-white shadow-md rounded-md") do |form| %>
+<%= form_with(model: character, local: true, class: "p-2 w-full") do |form| %>
   <% if character.errors.any? %>
     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
       <h2 class="font-semibold mb-2">
@@ -12,43 +12,46 @@
     </div>
   <% end %>
 
-  <%# Form Fields %>
-  <div>
-    <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :name, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+  <div class="mx-auto max-w-[600px] flex flex-col gap-1 sm:gap-2 sm:pt-1">
+    <%# Form Fields %>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :name, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_field :name, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :race, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :race, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :race, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_field :race, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :level, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.number_field :level, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :level, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.number_field :level, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :background, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_area :background, rows: 3, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :background, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_area :background, rows: 3, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :description, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_area :description, rows: 4, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :description, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_area :description, rows: 3, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :languages, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :languages, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :languages, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_field :languages, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.label :proficiencies, class: "block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :proficiencies, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" %>
-  </div>
+    <div class="flex flex-row items-center border-b border-primary/50">
+      <%= form.label :proficiencies, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
+      <%= form.text_field :proficiencies, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
+    </div>
 
-  <div>
-    <%= form.submit "Save Character", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+    <div>
+      <%= form.submit "Save Character", class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+    </div>
   </div>
+  
 <% end %>
