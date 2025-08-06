@@ -1,6 +1,6 @@
 {
 	"servers": {
-		"my-mcp-server-1536e2a0": {
+		"rails-mcp-server": {
 			"type": "stdio",
 			"command": "rails-mcp-server",
 			"args": []
