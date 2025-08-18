@@ -8,3 +8,9 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+@font-face {
+    font-family: "Macondo";
+    src: url('Macondo-Regular.ttf');
+    font-display: swap;
+}
