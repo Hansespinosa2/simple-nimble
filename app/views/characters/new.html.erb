@@ -1,9 +1,9 @@
 <% content_for :title, "New character" %>
 
-<div class="mx-auto max-w-[600px] flex flex-col gap-1 sm:gap-2 sm:pt-1">
+<div class="flex border-4">
 
-  <div class="flex flex-row justify-between -mb-1">
-    <div class="text-primary font-sans font-bold uppercase text-2xl leading-none">
+  <div class="">
+    <div class="">
       New character
     </div>
     <div>
@@ -11,6 +11,7 @@
     </div>
   </div>
 
-  <%= render "form", character: @character %>
-  
+    
+    <%= render "form", character: @character %>
+    
 </div>

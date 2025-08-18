@@ -12,13 +12,13 @@
     </div>
   <% end %>
 
-  <div class="mx-auto max-w-[600px] flex flex-col gap-1 sm:gap-2 sm:pt-1">
+  <div class="max-w-[600px] flex flex-col">
     <%# Form Fields %>
     <div class="flex flex-row items-center border-b border-primary/50">
       <%= form.label :name, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
       <%= form.text_field :name, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
     </div>
-
+ 
     <div class="flex flex-row items-center border-b border-primary/50">
       <%= form.label :race, class: "uppercase font-sans font-[400] text-primary tracking-tighter leading-none px-2 pt-0.5 whitespace-nowrap h-full" %>
       <%= form.text_field :race, class: "outline-hidden px-2 p-1 w-full appearance-none bg-transparent font-input text-input dark:text-input-dark text-lg hover:bg-primary/5 dark:hover:bg-primary/15 focus:bg-primary/5 dark:focus:bg-primary/15 transition-all" %>
