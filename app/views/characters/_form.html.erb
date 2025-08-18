@@ -1,0 +1,52 @@
+<%= form_with(model: character, class: "contents") do |form| %>
+  <% if character.errors.any? %>
+    <div id="error_explanation" class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3">
+      <h2><%= pluralize(character.errors.count, "error") %> prohibited this character from being saved:</h2>
+
+      <ul class="list-disc ml-6">
+        <% character.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="my-5">
+    <%= form.label :name %>
+    <%= form.text_field :name, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :race %>
+    <%= form.text_field :race, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :nimble_class %>
+    <%= form.text_field :nimble_class, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :level %>
+    <%= form.number_field :level, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :background %>
+    <%= form.text_field :background, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :description %>
+    <%= form.textarea :description, rows: 4, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :languages %>
+    <%= form.text_field :languages, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
+  </div>
+
+  <div class="inline">
+    <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  </div>
+<% end %>
