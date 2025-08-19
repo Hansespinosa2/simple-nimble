@@ -13,37 +13,37 @@
 
   <div class="my-5">
     <%= form.label :name %>
-    <%= form.text_field :name, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
+    <%= form.text_field :name, placeholder: "Enter Character Name", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :race %>
-    <%= form.text_field :race, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
+    <%= form.text_field :race, placeholder: "Enter Character Race", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :nimble_class %>
-    <%= form.text_field :nimble_class, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
+    <%= form.text_field :nimble_class, placeholder: "Enter Character Class", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :level %>
-    <%= form.number_field :level, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
+    <%= form.number_field :level, placeholder: "Enter Character Level", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :background %>
-    <%= form.text_field :background, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
+    <%= form.text_field :background, placeholder: "Enter Character Background", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :description %>
-    <%= form.textarea :description, rows: 4, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
+    <%= form.textarea :description, rows: 4, placeholder: "Enter Character Description", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
   </div>
 
   <div class="my-5">
     <%= form.label :languages %>
-    <%= form.text_field :languages, class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
+    <%= form.text_field :languages, placeholder: "Enter Character Languages", class: ["block shadow-sm rounded-md border px-3 py-2 mt-2 w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
   </div>
 
   <div class="inline">
