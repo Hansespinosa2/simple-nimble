@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_18_083207) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_19_224500) do
   create_table "characters", force: :cascade do |t|
     t.string "name"
     t.string "race"
@@ -22,4 +22,25 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_18_083207) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
+
+  create_table "skills", force: :cascade do |t|
+    t.string "name"
+    t.integer "value"
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_skills_on_character_id"
+  end
+
+  create_table "stats", force: :cascade do |t|
+    t.string "name"
+    t.integer "value"
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_stats_on_character_id"
+  end
+
+  add_foreign_key "skills", "characters"
+  add_foreign_key "stats", "characters"
 end
