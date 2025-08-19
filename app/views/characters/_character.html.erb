@@ -1,31 +1,31 @@
-<div id="<%= dom_id character %>" class="w-full sm:w-auto my-5 space-y-5 ">
+<div id="<%= dom_id character %>" class="max-w-300 sm:w-auto my-5 space-y-5 ">
 
-  <div id="character-summary" class="flex gap-5 border-2">
-    <div class="">
+  <div id="character-summary" class="flex gap-5 border-1 p-2">
+    <div class="min-w-50">
       <div class="text-2xl border-b-1">
         <%= character.name %>
       </div>
-      <p class="text-gray-500">Character Name</p>
+      <p class="text-gray-500">Name</p>
     </div>
-    <div class="">
+    <div class="min-w-50">
       <div class="text-2xl border-b-1">
         <%= character.race %>
       </div>
       <p class="text-gray-500">Race</p>
     </div>
-    <div class="">
+    <div class="min-w-25">
       <div class="text-2xl border-b-1">
         <%= character.nimble_class %>
       </div>
       <p class="text-gray-500">Class</p>
     </div>
-    <div class="">
+    <div class="min-w-10">
       <div class="text-2xl border-b-1">
         <%= character.level %>
       </div>
       <p class="text-gray-500">Level</p>
     </div>
-    <div class="">
+    <div class="min-w-75">
       <div class="text-2xl border-b-1">
         <%= character.background %>
       </div>
@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <div id="character-info">
+  <div id="character-info" class="border-1 p-2">
     <div class="">
       <div class="text-2xl border-b-1">
         <%= character.description %>
