@@ -39,3 +39,5 @@
 /.mcp-resources/*
 
 /.vscode/*
+.vscode/settings.json
+

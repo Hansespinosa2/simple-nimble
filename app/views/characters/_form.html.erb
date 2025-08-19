@@ -15,48 +15,48 @@
   <div class="flex flex-col gap-2 my-5">
     <div id="character-summary" class="flex gap-5 border-1 p-2">
       <div class="min-w-50">
-        <div class="text-2xl border-b-1">
-          <%= form.text_field :name, placeholder: "Enter Character Name", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
+        <div class="border-b-1">
+          <%= form.text_field :name, placeholder: "Enter Name", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
         </div>
-        <p class="text-gray-500">Name</p>
+        <p class="text-gray-500 text-xs">Name</p>
       </div>
       <div class="min-w-50">
-        <div class="text-2xl border-b-1">
-          <%= form.text_field :race, placeholder: "Enter Character Race", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
+        <div class="border-b-1">
+          <%= form.text_field :race, placeholder: "Enter Race", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
         </div>
-        <p class="text-gray-500">Race</p>
+        <p class="text-gray-500 text-xs">Race</p>
       </div>
       <div class="min-w-25">
-        <div class="text-2xl border-b-1">
-          <%= form.text_field :nimble_class, placeholder: "Enter Character Class", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
+        <div class="border-b-1">
+          <%= form.text_field :nimble_class, placeholder: "Enter Class", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
         </div>
-        <p class="text-gray-500">Class</p>
+        <p class="text-gray-500 text-xs">Class</p>
       </div>
       <div class="min-w-10">
-        <div class="text-2xl border-b-1">
-          <%= form.number_field :level, placeholder: "Enter Character Level", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
+        <div class="border-b-1">
+          <%= form.number_field :level, placeholder: "Enter Level", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
         </div>
-        <p class="text-gray-500">Level</p>
+        <p class="text-gray-500 text-xs">Level</p>
       </div>
       <div class="min-w-75">
-        <div class="text-2xl border-b-1">
-          <%= form.text_field :background, placeholder: "Enter Character Background", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
+        <div class="border-b-1">
+          <%= form.text_field :background, placeholder: "Enter Background", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
         </div>
-        <p class="text-gray-500">Background</p>
+        <p class="text-gray-500 text-xs">Background</p>
       </div>
     </div>
     <div id="character-info" class="border-1 p-2">
       <div class="">
-        <div class="text-2xl border-b-1">
-          <%= form.textarea :description, rows: 4, placeholder: "Enter Character Description", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
+        <div class="border-b-1">
+          <%= form.textarea :description, rows: 4, placeholder: "Enter Description", class: ["w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
         </div>
-        <p class="text-gray-500">Description</p>
+        <p class="text-gray-500 text-xs">Description</p>
       </div>
       <div class="">
-        <div class="text-2xl border-b-1">
-          <%= form.text_field :languages, placeholder: "Enter Character Languages", class: [" w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
+        <div class="border-b-1">
+          <%= form.text_field :languages, placeholder: "Enter Languages", class: [" w-full", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
         </div>
-        <p class="text-gray-500">Languages</p>
+        <p class="text-gray-500 text-xs">Languages</p>
       </div>
     </div>
   </div>
