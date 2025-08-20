@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  school: MyString
+  name: MyString
+  tier: 1
+  target: 1
+  action_cost: 1
+  range: 1
+  damage: MyString
+  description: MyText
+  casting_time: 1
+  high_level: MyText
+  upcast: MyText
+
+two:
+  school: MyString
+  name: MyString
+  tier: 1
+  target: 1
+  action_cost: 1
+  range: 1
+  damage: MyString
+  description: MyText
+  casting_time: 1
+  high_level: MyText
+  upcast: MyText
