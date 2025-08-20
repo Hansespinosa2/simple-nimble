@@ -8,6 +8,8 @@
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
 
+
+### CHARACTERS ###
 Character.create(
   name: "Gorn",
   race: "Orc",
@@ -43,4 +45,89 @@ Character.create(
                 Of all his weapons and abilities, Kai remains David's greatest asset. The golden-furred familiar has been with him since childhood, acting as both a guardian and a trusted companion. Their bond is unbreakable, and in battle, Kai serves as both a healer and a protector, ensuring David fights at his full potential.
                ",
   languages: "Common, Infernal"
+)
+
+### SPELLS ###
+Spell.create(
+  school: "Fire",
+  name: "Flame Dart",
+  tier: 0,
+  target: 1,
+  range: 8,
+  action_cost: 1,
+  damage: "1d10",
+  description: "On crit: Smoldering.",
+  casting_time: 0,
+  high_level: "+5 damage every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Ice",
+  name: "Ice Lance",
+  tier: 0,
+  target: 1,
+  range: 12,
+  action_cost: 1,
+  damage: "1d6 cold or piercing damage",
+  description: "On hit: Slowed.",
+  casting_time: 0,
+  high_level: "+3 damage every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Lightning",
+  name: "Zap",
+  tier: 0,
+  target: 1,
+  range: 12,
+  action_cost: 1,
+  damage: "2d8",
+  description: "On miss: the lightning fails to find ground, and strikes you instead.",
+  casting_time: 0,
+  high_level: "+6 damage every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Wind",
+  name: "Razor Wind",
+  tier: 0,
+  target: 1,
+  range: 12,
+  action_cost: 1,
+  damage: "1d4 slashing",
+  description: "Vicious: roll 1 additional die whenever you roll crit damage. Also damages up to 1 adjacent target.",
+  casting_time: 0,
+  high_level: "+2 damage every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Radiant",
+  name: "Rebuke",
+  tier: 0,
+  target: 1,
+  range: 4,
+  action_cost: 1,
+  damage: "1d6 (ignores armor)",
+  description: "Does not miss. Deals double damage against undead or cowardly targets (Frightened or behind cover).",
+  casting_time: 0,
+  high_level: "+2 damage every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Necrotic",
+  name: "Entice",
+  tier: 0,
+  target: 1,
+  range: 8,
+  action_cost: 1,
+  damage: "1d4 (ignores armor)",
+  description: "On hit: target moves 2 spaces closer to you.",
+  casting_time: 0,
+  high_level: "Increment the die size 1 step every 5 levels (d6 » d8 » d10 » d12).",
+  upcast: nil
 )
