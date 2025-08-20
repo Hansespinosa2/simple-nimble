@@ -47,4 +47,18 @@
       <p class="text-gray-500 text-xs">Languages</p>
     </div>
   </div>
+
+  <div class="flex flex-col justify-center items-center gap-5 border-1 p-2">
+    <div class="flex gap-20">
+      <% character.stats.each do |stat| %>
+        <%= render 'attributes/stat', stat: stat %>
+      <% end %>
+    </div>
+    <div class="flex gap-5">
+      <% character.skills.each do |skill| %>
+        <%= render 'attributes/skill', skill: skill %>
+      <% end %>
+    </div>
+  </div>
 </div>
+
