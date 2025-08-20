@@ -2,7 +2,16 @@ require "test_helper"
 
 class CharactersControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @character = characters(:one)
+    Rails.application.load_seed if Character.count.zero?
+    @character = Character.create!(
+      name: "Test Hero",
+      description: "A brave adventurer seeking glory.",
+      level: 1,
+      background: "Soldier",
+      race: "Human",
+      nimble_class: "Warrior",
+      languages: "Common, Elvish"
+    )
   end
 
   test "should get index" do
@@ -44,5 +53,29 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to characters_url
+  end
+
+  test "should have stats and skills for each character" do
+    Character.all.each do |character|
+      puts character.name
+      assert_not_empty character.stats
+      assert_not_empty character.skills
+    end
+  end
+
+  test "should have unique stats and skills for each character" do
+    Character.all.each do |character|
+      stat_names = character.stats.pluck(:name)
+      skill_names = character.skills.pluck(:name)
+      assert_nil stat_names.uniq!
+      assert_nil skill_names.uniq!
+    end
+  end
+
+  test "should have all stats and skills for each character" do
+    Character.all.each do |character|
+      puts character.name
+      assert_equal Stat.possible_stats, character.stats.pluck(:name)
+    end
   end
 end
