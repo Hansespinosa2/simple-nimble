@@ -6,13 +6,13 @@ class Character < ApplicationRecord
 
   private
   def init_default_stats
-    Stat.possible_stats.each do |stat_name|
+    Stat.possible_stat_names.each do |stat_name|
       stats.create(name: stat_name, value: 0)
     end
   end
 
   def init_default_skills
-    Skill.possible_skills.each do |skill_name|
+    Skill.possible_skill_names.each do |skill_name|
       skills.create(name: skill_name, value: 0)
     end
   end

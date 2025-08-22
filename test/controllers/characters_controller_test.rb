@@ -75,7 +75,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "should have all stats and skills for each character" do
     Character.all.each do |character|
       puts character.name
-      assert_equal Stat.possible_stats, character.stats.pluck(:name)
+      assert_equal Stat.possible_stat_names, character.stats.pluck(:name)
     end
   end
 end
