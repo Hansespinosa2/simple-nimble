@@ -63,8 +63,11 @@ class CharactersController < ApplicationController
       @character = Character.find(params.expect(:id))
     end
 
-    # Only allow a list of trusted parameters through.
+    # Only allow a list of trusted parameters through using expect.
     def character_params
-      params.expect(character: [ :name, :race, :nimble_class, :level, :background, :description, :languages ])
+      params.expect(character: [
+        :name, :race, :nimble_class, :level, :background, :description, :languages,
+        { stats_attributes: [ [ :id, :name, :value ] ] }
+      ])
     end
 end
