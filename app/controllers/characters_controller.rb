@@ -67,7 +67,8 @@ class CharactersController < ApplicationController
     def character_params
       params.expect(character: [
         :name, :race, :nimble_class, :level, :background, :description, :languages,
-        { stats_attributes: [ [ :id, :name, :value ] ] }
+        { stats_attributes: [ [ :id, :name, :value ] ],
+          skills_attributes: [ [ :id, :name, :value ] ] }
       ])
     end
 end

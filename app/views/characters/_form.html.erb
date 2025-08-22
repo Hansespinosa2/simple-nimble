@@ -56,6 +56,16 @@
           </div>
         <% end %>
       </div>
+        <div class="flex gap-10">
+          <%= form.fields_for :skills do |skill_fields| %>
+            <div class="flex flex-col justify-center items-center">
+              <%= skill_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+              <label class="text-xs text-gray-500">
+                <%= skill_fields.object.name %>
+              </label>
+            </div>
+          <% end %>
+        </div>
     </div>
   </div>
 
