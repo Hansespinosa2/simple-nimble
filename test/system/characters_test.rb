@@ -2,7 +2,15 @@ require "application_system_test_case"
 
 class CharactersTest < ApplicationSystemTestCase
   setup do
-    @character = characters(:one)
+      @character = Character.create!(
+      name: "Test Hero",
+      description: "A brave adventurer seeking glory.",
+      level: 1,
+      background: "Soldier",
+      race: "Human",
+      nimble_class: "Warrior",
+      languages: "Common, Elvish"
+    )
   end
 
   test "visiting the index" do
@@ -14,13 +22,13 @@ class CharactersTest < ApplicationSystemTestCase
     visit characters_url
     click_on "New character"
 
-    fill_in "Background", with: @character.background
-    fill_in "Description", with: @character.description
-    fill_in "Languages", with: @character.languages
-    fill_in "Level", with: @character.level
-    fill_in "Name", with: @character.name
-    fill_in "Nimble class", with: @character.nimble_class
-    fill_in "Race", with: @character.race
+    fill_in "character_background", with: @character.background
+    fill_in "character_description", with: @character.description
+    fill_in "character_languages", with: @character.languages
+    fill_in "character_level", with: @character.level
+    fill_in "character_name", with: @character.name
+    fill_in "character_nimble_class", with: @character.nimble_class
+    fill_in "character_race", with: @character.race
     click_on "Create Character"
 
     assert_text "Character was successfully created"
@@ -31,13 +39,13 @@ class CharactersTest < ApplicationSystemTestCase
     visit character_url(@character)
     click_on "Edit this character", match: :first
 
-    fill_in "Background", with: @character.background
-    fill_in "Description", with: @character.description
-    fill_in "Languages", with: @character.languages
-    fill_in "Level", with: @character.level
-    fill_in "Name", with: @character.name
-    fill_in "Nimble class", with: @character.nimble_class
-    fill_in "Race", with: @character.race
+    fill_in "character_background", with: @character.background
+    fill_in "character_description", with: @character.description
+    fill_in "character_languages", with: @character.languages
+    fill_in "character_level", with: @character.level
+    fill_in "character_name", with: @character.name
+    fill_in "character_nimble_class", with: @character.nimble_class
+    fill_in "character_race", with: @character.race
     click_on "Update Character"
 
     assert_text "Character was successfully updated"
