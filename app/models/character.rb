@@ -6,7 +6,7 @@ class Character < ApplicationRecord
   accepts_nested_attributes_for :skills
 
   has_one :trait_set, dependent: :destroy
-  accepts_nested_attributes_for :trait_sets
+  accepts_nested_attributes_for :trait_set
 
   after_create :init_default_stats, :init_default_skills
 

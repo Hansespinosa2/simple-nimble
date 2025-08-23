@@ -1,0 +1,22 @@
+<div class="flex gap-20 items-center">
+  <%= form.fields_for :stats do |stat_fields| %>
+    <div class="flex flex-col justify-center items-center">
+      <%= stat_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <label class="text-xs text-gray-500">
+        <%= stat_fields.object.shorthand %>
+        <%= stat_fields.hidden_field :name %>
+      </label>
+    </div>
+  <% end %>
+</div>
+  <div class="flex gap-10">
+    <%= form.fields_for :skills do |skill_fields| %>
+      <div class="flex flex-col justify-center items-center">
+        <%= skill_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+        <label class="text-xs text-gray-500">
+          <%= skill_fields.object.name %>
+          <%= skill_fields.hidden_field :name%>
+        </label>
+      </div>
+    <% end %>
+  </div>
