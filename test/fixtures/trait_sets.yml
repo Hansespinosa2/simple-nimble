@@ -1,0 +1,33 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  character: one
+  initiative: 1
+  speed: 1
+  hit_die: MyString
+  current_hit_dice: 1
+  max_hit_dice: 1
+  current_actions: 1
+  max_actions: 1
+  armor: 1
+  temp_hp: 1
+  current_hp: 1
+  max_hp: 1
+  current_wounds: 1
+  max_wounds: 1
+
+two:
+  character: two
+  initiative: 1
+  speed: 1
+  hit_die: MyString
+  current_hit_dice: 1
+  max_hit_dice: 1
+  current_actions: 1
+  max_actions: 1
+  armor: 1
+  temp_hp: 1
+  current_hp: 1
+  max_hp: 1
+  current_wounds: 1
+  max_wounds: 1

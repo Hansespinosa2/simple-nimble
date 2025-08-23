@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_20_051734) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_000823) do
   create_table "characters", force: :cascade do |t|
     t.string "name"
     t.string "race"
@@ -57,6 +57,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_20_051734) do
     t.index ["character_id"], name: "index_stats_on_character_id"
   end
 
+  create_table "trait_sets", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "initiative"
+    t.integer "speed"
+    t.string "hit_die"
+    t.integer "current_hit_dice"
+    t.integer "max_hit_dice"
+    t.integer "current_actions"
+    t.integer "max_actions"
+    t.integer "armor"
+    t.integer "temp_hp"
+    t.integer "current_hp"
+    t.integer "max_hp"
+    t.integer "current_wounds"
+    t.integer "max_wounds"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_trait_sets_on_character_id"
+  end
+
   add_foreign_key "skills", "characters"
   add_foreign_key "stats", "characters"
+  add_foreign_key "trait_sets", "characters"
 end
