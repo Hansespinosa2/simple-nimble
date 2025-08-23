@@ -15,6 +15,7 @@ class CharactersController < ApplicationController
     @character = Character.new
     init_default_stats
     init_default_skills
+    init_default_trait_set
   end
 
   # GET /characters/1/edit
@@ -76,13 +77,29 @@ class CharactersController < ApplicationController
 
     def init_default_stats
       Stat.possible_stat_names.each do |stat_name|
-        @character.stats.build(name: stat_name, value: 0)
+        @character.stats.build name: stat_name, value: 0
       end
     end
 
     def init_default_skills
       Skill.possible_skill_names.each do |skill_name|
-        @character.skills.build(name: skill_name, value: 0)
+        @character.skills.build name: skill_name, value: 0
       end
+    end
+
+    def init_default_trait_set
+      @character.build_trait_set initiative:        0,
+                                 speed:             30,
+                                 hit_die:           "1d6",
+                                 current_hit_dice:  1,
+                                 max_hit_dice:      1,
+                                 current_actions:   3,
+                                 max_actions:       3,
+                                 armor:             0,
+                                 temp_hp:           0,
+                                 current_hp:        10,
+                                 max_hp:            10,
+                                 current_wounds:    6,
+                                 max_wounds:        6
     end
 end
