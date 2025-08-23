@@ -3,7 +3,7 @@
     <div class="flex flex-col justify-center items-center">
       <%= stat_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <label class="text-xs text-gray-500">
-        <%= stat_fields.object.shorthand %>
+        <%= shorthand(stat_fields.object.name) %>
         <%= stat_fields.hidden_field :name %>
       </label>
     </div>

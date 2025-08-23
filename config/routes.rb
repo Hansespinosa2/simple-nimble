@@ -1,6 +1,6 @@
 Rails.application.routes.draw do
-  get "spells/index"
-  get "spells/show"
+  get "spells", to: "spells#index"
+  get "spells/:id", to: "spells#show", as: "spell"
   resources :characters
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
