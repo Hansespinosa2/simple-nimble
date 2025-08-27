@@ -16,6 +16,7 @@ class Character < ApplicationRecord
     build_default_stats if stats.empty?
     build_default_skills if skills.empty?
     build_default_trait_set if not trait_set
+    Rails.logger.debug "Built trait set" if not trait_set
   end
 
   private
@@ -33,17 +34,17 @@ class Character < ApplicationRecord
 
     def build_default_trait_set
       build_trait_set initiative:        0,
-                              speed:             30,
-                              hit_die:           "1d6",
-                              current_hit_dice:  1,
-                              max_hit_dice:      1,
-                              current_actions:   3,
-                              max_actions:       3,
-                              armor:             0,
-                              temp_hp:           0,
-                              current_hp:        10,
-                              max_hp:            10,
-                              current_wounds:    6,
-                              max_wounds:        6
+                      speed:             30,
+                      hit_die:           "1d6",
+                      current_hit_dice:  1,
+                      max_hit_dice:      1,
+                      current_actions:   3,
+                      max_actions:       3,
+                      armor:             0,
+                      temp_hp:           0,
+                      current_hp:        10,
+                      max_hp:            10,
+                      current_wounds:    6,
+                      max_wounds:        6
     end
 end
