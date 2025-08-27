@@ -1,6 +1,6 @@
 class Character < ApplicationRecord
-  has_many :stats, dependent: :destroy
-  accepts_nested_attributes_for :stats
+  has_one :stat_set, dependent: :destroy
+  accepts_nested_attributes_for :stat_set
 
   has_many :skills, dependent: :destroy
   accepts_nested_attributes_for :skills
@@ -13,17 +13,18 @@ class Character < ApplicationRecord
 
 
   def ensure_defaults
-    build_default_stats if stats.empty?
+    build_default_stat_set if not stat_set
     build_default_skills if skills.empty?
     build_default_trait_set if not trait_set
     Rails.logger.debug "Built trait set" if not trait_set
   end
 
   private
-    def build_default_stats
-      Stat.possible_stat_names.each do |stat_name|
-        stats.build(name: stat_name, value: 0)
-      end
+    def build_default_stat_set
+      build_stat_set  strength: 0,
+                      dexterity: 0,
+                      intelligence: 0,
+                      will: 0
     end
 
     def build_default_skills

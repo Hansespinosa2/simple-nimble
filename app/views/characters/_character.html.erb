@@ -49,16 +49,6 @@
   </div>
 
   <div id="character-stats" class="flex flex-col justify-center items-center gap-5 border-1 p-2">
-    <div class="flex gap-20">
-      <% character.stats.each do |stat| %>
-        <%= render 'attributes/stat', stat: stat %>
-      <% end %>
-    </div>
-    <div class="flex gap-10">
-      <% character.skills.each do |skill| %> 
-        <%= render 'attributes/skill', skill: skill %>
-      <% end %>
-    </div>
   </div>
 </div>
 

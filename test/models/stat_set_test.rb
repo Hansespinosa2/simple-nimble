@@ -1,6 +1,6 @@
 require "test_helper"
 
-class StatControllerTest < ActionDispatch::IntegrationTest
+class StatSetTest < ActiveSupport::TestCase
   # test "the truth" do
   #   assert true
   # end

@@ -1,22 +1,32 @@
 <div class="flex gap-20 items-center">
-  <%= form.fields_for :stats do |stat_fields| %>
+  <%= form.fields_for :stat_set do |stat_set_fields| %>
     <div class="flex flex-col justify-center items-center">
-      <%= stat_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.text_field :strength, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.label :strength, "STR", class: "text-xs text-gray-500" %>
+    </div>
+    <div class="flex flex-col justify-center items-center">
+      <%= stat_set_fields.text_field :dexterity, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.label :dexterity, "DEX", class: "text-xs text-gray-500" %>
+    </div>
+    <div class="flex flex-col justify-center items-center">
+      <%= stat_set_fields.text_field :intelligence, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.label :intelligence, "INT", class: "text-xs text-gray-500" %>
+    </div>
+    <div class="flex flex-col justify-center items-center">
+      <%= stat_set_fields.text_field :will, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.label :will, "WIL", class: "text-xs text-gray-500" %>
+    </div>
+  <% end %>
+</div>
+<div class="flex gap-10">
+  <%= form.fields_for :skills do |skill_fields| %>
+    <div class="flex flex-col justify-center items-center">
+      <%= skill_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <label class="text-xs text-gray-500">
-        <%= shorthand(stat_fields.object.name) %>
-        <%= stat_fields.hidden_field :name %>
+        
+        <%= skill_fields.object.name %>
+        <%= skill_fields.hidden_field :name%>
       </label>
     </div>
   <% end %>
 </div>
-  <div class="flex gap-10">
-    <%= form.fields_for :skills do |skill_fields| %>
-      <div class="flex flex-col justify-center items-center">
-        <%= skill_fields.text_field :value, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
-        <label class="text-xs text-gray-500">
-          <%= skill_fields.object.name %>
-          <%= skill_fields.hidden_field :name%>
-        </label>
-      </div>
-    <% end %>
-  </div>

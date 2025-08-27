@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_000823) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_27_045744) do
   create_table "characters", force: :cascade do |t|
     t.string "name"
     t.string "race"
@@ -48,13 +48,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_000823) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "stats", force: :cascade do |t|
-    t.string "name"
-    t.integer "value"
-    t.integer "character_id", null: false
+  create_table "stat_sets", force: :cascade do |t|
+    t.integer "strength"
+    t.integer "dexterity"
+    t.integer "intelligence"
+    t.integer "will"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["character_id"], name: "index_stats_on_character_id"
+    t.integer "character_id", null: false
+    t.index ["character_id"], name: "index_stat_sets_on_character_id"
   end
 
   create_table "trait_sets", force: :cascade do |t|
@@ -78,6 +80,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_000823) do
   end
 
   add_foreign_key "skills", "characters"
-  add_foreign_key "stats", "characters"
+  add_foreign_key "stat_sets", "characters"
   add_foreign_key "trait_sets", "characters"
 end

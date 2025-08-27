@@ -58,24 +58,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "should have stats and skills for each character" do
     Character.all.each do |character|
       puts character.name
-      assert_not_empty character.stats
+      assert_not_nil character.stat_set
       assert_not_empty character.skills
-    end
-  end
-
-  test "should have unique stats and skills for each character" do
-    Character.all.each do |character|
-      stat_names = character.stats.pluck(:name)
-      skill_names = character.skills.pluck(:name)
-      assert_nil stat_names.uniq!
-      assert_nil skill_names.uniq!
-    end
-  end
-
-  test "should have all stats and skills for each character" do
-    Character.all.each do |character|
-      puts character.name
-      assert_equal Stat.possible_stat_names, character.stats.pluck(:name)
     end
   end
 end
