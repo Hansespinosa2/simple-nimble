@@ -59,7 +59,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     Character.all.each do |character|
       puts character.name
       assert_not_nil character.stat_set
-      assert_not_empty character.skills
+      assert_not_nil character.skill_set
     end
   end
 end

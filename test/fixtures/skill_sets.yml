@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# one:
+#   character: one
+#   arcana: 1
+#   insight: 1
+#   examination: 1
+#   finesse: 1
+#   might: 1
+#   lore: 1
+#   influence: 1
+#   naturecraft: 1
+#   stealth: 1
+#   perception: 1
+
+# two:
+#   character: two
+#   arcana: 1
+#   insight: 1
+#   examination: 1
+#   finesse: 1
+#   might: 1
+#   lore: 1
+#   influence: 1
+#   naturecraft: 1
+#   stealth: 1
+#   perception: 1

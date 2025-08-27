@@ -1,11 +1,10 @@
 class Character < ApplicationRecord
   has_one :stat_set, dependent: :destroy
-  accepts_nested_attributes_for :stat_set
-
-  has_many :skills, dependent: :destroy
-  accepts_nested_attributes_for :skills
-
+  has_one :skill_set, dependent: :destroy
   has_one :trait_set, dependent: :destroy
+
+  accepts_nested_attributes_for :stat_set
+  accepts_nested_attributes_for :skill_set
   accepts_nested_attributes_for :trait_set
 
   before_create :ensure_defaults
@@ -14,9 +13,8 @@ class Character < ApplicationRecord
 
   def ensure_defaults
     build_default_stat_set if not stat_set
-    build_default_skills if skills.empty?
+    build_default_skill_set if not skill_set
     build_default_trait_set if not trait_set
-    Rails.logger.debug "Built trait set" if not trait_set
   end
 
   private
@@ -27,10 +25,17 @@ class Character < ApplicationRecord
                       will: 0
     end
 
-    def build_default_skills
-      Skill.possible_skill_names.each do |skill_name|
-        skills.build(name: skill_name, value: 0)
-      end
+    def build_default_skill_set
+      build_skill_set arcana: 0,
+                      insight: 0,
+                      examination: 0,
+                      finesse: 0,
+                      might: 0,
+                      lore: 0,
+                      influence: 0,
+                      naturecraft: 0,
+                      stealth: 0,
+                      perception: 0
     end
 
     def build_default_trait_set

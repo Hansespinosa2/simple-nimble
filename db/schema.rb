@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_27_045744) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_27_052805) do
   create_table "characters", force: :cascade do |t|
     t.string "name"
     t.string "race"
@@ -21,6 +21,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_27_045744) do
     t.string "languages"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "skill_sets", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "arcana"
+    t.integer "insight"
+    t.integer "examination"
+    t.integer "finesse"
+    t.integer "might"
+    t.integer "lore"
+    t.integer "influence"
+    t.integer "naturecraft"
+    t.integer "stealth"
+    t.integer "perception"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_skill_sets_on_character_id"
   end
 
   create_table "skills", force: :cascade do |t|
@@ -79,6 +96,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_27_045744) do
     t.index ["character_id"], name: "index_trait_sets_on_character_id"
   end
 
+  add_foreign_key "skill_sets", "characters"
   add_foreign_key "skills", "characters"
   add_foreign_key "stat_sets", "characters"
   add_foreign_key "trait_sets", "characters"

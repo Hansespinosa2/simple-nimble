@@ -67,7 +67,7 @@ class CharactersController < ApplicationController
     # Only allow a list of trusted parameters through using expect.
     def character_params
       stat_set_params_list = [ :id, :strength, :dexterity, :intelligence, :will ]
-      skills_params_list = [ :id, :name, :value ]
+      skill_set_params_list = [ :id, :character, :arcana, :insight, :examination, :finesse, :might, :lore, :influence, :naturecraft, :stealth, :perception ]
       trait_set_params_list = [ :id, :initiative, :speed, :hit_die, :current_hit_dice, :max_hit_dice, :current_actions, :max_actions, :armor, :temp_hp, :current_hp, :max_hp, :current_wounds, :max_wounds ]
       params.expect(character: [
         :name,
@@ -80,7 +80,7 @@ class CharactersController < ApplicationController
         {
           trait_set_attributes: trait_set_params_list,
           stat_set_attributes: stat_set_params_list,
-          skills_attributes: [ skills_params_list ]
+          skill_set_attributes: skill_set_params_list
         }
       ])
     end
