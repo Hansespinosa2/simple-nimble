@@ -46,15 +46,10 @@
       </div>
     </div>
     <div id="character-stats-and-skills" class="flex flex-col justify-center items-center gap-5 border-1 p-2"">
-      <%= render partial: 'attributes/subform', locals: { form: form } %>
+      <%= render partial: 'attributes/stats_and_skills', locals: { form: form } %>
     </div>
-    <div id="character-trait-set" class="flex flex-col justify-center items-center gap-5 border-1 p-2">
-        <%= form.fields_for :trait_set do |trait_set_fields| %>
-          <div class="flex flex-col justify-center items-center">
-            <%= trait_set_fields.number_field :initiative, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-            <label class="text-xs text-gray-500">Initiative</label>
-          </div>
-        <% end %>
+    <div id="character-trait-set" class="flex flex-wrap justify-center items-center gap-5 border-1 p-2">
+        <%= render partial: 'attributes/trait_set', locals: {form: form} %>
     </div>
   </div>
 
