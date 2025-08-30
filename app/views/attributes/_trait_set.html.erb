@@ -1,54 +1,21 @@
 <%= form.fields_for :trait_set do |trait_set_fields| %>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :initiative, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Initiative</label>
+  <div id="action-traits">
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:initiative, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Initiative" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:speed, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Speed" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_actions, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Actions" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_actions, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Actions" } %>
   </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :speed, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Speed</label>
-  </div> 
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.text_field :hit_die, placeholder: "1d6", class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Hit Die</label>
+  <div id="hit-die-traits">
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.text_field(:hit_die, placeholder: "1d6", class: "border-b-1 max-w-20 text-center text-4xl"), label: "Hit Die" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_hit_dice, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Hit Dice" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_hit_dice, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Hit Dice" } %>
   </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :current_hit_dice, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Current Hit Dice</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :max_hit_dice, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Max Hit Dice</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :current_actions, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Current Actions</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :max_actions, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Max Actions</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :armor, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Armor</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :temp_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Temp HP</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :current_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Current HP</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :max_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Max HP</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :current_wounds, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Current Wounds</label>
-  </div>
-  <div class="flex flex-col justify-center items-center">
-    <%= trait_set_fields.number_field :max_wounds, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl" %>
-    <label class="text-xs text-gray-500">Max Wounds</label>
+  <div id="health-traits">
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:armor, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Armor" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:temp_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Temp HP" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current HP" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_hp, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max HP" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_wounds, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Wounds" } %>
+  <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_wounds, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Wounds" } %>
   </div>
 <% end %>
