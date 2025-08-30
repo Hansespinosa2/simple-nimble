@@ -63,6 +63,119 @@ Spell.create(
 )
 
 Spell.create(
+  school: "Fire",
+  name: "Heart's Fire",
+  tier: 0,
+  target: 1,
+  range: 4,
+  action_cost: 1,
+  damage: nil,
+  description: "Give an ally within range an extra action. Spend 1 mana to cast this when it is not your turn.",
+  casting_time: 0,
+  high_level: "+1 range every 5 levels.",
+  upcast: nil
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Ignite",
+  tier: 1,
+  target: 1,
+  range: 8,
+  action_cost: 2,
+  damage: "4d10",
+  description: "Only targets a Smoldering creature; on hit, ends Smoldering.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "+10 damage."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Enchant Weapon",
+  tier: 2,
+  target: 1,
+  range: 1,
+  action_cost: 1,
+  damage: nil,
+  description: "Concentration: Up to 1 minute. A touched weapon is wreathed in magical flame; it deals +KEY damage and inflicts Smoldering on crit.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "+KEY damage."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Flame Barrier",
+  tier: 3,
+  target: 0,
+  range: 0,
+  action_cost: 1,
+  damage: "KEY (ignores armor)",
+  description: "Self. Reaction: When attacked, Defend for free. Until the start of your next turn, melee attackers take KEY damage (ignores armor) and gain Smoldering.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "+KEY damage."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Pyroclasm",
+  tier: 4,
+  target: 0,
+  range: 3,
+  action_cost: 2,
+  damage: "2d20+10 (ignores armor)",
+  description: "Others within reach take damage on a failed DEX save; half on success. Smoldering creatures automatically fail.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "+1 reach, +2 damage."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Fiery Embrace",
+  tier: 5,
+  target: 0,
+  range: 8,
+  action_cost: 2,
+  damage: nil,
+  description: "Concentration: Up to 1 minute. While within reach: choose 1 ally to gain the effects of Enchant Weapon. Enemies gain Smoldering, lose damage resistance, and their damage immunity is reduced to resistance.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "+1 ally."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Living Inferno",
+  tier: 7,
+  target: 0,
+  range: 0,
+  action_cost: 3,
+  damage: nil,
+  description: "Gain the effects of Flame Barrier until your next turn. At the end of this turn and your next turn, cast Pyroclasm for free.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: "Also upcasts Flame Barrier and Pyroclasm."
+)
+
+Spell.create(
+  school: "Fire",
+  name: "Dragonform",
+  tier: 9,
+  target: 0,
+  range: 0,
+  action_cost: 5,
+  damage: nil,
+  description: "Transform into a Huge dragon: gain 3 actions, fly speed 12, LVL Armor, and 10×LVL temp HP. Actions: Tooth & Claw (Action, reach 2): 1d20+LVL damage (ignores armor), inflicts Smoldering. Immolating Breath (2 actions, cone 8): DC 20 DEX save, KEY d20 damage, half on save; Smoldering targets fail. Maintain while temp HP remain (max 10 minutes). When it ends, drop to 0 HP.",
+  casting_time: 0,
+  high_level: nil,
+  upcast: nil
+)
+
+
+Spell.create(
   school: "Ice",
   name: "Ice Lance",
   tier: 0,

@@ -9,8 +9,6 @@ class Character < ApplicationRecord
 
   before_create :ensure_defaults
 
-
-
   def ensure_defaults
     build_default_stat_set if not stat_set
     build_default_skill_set if not skill_set

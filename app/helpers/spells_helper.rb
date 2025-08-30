@@ -6,7 +6,7 @@ module SpellsHelper
     when -1
       "Utility"
     else
-      value.to_s
+      "Tier " + tier.to_s
     end
   end
 
@@ -36,5 +36,18 @@ module SpellsHelper
     else
       casting_time.to_s + " minutes"
     end
+  end
+
+  def color_from_spell_school(spell_school)
+    school_to_spell = {
+      "Fire" =>       "text-red-700",
+      "Ice" =>        "text-blue-300",
+      "Lightning" =>  "text-indigo-700",
+      "Wind" =>       "text-green-700",
+      "Radiant" =>    "text-yellow-600",
+      "Necrotic" =>   "text-purple-700"
+    }
+
+    school_to_spell.fetch(spell_school.capitalize, "text-black")
   end
 end
