@@ -1,1 +1,1 @@
-json.partial! "characters/character", character: @character
+json.partial! "character/form", character: @character, read_only: true # I suspect hella wrong

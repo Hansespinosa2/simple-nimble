@@ -15,46 +15,48 @@
   <div class="flex flex-col gap-2 my-5 max-w-235">
     <div id="character-summary" class="flex gap-5 border-1 p-2">
       <div class="min-w-50">
-          <%= form.text_field :name, placeholder: "Enter Name", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
+          <%= form.text_field :name, disabled: read_only, placeholder: "Enter Name", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
         <p class="text-gray-500 text-xs">Name</p>
       </div>
       <div class="min-w-50">
-          <%= form.text_field :race, placeholder: "Enter Race", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
+          <%= form.text_field :race, disabled: read_only, placeholder: "Enter Race", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
         <p class="text-gray-500 text-xs">Race</p>
       </div>
       <div class="min-w-25">
-          <%= form.text_field :nimble_class, placeholder: "Enter Class", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
+          <%= form.text_field :nimble_class, disabled: read_only, placeholder: "Enter Class", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
         <p class="text-gray-500 text-xs">Class</p>
       </div>
       <div class="min-w-10">
-          <%= form.number_field :level, placeholder: "Enter Level", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
+        <%= form.number_field :level, disabled: read_only, placeholder: "Enter Level", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
         <p class="text-gray-500 text-xs">Level</p>
       </div>
       <div class="min-w-75">
-          <%= form.text_field :background, placeholder: "Enter Background", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
+          <%= form.text_field :background, disabled: read_only, placeholder: "Enter Background", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
         <p class="text-gray-500 text-xs">Background</p>
       </div>
     </div>
     <div id="character-info" class="border-1 p-2">
       <div class="">
-        <%= form.textarea :description, rows: 4, placeholder: "Enter Description", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
+        <%= form.textarea :description, disabled: read_only, rows: 4, placeholder: "Enter Description", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
         <p class="text-gray-500 text-xs">Description</p>
       </div>
       <div class="">
-        <%= form.text_field :languages, placeholder: "Enter Languages", class: [" w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
+        <%= form.text_field :languages, disabled: read_only, placeholder: "Enter Languages", class: [" w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
         <p class="text-gray-500 text-xs">Languages</p>
       </div>
     </div>
     <div id="character-stats-and-skills" class="flex flex-col justify-center items-center gap-5 border-1 p-2"">
-      <%= render partial: 'attributes/stats_and_skills', locals: { form: form } %>
+      <%= render partial: 'attributes/stats_and_skills', locals: { form: form, read_only: read_only } %>
     </div>
     <div id="character-trait-set" class="flex flex-wrap justify-center items-center gap-5 border-1 p-2">
-        <%= render partial: 'attributes/trait_set', locals: {form: form} %>
+        <%= render partial: 'attributes/trait_set', locals: {form: form, read_only: read_only} %>
     </div>
   </div>
 
-  <div class="inline">
-    <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  <% unless read_only %>
+    <div class="inline">
+      <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
     </div>
+  <% end %>
 <% end %>
 

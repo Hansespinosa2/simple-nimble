@@ -1,19 +1,19 @@
 <div class="flex gap-20 items-center">
   <%= form.fields_for :stat_set do |stat_set_fields| %>
     <div class="flex flex-col justify-center items-center">
-      <%= stat_set_fields.text_field :strength, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.text_field :strength, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= stat_set_fields.label :strength, "STR", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= stat_set_fields.text_field :dexterity, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.text_field :dexterity, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= stat_set_fields.label :dexterity, "DEX", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= stat_set_fields.text_field :intelligence, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.text_field :intelligence, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= stat_set_fields.label :intelligence, "INT", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= stat_set_fields.text_field :will, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= stat_set_fields.text_field :will, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= stat_set_fields.label :will, "WIL", class: "text-xs text-gray-500" %>
     </div>
   <% end %>
@@ -21,43 +21,43 @@
 <div class="flex gap-10">
   <%= form.fields_for :skill_set do |skill_set_fields| %>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :arcana, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :arcana, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :arcana, "Arcana", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :insight, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :insight, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :insight, "Insight", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :examination, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :examination, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :examination, "Examination", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :finesse, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :finesse, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :finesse, "Finesse", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :might, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :might, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :might, "Might", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :lore, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :lore, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :lore, "Lore", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :influence, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :influence, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :influence, "Influence", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :naturecraft, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :naturecraft, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :naturecraft, "Naturecraft", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :stealth, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :stealth, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :stealth, "Stealth", class: "text-xs text-gray-500" %>
     </div>
     <div class="flex flex-col justify-center items-center">
-      <%= skill_set_fields.text_field :perception, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
+      <%= skill_set_fields.text_field :perception, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-10 text-center text-4xl" %>
       <%= skill_set_fields.label :perception, "Perception", class: "text-xs text-gray-500" %>
     </div>
   <% end %>
