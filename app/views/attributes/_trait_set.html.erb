@@ -1,16 +1,16 @@
 <%= form.fields_for :trait_set do |trait_set_fields| %>
-  <div id="action-traits">
+  <div id="action-traits" class="flex gap-1">
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:initiative, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Initiative"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:speed, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Speed"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_actions, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Actions"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_actions, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Actions"} %>
   </div>
-  <div id="hit-die-traits">
+  <div id="hit-die-traits" class="flex gap-1">
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.text_field(:hit_die, disabled: read_only, placeholder: "1d6", class: "border-b-1 max-w-20 text-center text-4xl"), label: "Hit Die"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_hit_dice, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Hit Dice"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_hit_dice, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Hit Dice"} %>
   </div>
-  <div id="health-traits">
+  <div id="health-traits" class="flex gap-1">
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:armor, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Armor"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:temp_hp, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Temp HP"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_hp, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current HP"} %>
