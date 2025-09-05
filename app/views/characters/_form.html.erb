@@ -51,6 +51,21 @@
     <div id="character-trait-set" class="flex flex-wrap justify-center items-center gap-5 border-1 p-2">
         <%= render partial: 'attributes/trait_set', locals: {form: form, read_only: read_only} %>
     </div>
+
+    <div id="character-spells" class="border-1 p-2">
+      <% if not read_only %>
+        <%= form.collection_check_boxes :spell_ids, Spell.order(:tier), :id, :name do |cb| %>
+          <label class="inline-flex items-center gap-2 py-1">
+            <%= cb.check_box class: "rounded" %>
+            <span class="<%= color_from_spell_school(cb.object.school)%>"><%=cb.object.name %></span>
+          </label>
+        <% end %>
+      <% else %>
+       <% character.spells.each do |spell| %> 
+        <span class="<%= color_from_spell_school(spell.school)%>"><%=spell.name %></span>
+       <% end %>
+      <% end %>
+    </div>
   </div>
 
   <% unless read_only %>

@@ -81,7 +81,8 @@ class CharactersController < ApplicationController
           trait_set_attributes: trait_set_params_list,
           stat_set_attributes: stat_set_params_list,
           skill_set_attributes: skill_set_params_list
-        }
+        },
+        spell_ids: []
       ])
     end
 end
