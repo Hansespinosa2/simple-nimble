@@ -7,6 +7,9 @@ class Character < ApplicationRecord
   accepts_nested_attributes_for :skill_set
   accepts_nested_attributes_for :trait_set
 
+  has_many :character_spells
+  has_many :spells, through: :character_spells
+
   before_create :ensure_defaults
 
   def ensure_defaults

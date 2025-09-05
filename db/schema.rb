@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_27_052805) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_05_025007) do
+  create_table "character_spells", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "spell_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_character_spells_on_character_id"
+    t.index ["spell_id"], name: "index_character_spells_on_spell_id"
+  end
+
   create_table "characters", force: :cascade do |t|
     t.string "name"
     t.string "race"
@@ -38,15 +47,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_27_052805) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["character_id"], name: "index_skill_sets_on_character_id"
-  end
-
-  create_table "skills", force: :cascade do |t|
-    t.string "name"
-    t.integer "value"
-    t.integer "character_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["character_id"], name: "index_skills_on_character_id"
   end
 
   create_table "spells", force: :cascade do |t|
@@ -96,8 +96,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_27_052805) do
     t.index ["character_id"], name: "index_trait_sets_on_character_id"
   end
 
+  add_foreign_key "character_spells", "characters"
+  add_foreign_key "character_spells", "spells"
   add_foreign_key "skill_sets", "characters"
-  add_foreign_key "skills", "characters"
   add_foreign_key "stat_sets", "characters"
   add_foreign_key "trait_sets", "characters"
 end
