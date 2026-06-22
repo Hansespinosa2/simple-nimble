@@ -10,88 +10,88 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_05_025007) do
+ActiveRecord::Schema[8.1].define(version: 2025_09_05_025007) do
   create_table "character_spells", force: :cascade do |t|
     t.integer "character_id", null: false
-    t.integer "spell_id", null: false
     t.datetime "created_at", null: false
+    t.integer "spell_id", null: false
     t.datetime "updated_at", null: false
     t.index ["character_id"], name: "index_character_spells_on_character_id"
     t.index ["spell_id"], name: "index_character_spells_on_spell_id"
   end
 
   create_table "characters", force: :cascade do |t|
-    t.string "name"
-    t.string "race"
-    t.string "nimble_class"
-    t.integer "level"
     t.string "background"
+    t.datetime "created_at", null: false
     t.text "description"
     t.string "languages"
-    t.datetime "created_at", null: false
+    t.integer "level"
+    t.string "name"
+    t.string "nimble_class"
+    t.string "race"
     t.datetime "updated_at", null: false
   end
 
   create_table "skill_sets", force: :cascade do |t|
-    t.integer "character_id", null: false
     t.integer "arcana"
-    t.integer "insight"
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
     t.integer "examination"
     t.integer "finesse"
-    t.integer "might"
-    t.integer "lore"
     t.integer "influence"
+    t.integer "insight"
+    t.integer "lore"
+    t.integer "might"
     t.integer "naturecraft"
-    t.integer "stealth"
     t.integer "perception"
-    t.datetime "created_at", null: false
+    t.integer "stealth"
     t.datetime "updated_at", null: false
     t.index ["character_id"], name: "index_skill_sets_on_character_id"
   end
 
   create_table "spells", force: :cascade do |t|
-    t.string "school"
-    t.string "name"
-    t.integer "tier"
-    t.integer "target"
     t.integer "action_cost"
-    t.integer "range"
+    t.integer "casting_time"
+    t.datetime "created_at", null: false
     t.string "damage"
     t.text "description"
-    t.integer "casting_time"
     t.text "high_level"
+    t.string "name"
+    t.integer "range"
+    t.string "school"
+    t.integer "target"
+    t.integer "tier"
     t.text "upcast"
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "stat_sets", force: :cascade do |t|
-    t.integer "strength"
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
     t.integer "dexterity"
     t.integer "intelligence"
-    t.integer "will"
-    t.datetime "created_at", null: false
+    t.integer "strength"
     t.datetime "updated_at", null: false
-    t.integer "character_id", null: false
+    t.integer "will"
     t.index ["character_id"], name: "index_stat_sets_on_character_id"
   end
 
   create_table "trait_sets", force: :cascade do |t|
-    t.integer "character_id", null: false
-    t.integer "initiative"
-    t.integer "speed"
-    t.string "hit_die"
-    t.integer "current_hit_dice"
-    t.integer "max_hit_dice"
-    t.integer "current_actions"
-    t.integer "max_actions"
     t.integer "armor"
-    t.integer "temp_hp"
-    t.integer "current_hp"
-    t.integer "max_hp"
-    t.integer "current_wounds"
-    t.integer "max_wounds"
+    t.integer "character_id", null: false
     t.datetime "created_at", null: false
+    t.integer "current_actions"
+    t.integer "current_hit_dice"
+    t.integer "current_hp"
+    t.integer "current_wounds"
+    t.string "hit_die"
+    t.integer "initiative"
+    t.integer "max_actions"
+    t.integer "max_hit_dice"
+    t.integer "max_hp"
+    t.integer "max_wounds"
+    t.integer "speed"
+    t.integer "temp_hp"
     t.datetime "updated_at", null: false
     t.index ["character_id"], name: "index_trait_sets_on_character_id"
   end
