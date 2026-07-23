@@ -81,7 +81,7 @@ module SpecSync
         headers.zip(values).to_h
       end
 
-      [headers, rows]
+      [ headers, rows ]
     end
 
     def split_markdown_row(line)

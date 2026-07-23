@@ -28,14 +28,14 @@ class SpecSyncTrackerTest < ActiveSupport::TestCase
       title: "Level-Up",
       status: "Draft",
       path: "specs/app/06-level-up.md",
-      acceptance_criteria: [criterion]
+      acceptance_criteria: [ criterion ]
     )
 
     tracker = SpecSync::Tracker.new(
-      catalog: FakeCatalog.new([spec], [reference]),
+      catalog: FakeCatalog.new([ spec ], [ reference ]),
       status_store: FakeStore.new({ "S-06:AC-2" => "blocked" }),
       git_commit_index: FakeGitCommitIndex.new({
-        "S-06:AC-2" => [SpecSync::CommitLink.new(sha: "abcdef1", summary: "feat: cover S-06:AC-2")]
+        "S-06:AC-2" => [ SpecSync::CommitLink.new(sha: "abcdef1", summary: "feat: cover S-06:AC-2") ]
       })
     )
 
@@ -81,12 +81,12 @@ class SpecSyncTrackerTest < ActiveSupport::TestCase
     ]
 
     tracker = SpecSync::Tracker.new(
-      catalog: FakeCatalog.new(specs, [first_reference, second_reference]),
+      catalog: FakeCatalog.new(specs, [ first_reference, second_reference ]),
       status_store: FakeStore.new({}),
       git_commit_index: FakeGitCommitIndex.new({})
     )
 
-    assert_equal ["S-05:AC-1"], tracker.criterion_statuses(filter: "S-05").map { |row| row.reference.to_s }
-    assert_equal ["S-06:AC-1"], tracker.criterion_statuses(filter: "S-06:AC-1").map { |row| row.reference.to_s }
+    assert_equal [ "S-05:AC-1" ], tracker.criterion_statuses(filter: "S-05").map { |row| row.reference.to_s }
+    assert_equal [ "S-06:AC-1" ], tracker.criterion_statuses(filter: "S-06:AC-1").map { |row| row.reference.to_s }
   end
 end

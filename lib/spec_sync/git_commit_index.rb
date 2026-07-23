@@ -38,7 +38,7 @@ module SpecSync
         next unless record.include?("\x00")
 
         sha, message = record.sub(/\A\n+/, "").split("\x00", 2)
-        [sha, message.to_s]
+        [ sha, message.to_s ]
       end
     end
   end

@@ -1,6 +1,6 @@
 namespace :spec_sync do
   desc "Show spec acceptance-criteria implementation status"
-  task :status, [:filter] => :environment do |_task, args|
+  task :status, [ :filter ] => :environment do |_task, args|
     tracker = SpecSync::Tracker.new
     tracker.validate!
 
@@ -41,7 +41,7 @@ namespace :spec_sync do
   end
 
   desc "Set a manual implementation status for an acceptance criterion"
-  task :mark, [:reference, :status, :notes] => :environment do |_task, args|
+  task :mark, [ :reference, :status, :notes ] => :environment do |_task, args|
     reference = SpecSync::Reference.parse(args[:reference])
     tracker = SpecSync::Tracker.new
     tracker.validate!
