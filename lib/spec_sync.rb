@@ -1,0 +1,2 @@
+module SpecSync
+end
