@@ -1,0 +1,44 @@
+name: Validate Spec Sync
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  validate:
+    name: Validate Spec Sync Configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.3
+          bundler-cache: true
+
+      - name: Validate spec sync
+        run: bundle exec rake spec_sync:validate
+
+      - name: Report status
+        if: success()
+        run: echo "✓ Spec sync configuration is valid"
+
+      - name: Explain error
+        if: failure()
+        run: |
+          echo "✗ Spec sync validation failed"
+          echo ""
+          echo "This usually means one of:"
+          echo "  1. A criterion reference in specs/implementation_status.yml doesn't exist in the specs"
+          echo "  2. An invalid manual status (use: todo, in_progress, or blocked)"
+          echo ""
+          echo "To debug locally:"
+          echo "  bundle exec rake spec_sync:validate"
+          exit 1

@@ -181,3 +181,31 @@ For detailed information, see the session workspace documents:
 - **Quick Reference** — How to use the system with practical examples
 - **Architecture** — Deep dive into how the system works
 - **Bug Fixes** — What was fixed and why (includes before/after code)
+
+### Commit Message Tips
+
+When your changes implement one or more acceptance criteria, mention them in the commit message. The system will automatically link those commits to the criteria.
+
+**Example commit:**
+
+```bash
+git commit -m "feat: Add character creation form and validation
+
+- Build character creation wizard per S-05:AC-1
+- Implement field validation rules per S-05:AC-2
+- Calculate derived attributes per S-05:AC-3
+- Add test coverage for all scenarios
+
+Closes #42"
+```
+
+The system will find `S-05:AC-1`, `S-05:AC-2`, and `S-05:AC-3`, and automatically mark them as `[done]` when you run `rake spec_sync:status`.
+
+**Format:** Mention criteria as `S-NN:AC-N` anywhere in the commit message (subject or body).
+
+**View progress:** After pushing, run:
+```bash
+bundle exec rake spec_sync:status[S-05]
+```
+
+You should see your commits linked to the criteria they implement.
