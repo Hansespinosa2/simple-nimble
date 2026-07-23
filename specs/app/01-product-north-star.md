@@ -35,6 +35,12 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 | The product should support house rules soon after the core release | `[Validated]` | Direct user answer |
 | Shared campaign collaboration matters, but it is not the core promise | `[Validated]` | User prioritized character legality over collaboration |
 | Accounts and login are required from the start of shared functionality | `[Validated]` | Direct user answer |
+| Character editing is legal-only for v1; freeform editing is a future feature | `[Validated]` | Direct user answer |
+| Import of existing characters is in scope from the start | `[Validated]` | Direct user answer |
+| The threshold for "no rulebook needed" is zero — verified through UX testing | `[Validated]` | Direct user answer |
+| Character editing is legal-only for v1; freeform editing is a future feature | `[Validated]` | Direct user answer |
+| Import of existing characters is in scope from the start | `[Validated]` | Direct user answer |
+| The threshold for "no rulebook needed" is zero — verified through UX testing | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -45,6 +51,7 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 | S-3 | Rules-aware explanations | The app explains why a choice is legal or illegal and cites its source |
 | S-4 | Structured spell/rules reference | Rules content is stored in a curated, queryable format |
 | S-5 | Shared viewing with the GM | Collaboration begins with player-owned sheets shared to a campaign context |
+| S-6 | Import of existing characters | Players can import characters from outside the app from day one |
 
 ## 5. Out of scope
 
@@ -76,10 +83,10 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 
 | ID | Type | Criterion | Status |
 |---|---|---|---|
-| AC-1 | Behavioral | A player can complete a legal character creation flow inside the app without manually calculating rule-derived fields outside the app. | `[Assumed: verify]` |
+| AC-1 | Behavioral | A player can complete a legal character creation flow inside the app without manually calculating rule-derived fields outside the app. | `[Validated]` |
 | AC-2 | Behavioral | A player can complete a legal level-up flow and the app only permits options valid for the chosen class, level, and rules state. | `[Validated]` |
 | AC-3 | Behavioral | When the app blocks a choice, it shows the exact rule reason and a source reference. | `[Validated]` |
-| AC-4 | Negative | The product does not require the player to use a separate spreadsheet or paper aid for the core creation and level-up flows. | `[Assumed: verify]` |
+| AC-4 | Negative | The product does not require the player to use a separate spreadsheet or paper aid for the core creation and level-up flows. | `[Validated]` |
 | AC-5 | Negative | The first release does not optimize for real-time tactical combat assistance. | `[Validated]` |
 | AC-6 | Dependency | Rules content required for creation and level-up exists in structured, versioned form before those flows are considered complete. | `[Validated]` |
 
@@ -101,11 +108,7 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | How much of character editing should remain legal-only versus freeform? | Changes lifecycle, permissions, and save rules | Product owner |
-| TBD-2 | What exact threshold counts as "without relying heavily on the rulebook"? | Needed for measurable UX evaluation | Product owner |
-| TBD-3 | When should import of existing characters enter scope? | Changes creation and lifecycle | Product owner |
+All TBDs resolved. No open questions remain for this spec.
 
 ## 12. Evaluation hooks
 

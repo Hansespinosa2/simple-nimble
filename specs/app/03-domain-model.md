@@ -32,6 +32,11 @@ specs can be expressed without inventing hidden entities.
 | Player-owned characters are primary | `[Validated]` | Direct user answer |
 | GM read access is the first collaboration behavior | `[Validated]` | User prioritized read-only sharing first |
 | GM edit access may matter later | `[Assumed: verify]` | User liked it, but did not promote it to first priority |
+| Characters maintain full revision history at every lifecycle stage | `[Validated]` | Direct user answer — enables health/inventory tracking over time |
+| Revision strategy: full snapshots at lifecycle milestones + deltas within states | `[Validated]` | Direct user answer |
+| A character can belong to multiple campaigns simultaneously | `[Validated]` | Direct user answer |
+| Sharing is a permission overlay, not a lifecycle state | `[Validated]` | Direct user answer |
+| House rules are out of scope for v1 | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -88,7 +93,7 @@ Current repo entities that likely remain but need reframing:
 |---|---|---|---|
 | AC-1 | Behavioral | The model can represent which account owns a character and which campaign members can view it. | `[Assumed: verify]` |
 | AC-2 | Behavioral | The model can represent a character's rules context separately from the character's mutable fields. | `[Assumed: verify]` |
-| AC-3 | Behavioral | The model can preserve prior character states or revisions relevant to legality and audit. | `[Unknown: TBD]` |
+| AC-3 | Behavioral | The model can preserve prior character states or revisions relevant to legality and audit. | `[Validated]` |
 | AC-4 | Negative | Campaign membership is not used as a substitute for account ownership. | `[Assumed: verify]` |
 | AC-5 | Dependency | Creation, level-up, and sharing specs must not introduce entities that are absent from this spec. | `[Validated]` |
 
@@ -110,11 +115,7 @@ Current repo entities that likely remain but need reframing:
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | Do characters need full revision history or only last-valid snapshot? | Changes persistence and evaluation | Product owner |
-| TBD-2 | Are house rules attached to accounts, campaigns, or characters? | Shapes rules-context relationships | Product owner |
-| TBD-3 | Should a character belong to one campaign at a time or multiple? | Changes collaboration model and sharing joins | Product owner |
+All TBDs resolved. No open questions remain for this spec.
 
 ## 12. Evaluation hooks
 

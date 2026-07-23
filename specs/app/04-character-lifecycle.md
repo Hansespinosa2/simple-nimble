@@ -30,6 +30,9 @@ and campaign sharing without ambiguous ownership or legality rules.
 | First anchor scope is create a new character and level it up inside the app | `[Validated]` | Direct user answer |
 | Import, editing, and archive/history matter but are not the anchor starting point | `[Validated]` | User likes them, but not first |
 | Strict legality gates should block invalid finalized states for now | `[Validated]` | Direct user answer |
+| Invalid drafts are saveable; characters may be saved in an incomplete state | `[Validated]` | Direct user answer |
+| Sharing is a permission overlay, not a lifecycle state | `[Validated]` | Direct user answer |
+| Legacy character behavior after canon changes is out of scope for v1 | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -63,21 +66,17 @@ Suggested lifecycle:
 2. `PlayableValid` - legal under chosen rules context
 3. `LevelUpInProgress` - temporary workflow state
 4. `PlayableValidUpdated` - newly validated post-level-up state
-5. `SharedToCampaign` - visibility overlay, not necessarily a separate lifecycle root
-
-Open modeling note:
-
-- Sharing may be an orthogonal state rather than a lifecycle step. `[Unknown: TBD]`
+5. Sharing is implemented as a **permission overlay** — a character retains its lifecycle state (e.g., `PlayableValid`) and a separate `CampaignShare` permission record grants visibility to campaign members. A character can be shared to multiple campaigns simultaneously.
 
 ## 8. Acceptance criteria
 
 | ID | Type | Criterion | Status |
 |---|---|---|---|
-| AC-1 | Behavioral | A new character can exist in a draft state before being finalized as legally playable. | `[Assumed: verify]` |
+| AC-1 | Behavioral | A new character can exist in a draft state before being finalized as legally playable. | `[Validated]` |
 | AC-2 | Behavioral | A character cannot enter the playable valid state unless required legality checks pass. | `[Validated]` |
 | AC-3 | Behavioral | Level-up occurs as an explicit transition rather than a silent field edit. | `[Validated]` |
-| AC-4 | Negative | A shared campaign view does not transfer character ownership away from the player by default. | `[Assumed: verify]` |
-| AC-5 | Edge case | If a rules update invalidates an existing character, the app preserves the prior valid state and surfaces the mismatch. | `[Unknown: TBD]` |
+| AC-4 | Negative | A shared campaign view does not transfer character ownership away from the player by default. | `[Validated]` |
+| AC-5 | Edge case | If a rules update invalidates an existing character, the app preserves the prior valid state and surfaces the mismatch. | `[Out of scope: v1]` |
 
 ## 9. Failure conditions
 
@@ -96,11 +95,7 @@ Open modeling note:
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | Should drafts be saveable when invalid, or only when incomplete? | Changes strictness and user recovery | Product owner |
-| TBD-2 | Is sharing a lifecycle state or a separate permission overlay? | Changes data model and permissions | Product owner |
-| TBD-3 | How should legacy characters behave after canon changes? | Changes revisions and evaluation | Product owner |
+All TBDs resolved. No open questions remain for this spec.
 
 ## 12. Evaluation hooks
 

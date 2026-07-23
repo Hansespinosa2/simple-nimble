@@ -32,6 +32,9 @@ records rather than hard-coded UI logic or freeform text blobs alone.
 | Nimble is the canonical system first | `[Validated]` | Direct user answer |
 | House rules should be supported soon | `[Validated]` | Direct user answer |
 | Rules explanations should cite exact reason and source | `[Validated]` | Direct user answer |
+| Source citations use section references (e.g., Chapter 3, Section 5) | `[Validated]` | Direct user answer |
+| Overrides are stored alongside — not replacing — the original canon rule | `[Validated]` | Direct user answer |
+| House rules are out of scope for v1 | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -49,6 +52,7 @@ records rather than hard-coded UI logic or freeform text blobs alone.
 | X-1 | Unstructured prose-only rules import as the long-term model | Prevents legality engine and explanations |
 | X-2 | Multi-system rules engine | Product is Nimble-first |
 | X-3 | Community-authored open marketplace of rules packs | Too broad for current product phase |
+| X-4 | House rules | Out of scope for v1; to be introduced in a later release |
 
 ## 6. Actors and roles
 
@@ -74,7 +78,7 @@ records rather than hard-coded UI logic or freeform text blobs alone.
 | AC-2 | Behavioral | Each enforceable rule element includes a source reference that can be surfaced in UI explanations. | `[Validated]` |
 | AC-3 | Behavioral | A character can be associated with a specific rules version or rules context. | `[Assumed: verify]` |
 | AC-4 | Negative | The app does not rely on scattered hard-coded conditionals as the only implementation of game rules. | `[Assumed: verify]` |
-| AC-5 | Edge case | If an override conflicts with base canon, the system preserves both the official rule and the active override record. | `[Unknown: TBD]` |
+| AC-5 | Edge case | If an override conflicts with base canon, the system preserves both the official rule and the active override record. | `[Validated]` |
 | AC-6 | Dependency | Creation and level-up specs cannot be finalized until the minimum required rules entities are enumerated. | `[Validated]` |
 
 ## 9. Failure conditions
@@ -97,9 +101,9 @@ records rather than hard-coded UI logic or freeform text blobs alone.
 
 | ID | Question | Why it matters | Owner |
 |---|---|---|---|
-| TBD-1 | What exact rule entities are required for v1 legality? | Prevents over- or under-modeling the canon | Product owner |
-| TBD-2 | How are house rules scoped: per character, per campaign, or per account? | Changes override design and sharing | Product owner |
-| TBD-3 | What constitutes a source citation: page, section, URL, note, or all of them? | Needed for explanation UX and auditability | Product owner |
+| TBD-1 | What exact rule entities are required for v1 legality? | Prevents over- or under-modeling the canon — awaiting Nimble PDF source documents | Product owner |
+
+TBD-2 and TBD-3 resolved. House rules are out of scope for v1. Citations use section references.
 
 ## 12. Evaluation hooks
 
