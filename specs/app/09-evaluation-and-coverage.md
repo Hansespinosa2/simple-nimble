@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer plus QA
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -30,6 +30,9 @@ then confirm no anchor promise exists without an evaluation hook.
 | The specs should act as success criteria and full product context | `[Validated]` | Direct user goal |
 | The specs should support ongoing evaluations to discover missing work | `[Validated]` | Direct user goal |
 | Strict legality is valuable partly because it helps verify rules correctness | `[Validated]` | Direct user answer |
+| The "no rulebook needed" threshold is zero — a player should never need to consult the rulebook | `[Validated]` | Carry-over from 01-product-north-star.md |
+| v1 release requires 100% class coverage and 80% race and spell coverage | `[Validated]` | Direct user answer |
+| Coverage matrix format is a generated report | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -90,11 +93,11 @@ then confirm no anchor promise exists without an evaluation hook.
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | What measurable threshold defines "without relying heavily on the rulebook"? | Needed for UX evaluation | Product owner |
-| TBD-2 | What minimum class/race/spell coverage is required for v1? | Needed for release gating | Product owner |
-| TBD-3 | What format should the coverage matrix take: markdown, generated report, or both? | Affects maintenance workflow | Product owner |
+All TBDs resolved. No open questions remain for this spec.
+
+TBD-1 resolved: The threshold is zero — a player should never need to consult the rulebook. Verified through UX testing.
+TBD-2 resolved: v1 release requires 100% class coverage and 80% race and spell coverage.
+TBD-3 resolved: Coverage matrix is a generated report.
 
 ## 12. Evaluation hooks
 

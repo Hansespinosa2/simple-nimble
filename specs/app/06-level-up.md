@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -29,6 +29,10 @@ accepts only legal choices, applies rule-driven updates, and surfaces source-bac
 | Level-up is the first must-win product moment | `[Validated]` | Direct user answer |
 | The app should hard-stop invalid choices for now | `[Validated]` | Direct user answer |
 | The app should later likely support warnings-only flexibility | `[Assumed: verify]` | Future mode, not v1 |
+| Recalculations during level-up show as a live preview after each choice but nothing persists until finalization | `[Validated]` | Direct user answer |
+| Invalid level-up drafts can be saved before finalization | `[Validated]` | Direct user answer |
+| A completed level-up is a lifecycle milestone — each level-up produces a full character snapshot | `[Validated]` | Direct user answer — consistent with 03-domain-model.md revision strategy |
+| Rules context changes are out of scope for v1 — v1 assumes a fixed rules context for all characters | `[Out of scope: v1]` | Direct user answer — future feature: upgrade screen to walk characters through rule changes |
 | Explanations should show exact reason and source | `[Validated]` | Direct user answer |
 
 ## 4. In scope
@@ -75,7 +79,7 @@ accepts only legal choices, applies rule-driven updates, and surfaces source-bac
 | AC-4 | Behavioral | For every blocked or required choice, the app shows the rule reason and source reference without requiring the user to leave the flow. | `[Validated]` |
 | AC-5 | Negative | The app does not allow a player to finalize a level-up into an illegal character state. | `[Validated]` |
 | AC-6 | Negative | The app does not silently mutate unrelated character data during level-up. | `[Assumed: verify]` |
-| AC-7 | Edge case | If the rules context changed since the character's last valid state, the app surfaces that mismatch before or during level-up. | `[Unknown: TBD]` |
+| AC-7 | Edge case | If the rules context changed since the character's last valid state, the app surfaces that mismatch before or during level-up. | `[Out of scope: v1]` |
 | AC-8 | Dependency | Golden level-up scenarios for each in-scope class must exist and pass before the feature is considered complete. | `[Validated]` |
 
 ## 9. Failure conditions
@@ -99,8 +103,12 @@ accepts only legal choices, applies rule-driven updates, and surfaces source-bac
 | ID | Question | Why it matters | Owner |
 |---|---|---|---|
 | TBD-1 | Should recalculations appear live after each choice or at step boundaries? | Affects UX and implementation complexity | Product owner |
-| TBD-2 | Should users be allowed to enter a tentative invalid level-up draft before finalization? | Affects strictness, recovery, and persistence | Product owner |
-| TBD-3 | What audit trail is required for a completed level-up? | Affects revisions, debugging, and trust | Product owner |
+
+TBD-1 resolved: Live preview after each choice, but nothing persists until finalization.
+TBD-2 resolved: Invalid level-up drafts can be saved before finalization; only final commit requires a legal state.
+TBD-3 resolved: A completed level-up is a lifecycle milestone — a full character snapshot is produced on completion.
+
+Note on AC-7 (rules context mismatch): Out of scope for v1. v1 assumes rules do not change. Future feature: an upgrade screen that walks existing characters through rule-change updates.
 
 ## 12. Evaluation hooks
 

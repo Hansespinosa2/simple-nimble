@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer plus designer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -29,6 +29,10 @@ traced to a source-backed explanation.
 |---|---|---|
 | The user wants exact reason plus source, not just a short generic message | `[Validated]` | Direct user answer |
 | Explanations are critical to validating the rules themselves | `[Validated]` | User wants strictness partly to verify rule correctness |
+| Minimum citation shape includes a source reference (chapter and section) plus a quote snippet from the rule | `[Validated]` | Direct user answer |
+| Override explanations display the active override rule with a note that official canon differs | `[Validated]` | Direct user answer — applies when house rules come in scope |
+| When multiple rules jointly cause a block, all contributing rules are shown in the explanation | `[Validated]` | Direct user answer |
+| "Blocked", "recommended", and "auto-applied" explanation types have distinct visual treatments (different icons, colors, or label text) | `[Validated]` | Direct user answer |
 
 ## 4. In scope
 
@@ -68,10 +72,10 @@ traced to a source-backed explanation.
 |---|---|---|---|
 | AC-1 | Behavioral | Every blocked creation or level-up action shows a specific reason tied to an identifiable rule. | `[Validated]` |
 | AC-2 | Behavioral | Every explanation includes source metadata sufficient for the user to inspect the underlying rule. | `[Validated]` |
-| AC-3 | Behavioral | The explanation identifies the active rules context, including when an override affects the result. | `[Unknown: TBD]` |
+| AC-3 | Behavioral | The explanation identifies the active rules context, including when an override affects the result. | `[Validated]` |
 | AC-4 | Negative | The app does not present unexplained hard stops for legality-critical actions. | `[Validated]` |
 | AC-5 | Negative | The app does not substitute a vague summary for source-backed reasoning in strict mode. | `[Validated]` |
-| AC-6 | Edge case | If multiple rules jointly cause a block, the explanation preserves the primary reason and reveals supporting rules. | `[Unknown: TBD]` |
+| AC-6 | Edge case | If multiple rules jointly cause a block, the explanation shows all contributing rules. | `[Validated]` |
 
 ## 9. Failure conditions
 
@@ -90,11 +94,11 @@ traced to a source-backed explanation.
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | What is the minimum citation shape the UI must expose? | Affects trust and layout | Product owner |
-| TBD-2 | How should overrides be shown compared with official canon? | Critical for house-rule trust | Product owner |
-| TBD-3 | Should the app distinguish between "blocked", "recommended", and "auto-applied" explanation types visually? | Affects UX design and clarity | Product owner |
+All TBDs resolved. No open questions remain for this spec.
+
+TBD-1 resolved: Citation shape includes a source reference (chapter and section) plus a quote snippet from the rule.
+TBD-2 resolved: Override explanations display the active override rule with a note that official canon differs. Applies when house rules come in scope.
+TBD-3 resolved: "Blocked", "recommended", and "auto-applied" explanation types have distinct visual treatments (different icons, colors, or label text).
 
 ## 12. Evaluation hooks
 

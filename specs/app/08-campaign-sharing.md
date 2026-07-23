@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -30,6 +30,10 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 | Shared app with party/campaign collaboration matches the next meaningful version | `[Validated]` | Direct user answer |
 | Most important collaboration behavior is players sharing read-only sheets with the GM | `[Validated]` | Direct user answer |
 | GM edit ability is interesting but secondary | `[Assumed: verify]` | User liked it, but not as the first collaboration behavior |
+| GM read access in v1 means read access to the full character sheet | `[Validated]` | Direct user answer |
+| Campaign workspace contains only character visibility for v1; no other shared resources are in scope | `[Validated]` | Direct user answer |
+| A character can belong to multiple campaigns simultaneously | `[Validated]` | Carry-over from 03-domain-model.md |
+| Leaving or removing a character from a campaign deletes the CampaignShare permission record and revokes access; no frozen state is needed | `[Validated]` | Resolved by permissions overlay model — consistent with 04-character-lifecycle.md |
 | Accounts and login are required | `[Validated]` | Direct user answer |
 
 ## 4. In scope
@@ -39,7 +43,7 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 | S-1 | Accounts and login | Required foundation |
 | S-2 | Campaign container | Place where players and GM relate |
 | S-3 | Read-only character sharing to GM | First collaboration target |
-| S-4 | Shared campaign workspace | Important later within collaboration, but still in this doc's boundary |
+| S-4 | Shared campaign workspace | v1 scope: character visibility only; no other shared resources |
 
 ## 5. Out of scope
 
@@ -72,7 +76,7 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 | AC-2 | Behavioral | A GM account can inspect shared player-linked sheets in a campaign context. | `[Validated]` |
 | AC-3 | Behavioral | Accounts and permissions are required for campaign access. | `[Validated]` |
 | AC-4 | Negative | A GM cannot edit a player-owned sheet unless the permission model explicitly grants that capability. | `[Assumed: verify]` |
-| AC-5 | Edge case | If a player leaves a campaign, the system defines whether the shared link is removed, frozen, or transferred. | `[Unknown: TBD]` |
+| AC-5 | Edge case | If a player leaves a campaign, the CampaignShare permission record is deleted and GM access is revoked. No frozen or transferred state exists. | `[Validated]` |
 | AC-6 | Dependency | Campaign sharing depends on an explicit account and role model in the domain spec. | `[Validated]` |
 
 ## 9. Failure conditions
@@ -92,11 +96,11 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | What exact permissions does a GM have on a shared character in v1? | Core collaboration boundary | Product owner |
-| TBD-2 | What belongs in the shared campaign workspace besides character visibility? | Changes scope significantly | Product owner |
-| TBD-3 | Can one character belong to multiple campaigns? | Changes permissions and ownership handling | Product owner |
+All TBDs resolved. No open questions remain for this spec.
+
+TBD-1 resolved: GM read access in v1 means read access to the full character sheet.
+TBD-2 resolved: Campaign workspace contains only character visibility in v1; no other shared resources.
+TBD-3 resolved: A character can belong to multiple campaigns simultaneously (carry-over from 03-domain-model.md).
 
 ## 12. Evaluation hooks
 

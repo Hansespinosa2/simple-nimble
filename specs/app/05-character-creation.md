@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -30,6 +30,8 @@ choices, calculates required values, and produces a playable valid character.
 | Character creation is part of the first anchor scope | `[Validated]` | Direct user answer |
 | The app should guide and enforce legal choices | `[Validated]` | Direct user answer |
 | Rules explanations should include exact reason and source | `[Validated]` | Direct user answer |
+| Invalid drafts can be saved and resumed without losing prior legal choices | `[Validated]` | Direct user answer — consistent with 04-character-lifecycle.md |
+| Creation flow includes ~3 debug preset builds per level (levels 1–20) from varied classes/subclasses | `[Validated]` | Direct user answer — for testing and QA purposes |
 
 ## 4. In scope
 
@@ -38,7 +40,8 @@ choices, calculates required values, and produces a playable valid character.
 | S-1 | New character start flow | Enter or select required starting decisions |
 | S-2 | Rules-aware validation | Prevent illegal combinations and missing required choices |
 | S-3 | Derived values calculation | Stats, traits, spells, and related values are not all manual |
-| S-4 | Draft save and resume behavior | Important for realistic usage, though exact boundaries are TBD |
+| S-4 | Draft save and resume behavior | Invalid drafts can be saved; only the PlayableValid transition requires legality checks |
+| S-5 | Debug preset builds | ~3 preset builds per level (1–20) across varied classes/subclasses for testing and QA |
 
 ## 5. Out of scope
 
@@ -74,7 +77,7 @@ Suggested creation flow:
 | AC-2 | Behavioral | When a player selects a starting option with downstream effects, the app recalculates all directly affected derived values before finalization. | `[Assumed: verify]` |
 | AC-3 | Behavioral | A player can see why an option is unavailable or invalid from inside the creation flow. | `[Validated]` |
 | AC-4 | Negative | The creation flow does not ask the player to manually perform core legality calculations outside the app. | `[Assumed: verify]` |
-| AC-5 | Edge case | If a player leaves the flow before finalization, the draft can be resumed without losing prior legal choices. | `[Unknown: TBD]` |
+| AC-5 | Edge case | If a player leaves the flow before finalization, the draft can be resumed without losing prior legal choices. | `[Validated]` |
 | AC-6 | Dependency | Starting-option rules for the relevant classes/races/spells must exist in structured canon before the flow is called complete. | `[Validated]` |
 
 ## 9. Failure conditions
@@ -96,9 +99,10 @@ Suggested creation flow:
 
 | ID | Question | Why it matters | Owner |
 |---|---|---|---|
-| TBD-1 | What exact creation steps are mandatory versus optional? | Needed for flow design and validation | Product owner |
-| TBD-2 | What kind of draft-saving behavior is acceptable before legality is achieved? | Changes persistence and UX | Product owner |
-| TBD-3 | Should the flow recommend builds or only validate them? | Changes assistant behavior and explanation UX | Product owner |
+| TBD-1 | What exact creation steps are mandatory versus optional? | Needed for flow design and validation — blocked on 02-TBD1 (Nimble PDF extraction) | Product owner |
+
+TBD-2 resolved: Invalid drafts can be saved; only the PlayableValid transition requires legality checks.
+TBD-3 resolved: Creation flow includes ~3 debug preset builds per level (levels 1–20) across varied classes/subclasses for testing and QA purposes.
 
 ## 12. Evaluation hooks
 
