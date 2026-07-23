@@ -97,12 +97,15 @@ Suggested creation flow:
 
 ## 11. Open questions / TBDs
 
-| ID | Question | Why it matters | Owner |
-|---|---|---|---|
-| TBD-1 | What exact creation steps are mandatory versus optional? | Needed for flow design and validation — blocked on 02-TBD1 (Nimble PDF extraction) | Product owner |
+All TBDs resolved.
 
-TBD-2 resolved: Invalid drafts can be saved; only the PlayableValid transition requires legality checks.
-TBD-3 resolved: Creation flow includes ~3 debug preset builds per level (levels 1–20) across varied classes/subclasses for testing and QA purposes.
+- **TBD-1** `[Resolved]` — Mandatory vs optional creation steps, now that the entity list is confirmed:
+  - **Mandatory** (character cannot reach PlayableValid without these): Choose Class, Choose Ancestry, Choose Background, Assign stat array (Standard / Balanced / Min-Max), Distribute 4 extra skill points at level 1, Record all derived values (HP, Armor, Initiative, Speed, Inventory Slots, Languages, Save DC).
+  - **Optional (flavor only)**: Character name, adventuring motivation, physical description (height, weight, appearance).
+  - Background stat prerequisites (e.g., INT ≤ 0) are validated at finalization.
+  - Starting equipment and mana (if applicable) are computed automatically from class; no manual input required.
+- **TBD-2** `[Resolved]` — Invalid drafts can be saved; only the PlayableValid transition requires legality checks.
+- **TBD-3** `[Resolved]` — Creation flow includes ~3 debug preset builds per level (levels 1–20) across varied classes/subclasses for testing and QA purposes.
 
 ## 12. Evaluation hooks
 

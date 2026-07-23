@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-07-23
 
 ---
 
@@ -66,7 +66,7 @@ specs can be expressed without inventing hidden entities.
 
 ## 7. Flow / state changes
 
-Suggested entity set:
+Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
 
 1. `Account`
 2. `Character`
@@ -76,7 +76,28 @@ Suggested entity set:
 6. `Campaign`
 7. `CampaignMembership`
 8. `CharacterShare` or equivalent join model
-9. Rule content entities such as `Class`, `Race`, `Spell`, `Feature`, `Prerequisite`, `ProgressionRule`
+9. Rule content entities:
+   - `Class` (11 classes with full level 1–20 progression tables)
+   - `Ancestry` *(formerly "Race")* — 5 common + 14 exotic
+   - `Spell` (6 schools × up to 9 tiers + cantrips; see schema in 02-rules-canon.md §12)
+   - `SpellSchool` (Fire, Ice, Lightning, Wind, Radiant, Necrotic)
+   - `ClassFeature` — fixed ability granted at a specific level
+   - `SelectableFeature` — chosen from a per-class pool during leveling (Savage Arsenal, Underhanded Abilities, etc.)
+   - `SubclassFeature` — granted at levels 3, 7, 11, 15 by subclass
+   - `Subclass` (22 standard + 4 story-based)
+   - `SelectableFeaturePool` — per-class list of selectable feature options
+   - `SpellTierUnlockRule` — which spell tier a class can access at which level
+   - `StatIncreaseRule` — level schedule for Key and Secondary stat increases
+   - `ClassResource` — Fury Dice, Mana, Beastshift charges, etc.; formula and scaling per class
+   - `EquipmentProficiencyRule` — per class, which armor and weapon categories are covered
+   - `Background` (~24, some with stat prerequisites)
+   - `StatArray` — Standard, Balanced, Min-Max creation-time choices
+   - `DerivedValueFormula` — Armor, Initiative, Speed, MaxWounds, InventorySlots, ManaPool, LanguageCount, HP-on-levelup, SaveDC
+   - `Language` (10 named languages; grant formula: 1 + max(INT, 0))
+   - `Prerequisite` — stat minimums, proficiency requirements, background stat gates
+   - `Boon` — Minor, Major, Epic; epic boons chosen at level 19
+   - `Equipment` — Weapon, Armor, Shield categories with properties and STR requirements
+   - `Condition` (20 named conditions; referenced by feature legality checks)
 
 Current repo entities that likely remain but need reframing:
 
@@ -91,10 +112,10 @@ Current repo entities that likely remain but need reframing:
 
 | ID | Type | Criterion | Status |
 |---|---|---|---|
-| AC-1 | Behavioral | The model can represent which account owns a character and which campaign members can view it. | `[Assumed: verify]` |
-| AC-2 | Behavioral | The model can represent a character's rules context separately from the character's mutable fields. | `[Assumed: verify]` |
+| AC-1 | Behavioral | The model can represent which account owns a character and which campaign members can view it. | `[Validated]` |
+| AC-2 | Behavioral | The model can represent a character's rules context separately from the character's mutable fields. | `[Validated]` |
 | AC-3 | Behavioral | The model can preserve prior character states or revisions relevant to legality and audit. | `[Validated]` |
-| AC-4 | Negative | Campaign membership is not used as a substitute for account ownership. | `[Assumed: verify]` |
+| AC-4 | Negative | Campaign membership is not used as a substitute for account ownership. | `[Validated]` |
 | AC-5 | Dependency | Creation, level-up, and sharing specs must not introduce entities that are absent from this spec. | `[Validated]` |
 
 ## 9. Failure conditions
