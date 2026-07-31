@@ -268,7 +268,7 @@ Two types: Key Stat Increase (+1 to one of the two Key Stats) and Secondary Stat
 | Halfling | Small | +1 Stealth; reroll any failed save 1/Safe Rest |
 | Gnome | Small | Allow ally reroll of 1 die (resets on heal to max HP), –1 Speed; Dwarvish if INT ≥ 0 |
 
-**Exotic Ancestries (14):**
+**Exotic Ancestries (19):**
 
 | Ancestry | Size | Trait Summary |
 |---|---|---|

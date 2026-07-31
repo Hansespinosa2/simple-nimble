@@ -9,47 +9,408 @@
 #   end
 
 
-### RULES CANON (spec 02) - minimal real slice: 2 classes, 2 ancestries, 2 backgrounds ###
-CharacterClass.find_or_create_by!(name: "Berserker") do |c|
-  c.key_stat_one = "strength"
-  c.key_stat_two = "dexterity"
-  c.hit_die = "1d12"
-  c.starting_hp = 20
-  c.save_bonus_stat = "strength"
-  c.save_penalty_stat = "intelligence"
+### RULES CANON (spec 02) - expanded canon slice: 11 classes, 24 ancestries, 24 backgrounds ###
+stat_names = {
+  "STR" => "strength",
+  "DEX" => "dexterity",
+  "INT" => "intelligence",
+  "WIL" => "will"
+}.freeze
+
+seed_character_class = lambda do |name:, key_stats:, hit_die:, starting_hp:, save_bonus:, save_penalty:|
+  key_stat_one, key_stat_two = key_stats.map { |stat| stat_names.fetch(stat) }
+  save_bonus_stat = stat_names.fetch(save_bonus)
+  save_penalty_stat = stat_names.fetch(save_penalty)
+
+  character_class = CharacterClass.find_or_create_by!(name: name) do |c|
+    c.key_stat_one = key_stat_one
+    c.key_stat_two = key_stat_two
+    c.hit_die = hit_die
+    c.starting_hp = starting_hp
+    c.save_bonus_stat = save_bonus_stat
+    c.save_penalty_stat = save_penalty_stat
+  end
+
+  character_class.update!(
+    key_stat_one: key_stat_one,
+    key_stat_two: key_stat_two,
+    hit_die: hit_die,
+    starting_hp: starting_hp,
+    save_bonus_stat: save_bonus_stat,
+    save_penalty_stat: save_penalty_stat
+  )
 end
 
-CharacterClass.find_or_create_by!(name: "Mage") do |c|
-  c.key_stat_one = "intelligence"
-  c.key_stat_two = "will"
-  c.hit_die = "1d6"
-  c.starting_hp = 10
-  c.save_bonus_stat = "intelligence"
-  c.save_penalty_stat = "strength"
+seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}|
+  ancestry = Ancestry.find_or_create_by!(name: name) do |a|
+    a.size = size
+    a.trait_summary = trait_summary
+  end
+
+  ancestry.update!(
+    {
+      size: size,
+      trait_summary: trait_summary,
+      speed_modifier: 0,
+      initiative_modifier: 0,
+      all_skills_bonus: 0,
+      max_hit_dice_modifier: 0,
+      max_wounds_modifier: 0,
+      armor_modifier: 0
+    }.merge(modifiers)
+  )
 end
 
-Ancestry.find_or_create_by!(name: "Human") do |a|
-  a.size = "Medium"
-  a.trait_summary = "+1 all skills and Initiative."
+seed_background = lambda do |name:, description:, prerequisite_stat: nil, prerequisite_max: nil|
+  background = Background.find_or_create_by!(name: name) do |b|
+    b.description = description
+    b.prerequisite_stat = prerequisite_stat
+    b.prerequisite_max = prerequisite_max
+  end
+
+  background.update!(
+    description: description,
+    prerequisite_stat: prerequisite_stat,
+    prerequisite_max: prerequisite_max
+  )
 end
 
-Ancestry.find_or_create_by!(name: "Dwarf") do |a|
-  a.size = "Medium"
-  a.trait_summary = "+2 max Hit Dice, +1 max Wounds, -1 Speed; knows Dwarvish if INT >= 0."
+[
+  {
+    name: "Berserker",
+    key_stats: %w[STR DEX],
+    hit_die: "1d12",
+    starting_hp: 20,
+    save_bonus: "STR",
+    save_penalty: "INT"
+  },
+  {
+    name: "The Cheat",
+    key_stats: %w[DEX INT],
+    hit_die: "1d6",
+    starting_hp: 10,
+    save_bonus: "DEX",
+    save_penalty: "WIL"
+  },
+  {
+    name: "Commander",
+    key_stats: %w[STR INT],
+    hit_die: "1d10",
+    starting_hp: 17,
+    save_bonus: "STR",
+    save_penalty: "DEX"
+  },
+  {
+    name: "Hunter",
+    key_stats: %w[DEX WIL],
+    hit_die: "1d8",
+    starting_hp: 13,
+    save_bonus: "DEX",
+    save_penalty: "INT"
+  },
+  {
+    name: "Mage",
+    key_stats: %w[INT WIL],
+    hit_die: "1d6",
+    starting_hp: 10,
+    save_bonus: "INT",
+    save_penalty: "STR"
+  },
+  {
+    name: "Oathsworn",
+    key_stats: %w[STR WIL],
+    hit_die: "1d10",
+    starting_hp: 17,
+    save_bonus: "STR",
+    save_penalty: "DEX"
+  },
+  {
+    name: "Shadowmancer",
+    key_stats: %w[INT DEX],
+    hit_die: "1d8",
+    starting_hp: 13,
+    save_bonus: "INT",
+    save_penalty: "WIL"
+  },
+  {
+    name: "Shepherd",
+    key_stats: %w[WIL STR],
+    hit_die: "1d10",
+    starting_hp: 17,
+    save_bonus: "WIL",
+    save_penalty: "DEX"
+  },
+  {
+    name: "Songweaver",
+    key_stats: %w[WIL INT],
+    hit_die: "1d8",
+    starting_hp: 13,
+    save_bonus: "WIL",
+    save_penalty: "STR"
+  },
+  {
+    name: "Stormshifter",
+    key_stats: %w[WIL DEX],
+    hit_die: "1d8",
+    starting_hp: 13,
+    save_bonus: "WIL",
+    save_penalty: "STR"
+  },
+  {
+    name: "Zephyr",
+    key_stats: %w[DEX STR],
+    hit_die: "1d8",
+    starting_hp: 13,
+    save_bonus: "DEX",
+    save_penalty: "INT"
+  }
+].each do |attributes|
+  seed_character_class.call(**attributes)
 end
 
-Background.find_or_create_by!(name: "Tradesman/Artisan") do |b|
-  b.description = "A skilled crafter before taking up adventuring."
+[
+  {
+    name: "Human",
+    size: "Medium",
+    trait_summary: "Versatile people with +1 to every skill and +1 Initiative.",
+    modifiers: { all_skills_bonus: 1, initiative_modifier: 1 }
+  },
+  {
+    name: "Dwarf",
+    size: "Medium",
+    trait_summary: "Sturdy folk with +2 max Hit Dice, +1 max Wounds, and -1 Speed.",
+    modifiers: { max_hit_dice_modifier: 2, max_wounds_modifier: 1, speed_modifier: -1 }
+  },
+  {
+    name: "Elf",
+    size: "Medium",
+    trait_summary: "Quick and graceful, acting with Initiative advantage and +1 Speed.",
+    modifiers: { speed_modifier: 1 }
+  },
+  {
+    name: "Halfling",
+    size: "Small",
+    trait_summary: "Small and lucky, with +1 Stealth and one failed save reroll per Safe Rest."
+  },
+  {
+    name: "Gnome",
+    size: "Small",
+    trait_summary: "Cheerful tinkerers who let an ally reroll one die before reset, but move 1 slower.",
+    modifiers: { speed_modifier: -1 }
+  },
+  {
+    name: "Bunbun",
+    size: "Small",
+    trait_summary: "Springy fighters who can make a free full-speed hop after Interpose or Defend once per encounter."
+  },
+  {
+    name: "Dragonborn",
+    size: "Medium",
+    trait_summary: "+1 Armor and a once-per-rest or per-Wound burst of bonus damage split among targets.",
+    modifiers: { armor_modifier: 1 }
+  },
+  {
+    name: "Fiendkin",
+    size: "Medium",
+    trait_summary: "Infernal resilience turns one neutral save into an advantaged one."
+  },
+  {
+    name: "Goblin",
+    size: "Small",
+    trait_summary: "Can skitter 2 spaces for free after being targeted by an attack or harmful effect once."
+  },
+  {
+    name: "Kobold",
+    size: "Small",
+    trait_summary: "Can force one enemy reroll per encounter and shine with friendlies and dragon lore."
+  },
+  {
+    name: "Orc",
+    size: "Medium",
+    trait_summary: "Once per Safe Rest, dropping to 0 HP can leave you at HP equal to level, with +1 Might."
+  },
+  {
+    name: "Birdfolk",
+    size: "Small/Medium",
+    trait_summary: "Can fly in light armor, but crits against them are harsher and forced movement carries farther."
+  },
+  {
+    name: "Celestial",
+    size: "Medium",
+    trait_summary: "Radiant poise turns one disadvantaged save into a neutral one."
+  },
+  {
+    name: "Changeling",
+    size: "Medium",
+    trait_summary: "Gets 2 shifting skill points and can wear another ancestry's appearance once per day."
+  },
+  {
+    name: "Crystalborn",
+    size: "Medium",
+    trait_summary: "Once per encounter, Defend can grant KEY armor and reflect KEY damage."
+  },
+  {
+    name: "Dryad/Shroomling",
+    size: "Small/Medium",
+    trait_summary: "Taking a Wound dazes adjacent enemies with spores or pollen."
+  },
+  {
+    name: "Half-Giant",
+    size: "Large",
+    trait_summary: "Can force one critical hit reroll per encounter and gains +2 Might."
+  },
+  {
+    name: "Minotaur/Beastfolk",
+    size: "Medium",
+    trait_summary: "After moving 4 spaces, can push a creature in the way once each turn."
+  },
+  {
+    name: "Oozeling/Construct",
+    size: "Small/Medium",
+    trait_summary: "Hit Die size increases one step, Hit Dice heal for max, and magic healing drops to minimum."
+  },
+  {
+    name: "Planarbeing",
+    size: "Medium",
+    trait_summary: "Can take 1 Wound on Defend to phase out and ignore damage, but has 2 fewer max Wounds.",
+    modifiers: { max_wounds_modifier: -2 }
+  },
+  {
+    name: "Ratfolk",
+    size: "Small",
+    trait_summary: "Gain +2 Armor if they moved on the previous turn."
+  },
+  {
+    name: "Stoatling",
+    size: "Small",
+    trait_summary: "Single-target attacks against larger foes add extra d6s by size difference, and bigger foes do the same back."
+  },
+  {
+    name: "Turtlefolk",
+    size: "Small/Medium",
+    trait_summary: "Carry heavy natural protection with +4 Armor at the cost of 2 Speed.",
+    modifiers: { armor_modifier: 4, speed_modifier: -2 }
+  },
+  {
+    name: "Wyrdling",
+    size: "Small",
+    trait_summary: "Once per encounter, a nearby willing tiered spellcaster can roll on the Chaos Table."
+  }
+].each do |attributes|
+  seed_ancestry.call(**attributes)
 end
 
-Background.find_or_create_by!(name: "So Dumb I'm Smart Sometimes") do |b|
-  b.description = "Prerequisite-gated background: requires INT <= 0 at creation."
-  b.prerequisite_stat = "intelligence"
-  b.prerequisite_max = 0
+[
+  {
+    name: "Tradesman/Artisan",
+    description: "You spent years building practical skills with your hands before adventuring."
+  },
+  {
+    name: "So Dumb I'm Smart Sometimes",
+    description: "You fail upward often enough that people eventually stop calling it luck.",
+    prerequisite_stat: "intelligence",
+    prerequisite_max: 0
+  },
+  {
+    name: "Wily Underdog",
+    description: "You survive by staying scrappy, underestimated, and harder to pin down than expected.",
+    prerequisite_stat: "strength",
+    prerequisite_max: 0
+  },
+  {
+    name: "Bumblewise",
+    description: "You second-guess yourself often, but strange insight still finds you at the right moment.",
+    prerequisite_stat: "will",
+    prerequisite_max: 0
+  },
+  {
+    name: "Accidental Acrobat",
+    description: "You never meant to become nimble; life just kept throwing you into awkward landings.",
+    prerequisite_stat: "dexterity",
+    prerequisite_max: 0
+  },
+  {
+    name: "Back Out of Retirement",
+    description: "You were supposed to be done with danger, but experience pulled you back into the fray."
+  },
+  {
+    name: "Devoted Protector",
+    description: "You define yourself by shielding others, especially the people under your care."
+  },
+  {
+    name: "Academy Dropout",
+    description: "You left formal study behind and learned to improvise in the field."
+  },
+  {
+    name: "Made a BAD Choice",
+    description: "A reckless past decision still buys you trouble, debt, or enemies."
+  },
+  {
+    name: "Haunted Past",
+    description: "Old losses and lingering memories keep following you into every new place."
+  },
+  {
+    name: "Ear to the Ground",
+    description: "You have a knack for catching rumors before most people hear them."
+  },
+  {
+    name: "What? I've Been Around",
+    description: "You've wandered enough places to know someone useful almost anywhere."
+  },
+  {
+    name: "Acrobat",
+    description: "Years of tumbling, balance, and risky stunts made movement second nature."
+  },
+  {
+    name: "Wild One",
+    description: "You feel more at ease in untamed places than in polite company."
+  },
+  {
+    name: "Fey Touched",
+    description: "Something otherworldly brushed your life and left a strange mark on you."
+  },
+  {
+    name: "Survivalist",
+    description: "You know how to keep yourself fed, moving, and alive when comfort disappears."
+  },
+  {
+    name: "Home at Sea",
+    description: "Ships, tides, and waterfront life feel more natural than dry land."
+  },
+  {
+    name: "At Home Underground",
+    description: "Caves, tunnels, and stone corridors feel safer than open skies."
+  },
+  {
+    name: "Raised by Goblins",
+    description: "Goblin habits and hard lessons shaped how you talk, think, and stay alive."
+  },
+  {
+    name: "History Buff",
+    description: "You collect old stories, lineages, and forgotten details for their own sake."
+  },
+  {
+    name: "(Former) Con Artist",
+    description: "You once lived by lies and charm, and those habits never fully left."
+  },
+  {
+    name: "(Secretly) Undead",
+    description: "You hide a deeply unnatural truth behind a mostly normal face."
+  },
+  {
+    name: "Taste for the Finer Things",
+    description: "You notice quality quickly and prefer comfort, polish, and expensive details."
+  },
+  {
+    name: "Fearless",
+    description: "You meet danger head-on and hate showing hesitation."
+  }
+].each do |attributes|
+  seed_background.call(**attributes)
 end
 
-### CHARACTERS ###
-Character.create(
+### CHARACTERS ### (demo data predating rules canon; find_or_create_by! keeps db:seed reruns idempotent)
+Character.find_or_create_by!(
   name: "Gorn",
   race: "Orc",
   nimble_class: "Zephyr",
@@ -59,7 +420,7 @@ Character.create(
   languages: "Common, Orcish"
 )
 
-Character.create(
+Character.find_or_create_by!(
   name: 'Luna Banana-Hammock',
   race: "Birdfolk",
   nimble_class: "Stormweaver",
@@ -69,7 +430,7 @@ Character.create(
   languages: "Common, Bird, Elvish"
 )
 
-Character.create(
+Character.find_or_create_by!(
   name: "David Andersen",
   race: "Human",
   nimble_class: "Commander (Spellblade)",

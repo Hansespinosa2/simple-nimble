@@ -50,6 +50,10 @@ class Character < ApplicationRecord
   end
 
   private
+    def ancestry_modifier(attribute)
+      ancestry&.public_send(attribute) || 0
+    end
+
     def background_prerequisite_satisfied
       return if background.blank? || background.prerequisite_stat.blank?
 
@@ -89,34 +93,41 @@ class Character < ApplicationRecord
     end
 
     def build_default_skill_set
-      build_skill_set arcana: 0,
-                      insight: 0,
-                      examination: 0,
-                      finesse: 0,
-                      might: 0,
-                      lore: 0,
-                      influence: 0,
-                      naturecraft: 0,
-                      stealth: 0,
-                      perception: 0
+      all_skills_bonus = ancestry_modifier(:all_skills_bonus)
+
+      build_skill_set arcana: all_skills_bonus,
+                      insight: all_skills_bonus,
+                      examination: all_skills_bonus,
+                      finesse: all_skills_bonus,
+                      might: all_skills_bonus,
+                      lore: all_skills_bonus,
+                      influence: all_skills_bonus,
+                      naturecraft: all_skills_bonus,
+                      stealth: all_skills_bonus,
+                      perception: all_skills_bonus
     end
 
     def build_default_trait_set
       hit_die = character_class&.hit_die || "1d6"
       starting_hp = character_class&.starting_hp || 10
+      initiative = ancestry_modifier(:initiative_modifier)
+      speed = 30 + ancestry_modifier(:speed_modifier)
+      max_hit_dice = 1 + ancestry_modifier(:max_hit_dice_modifier)
+      armor = ancestry_modifier(:armor_modifier)
+      max_wounds = 6 + ancestry_modifier(:max_wounds_modifier)
 
-      build_trait_set initiative:        0,
-                      speed:             30,
+      build_trait_set initiative:        initiative,
+                      speed:             speed,
                       hit_die:           hit_die,
-                      current_hit_dice:  1,
-                      max_hit_dice:      1,
+                      current_hit_dice:  max_hit_dice,
+                      max_hit_dice:      max_hit_dice,
                       current_actions:   3,
                       max_actions:       3,
-                      armor:             0,
+                      armor:             armor,
                       temp_hp:           0,
                       current_hp:        starting_hp,
                       max_hp:            starting_hp,
-                      current_wounds:    6,
-                      max_wounds:        6
+                      current_wounds:    max_wounds,
+                      max_wounds:        max_wounds
     end
 end
