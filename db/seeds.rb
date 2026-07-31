@@ -9,13 +9,52 @@
 #   end
 
 
+### RULES CANON (spec 02) - minimal real slice: 2 classes, 2 ancestries, 2 backgrounds ###
+CharacterClass.find_or_create_by!(name: "Berserker") do |c|
+  c.key_stat_one = "strength"
+  c.key_stat_two = "dexterity"
+  c.hit_die = "1d12"
+  c.starting_hp = 20
+  c.save_bonus_stat = "strength"
+  c.save_penalty_stat = "intelligence"
+end
+
+CharacterClass.find_or_create_by!(name: "Mage") do |c|
+  c.key_stat_one = "intelligence"
+  c.key_stat_two = "will"
+  c.hit_die = "1d6"
+  c.starting_hp = 10
+  c.save_bonus_stat = "intelligence"
+  c.save_penalty_stat = "strength"
+end
+
+Ancestry.find_or_create_by!(name: "Human") do |a|
+  a.size = "Medium"
+  a.trait_summary = "+1 all skills and Initiative."
+end
+
+Ancestry.find_or_create_by!(name: "Dwarf") do |a|
+  a.size = "Medium"
+  a.trait_summary = "+2 max Hit Dice, +1 max Wounds, -1 Speed; knows Dwarvish if INT >= 0."
+end
+
+Background.find_or_create_by!(name: "Tradesman/Artisan") do |b|
+  b.description = "A skilled crafter before taking up adventuring."
+end
+
+Background.find_or_create_by!(name: "So Dumb I'm Smart Sometimes") do |b|
+  b.description = "Prerequisite-gated background: requires INT <= 0 at creation."
+  b.prerequisite_stat = "intelligence"
+  b.prerequisite_max = 0
+end
+
 ### CHARACTERS ###
 Character.create(
   name: "Gorn",
   race: "Orc",
   nimble_class: "Zephyr",
   level: 5,
-  background: "Angry",
+  legacy_background_text: "Angry",
   description: "Gorn is a fierce orc Zephyr, known for his swift movements and relentless aggression. His imposing presence and quick temper make him a formidable opponent on the battlefield.",
   languages: "Common, Orcish"
 )
@@ -25,7 +64,7 @@ Character.create(
   race: "Birdfolk",
   nimble_class: "Stormweaver",
   level: 10,
-  background: "Inspirational leader",
+  legacy_background_text: "Inspirational leader",
   description: "Luna is the lone survivor of an ancient birdfolk civilization, carrying the wisdom and sorrow of her lost people. Her resilience and leadership inspire those around her, and her mastery of storm magic reflects the enduring spirit of her heritage.",
   languages: "Common, Bird, Elvish"
 )
@@ -35,7 +74,7 @@ Character.create(
   race: "Human",
   nimble_class: "Commander (Spellblade)",
   level: 4,
-  background: "Fearless",
+  legacy_background_text: "Fearless",
   description: "At 22, David led his first campaign against a band of Infernal cultists who had infiltrated Rawa City's lower districts, seeking to tear open a rift to the Abyss. It was there that he learned Infernal, a language he would come to despise yet master, using it to outmaneuver his enemies. The battle was brutal, and though victorious, David was left with a deep scar across his chest, a constant reminder of the city's vulnerability.
                 His heroics earned him the title of Warden of Rawa City, a position once held by his father. But unlike his predecessors, David did not simply sit behind the city's walls—he patrolled the borders, fought alongside his soldiers, and personally ensured that Rawa remained standing.
                 David is a calculated warrior, confident yet pragmatic. He is respected by his people, not for his lineage, but for his actions on the battlefield. He values loyalty above all else, which is why he has a close bond with his partner, Karisa Dunefall, a fierce warrior who stands as his second-in-command.

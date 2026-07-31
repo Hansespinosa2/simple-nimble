@@ -20,19 +20,37 @@
       </div>
       <div class="min-w-50">
           <%= form.text_field :race, disabled: read_only, placeholder: "Enter Race", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
-        <p class="text-gray-500 text-xs">Race</p>
+        <p class="text-gray-500 text-xs">Race (legacy free text)</p>
       </div>
       <div class="min-w-25">
           <%= form.text_field :nimble_class, disabled: read_only, placeholder: "Enter Class", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
-        <p class="text-gray-500 text-xs">Class</p>
+        <p class="text-gray-500 text-xs">Class (legacy free text)</p>
       </div>
       <div class="min-w-10">
         <%= form.number_field :level, disabled: read_only, placeholder: "Enter Level", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
         <p class="text-gray-500 text-xs">Level</p>
       </div>
       <div class="min-w-75">
-          <%= form.text_field :background, disabled: read_only, placeholder: "Enter Background", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
-        <p class="text-gray-500 text-xs">Background</p>
+          <%= form.text_field :legacy_background_text, disabled: read_only, placeholder: "Enter Background", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:legacy_background_text].none?, "border-red-400 focus:outline-red-600": character.errors[:legacy_background_text].any?}] %>
+        <p class="text-gray-500 text-xs">Background (legacy free text)</p>
+      </div>
+    </div>
+    <div id="character-rules-canon" class="flex gap-5 border-1 p-2">
+      <div class="min-w-50">
+        <%= form.collection_select :character_class_id, @character_classes, :id, :name, { include_blank: "Choose class" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:character_class].none?, "border-red-400 focus:outline-red-600": character.errors[:character_class].any?}] %>
+        <p class="text-gray-500 text-xs">Class (rules canon)</p>
+      </div>
+      <div class="min-w-50">
+        <%= form.collection_select :ancestry_id, @ancestries, :id, :name, { include_blank: "Choose ancestry" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:ancestry].none?, "border-red-400 focus:outline-red-600": character.errors[:ancestry].any?}] %>
+        <p class="text-gray-500 text-xs">Ancestry (rules canon)</p>
+      </div>
+      <div class="min-w-75">
+        <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose background" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
+        <p class="text-gray-500 text-xs">Background (rules canon)</p>
+      </div>
+      <div class="min-w-50">
+        <%= form.select :stat_array, @stat_arrays.map { |a| [a.humanize, a] }, { include_blank: "Choose stat array" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:stat_array].none?, "border-red-400 focus:outline-red-600": character.errors[:stat_array].any?}] %>
+        <p class="text-gray-500 text-xs">Stat array (Standard +2/+2/+0/-1, Balanced +2/+1/+1/+0, Min-Max +3/+1/-1/-1)</p>
       </div>
     </div>
     <div id="character-info" class="border-1 p-2">

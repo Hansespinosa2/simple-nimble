@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  key_stat_one: MyString
+  key_stat_two: MyString
+  hit_die: MyString
+  starting_hp: 1
+  save_bonus_stat: MyString
+  save_penalty_stat: MyString
+
+two:
+  name: MyString
+  key_stat_one: MyString
+  key_stat_two: MyString
+  hit_die: MyString
+  starting_hp: 1
+  save_bonus_stat: MyString
+  save_penalty_stat: MyString

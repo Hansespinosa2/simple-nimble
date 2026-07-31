@@ -10,7 +10,36 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_09_05_025007) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_014217) do
+  create_table "ancestries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name"
+    t.string "size"
+    t.text "trait_summary"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "backgrounds", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name"
+    t.integer "prerequisite_max"
+    t.string "prerequisite_stat"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "character_classes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "hit_die"
+    t.string "key_stat_one"
+    t.string "key_stat_two"
+    t.string "name"
+    t.string "save_bonus_stat"
+    t.string "save_penalty_stat"
+    t.integer "starting_hp"
+    t.datetime "updated_at", null: false
+  end
+
   create_table "character_spells", force: :cascade do |t|
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
@@ -21,15 +50,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_09_05_025007) do
   end
 
   create_table "characters", force: :cascade do |t|
-    t.string "background"
+    t.integer "ancestry_id"
+    t.integer "background_id"
+    t.integer "character_class_id"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "languages"
+    t.string "legacy_background_text"
     t.integer "level"
     t.string "name"
     t.string "nimble_class"
     t.string "race"
+    t.string "stat_array"
     t.datetime "updated_at", null: false
+    t.index ["ancestry_id"], name: "index_characters_on_ancestry_id"
+    t.index ["background_id"], name: "index_characters_on_background_id"
+    t.index ["character_class_id"], name: "index_characters_on_character_class_id"
   end
 
   create_table "skill_sets", force: :cascade do |t|
@@ -98,6 +134,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_09_05_025007) do
 
   add_foreign_key "character_spells", "characters"
   add_foreign_key "character_spells", "spells"
+  add_foreign_key "characters", "ancestries"
+  add_foreign_key "characters", "backgrounds"
+  add_foreign_key "characters", "character_classes"
   add_foreign_key "skill_sets", "characters"
   add_foreign_key "stat_sets", "characters"
   add_foreign_key "trait_sets", "characters"

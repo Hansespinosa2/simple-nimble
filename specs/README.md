@@ -8,7 +8,7 @@ be evolved deliberately instead of by ad hoc feature work.
 
 ## Directory structure
 
-- `application/` Product-level specifications, roadmap order, and reusable spec template
+- `app/` Product-level specifications, roadmap order, and reusable spec template
 - `controllers/` Controller-level behavior specs as implementation gets formalized
 - `models/` Domain and data-model specifications, including diagrams
 - `views/` UI and interaction specifications
@@ -43,7 +43,7 @@ The `spec sync` system automatically tracks which acceptance criteria have been 
 
 ### How It Works
 
-1. **System reads specs** from `app/[0-9][0-9]-*.md`
+1. **System reads specs** from `specs/app/[0-9][0-9]-*.md`
 2. **Extracts acceptance criteria** (marked as AC-1, AC-2, etc.)
 3. **Tracks implementation status** via:
    - **Manual marks** (stored in `implementation_status.yml`)

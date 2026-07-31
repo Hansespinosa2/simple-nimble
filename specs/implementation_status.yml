@@ -1,3 +1,17 @@
 ---
 version: 1
-criteria: {}
+criteria:
+  S-05:AC-1:
+    status: in_progress
+    updated_at: '2026-07-31T01:45:43Z'
+    notes: Rules-canon selects (class/ancestry/background/stat array) now drive creation;
+      full mandatory-field gate (skills etc.) not yet enforced
+  S-05:AC-2:
+    status: in_progress
+    updated_at: '2026-07-31T01:45:43Z'
+    notes: Derived stat_set and trait_set (HP/hit die) now computed from class+stat
+      array on create; not yet recalculated on edit
+  S-05:AC-6:
+    status: in_progress
+    updated_at: '2026-07-31T01:45:44Z'
+    notes: Minimal real rules-canon slice implemented (2 classes

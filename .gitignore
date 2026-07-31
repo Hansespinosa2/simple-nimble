@@ -38,6 +38,9 @@
 
 /.mcp-resources/*
 
+# Personal accessibility conversions of purchased/copyrighted rulebooks (not for distribution).
+/specs/nimble-docs/*
+
 /.vscode/*
 .vscode/settings.json
 

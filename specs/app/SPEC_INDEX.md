@@ -58,10 +58,11 @@ These are worth direct product attention because they change multiple downstream
 
 | Decision | Why it matters | Current status |
 |---|---|---|
-| Exact first-release scope between creation, editing, import, and level-up | Changes lifecycle, permissions, and evaluation scope | `[Assumed: v1 anchor is create + level-up]` |
-| House-rule model depth | Changes rules canon, domain model, and explanation system | `[Unknown: TBD]` |
+| Exact first-release scope between creation, editing, import, and level-up | Changes lifecycle, permissions, and evaluation scope | `[Validated: v1 anchor is create + level-up]` |
+| House-rule model depth | Changes rules canon, domain model, and explanation system | `[Validated: out of scope for v1, see 02-rules-canon.md X-4]` |
 | GM edit permissions | Changes sharing, ownership, audit history, and conflict rules | `[Unknown: TBD]` |
 | Import strategy for existing characters | Changes creation and lifecycle significantly | `[Unknown: TBD]` |
+
 
 ## Definition of success for the spec system
 

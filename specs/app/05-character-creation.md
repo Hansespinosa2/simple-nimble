@@ -92,7 +92,7 @@ Suggested creation flow:
 
 | Dependency | Type | Status | Notes |
 |---|---|---|---|
-| Rules canon coverage for starting rules | Content | Unknown | Not yet enumerated |
+| Rules canon coverage for starting rules | Content | `[In progress]` | Enumerated in `02-rules-canon.md` S-1 Entity List; implemented in-repo for a minimal 2-class/2-ancestry/2-background slice (Berserker, Mage; Human, Dwarf) as of this session — full corpus (11 classes, 19 ancestries, ~24 backgrounds) still outstanding. |
 | Character lifecycle draft/final states | Product | In progress | `04-character-lifecycle.md` |
 
 ## 11. Open questions / TBDs

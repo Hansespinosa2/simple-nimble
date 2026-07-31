@@ -1,5 +1,6 @@
 class CharactersController < ApplicationController
   before_action :set_character, only: %i[ show edit update destroy ]
+  before_action :set_rules_canon_options, only: %i[ index show new edit create update ]
 
   # GET /characters or /characters.json
   def index
@@ -64,6 +65,15 @@ class CharactersController < ApplicationController
       @character = Character.find(params.expect(:id))
     end
 
+    # Populates the rules-canon dropdowns (spec 02/05 creation-flow choices)
+    # for the new/edit form and for re-rendering on validation failure.
+    def set_rules_canon_options
+      @character_classes = CharacterClass.order(:name)
+      @ancestries = Ancestry.order(:name)
+      @backgrounds = Background.order(:name)
+      @stat_arrays = Character::STAT_ARRAYS.keys
+    end
+
     # Only allow a list of trusted parameters through using expect.
     def character_params
       stat_set_params_list = [ :id, :strength, :dexterity, :intelligence, :will ]
@@ -74,9 +84,13 @@ class CharactersController < ApplicationController
         :race,
         :nimble_class,
         :level,
-        :background,
+        :legacy_background_text,
         :description,
         :languages,
+        :character_class_id,
+        :ancestry_id,
+        :background_id,
+        :stat_array,
         {
           trait_set_attributes: trait_set_params_list,
           stat_set_attributes: stat_set_params_list,

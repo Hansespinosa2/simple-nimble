@@ -7,7 +7,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
       name: "Test Hero",
       description: "A brave adventurer seeking glory.",
       level: 1,
-      background: "Soldier",
+      legacy_background_text: "Soldier",
       race: "Human",
       nimble_class: "Warrior",
       languages: "Common, Elvish"
@@ -26,7 +26,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
   test "should create character" do
     assert_difference("Character.count") do
-      post characters_url, params: { character: { background: @character.background, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
+      post characters_url, params: { character: { legacy_background_text: @character.legacy_background_text, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
     end
 
     assert_redirected_to character_url(Character.last)
@@ -43,7 +43,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update character" do
-    patch character_url(@character), params: { character: { background: @character.background, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
+    patch character_url(@character), params: { character: { legacy_background_text: @character.legacy_background_text, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
     assert_redirected_to character_url(@character)
   end
 
