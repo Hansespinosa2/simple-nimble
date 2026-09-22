@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-06:AC-8 S-09:AC-1 S-09:AC-2 S-09:AC-3 S-09:AC-4
+# S-06:AC-8 S-09:AC-1 S-09:AC-2 S-09:AC-3 S-09:AC-4 S-09:AC-5
 class RulesCoverageTest < ActiveSupport::TestCase
   CLASS_NAMES = %w[
     Berserker The\ Cheat Commander Hunter Mage Oathsworn Shadowmancer Shepherd Songweaver Stormshifter Zephyr

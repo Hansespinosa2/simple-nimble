@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-02:AC-1 S-02:AC-3 S-03:AC-2 S-03:AC-3 S-04:AC-1 S-04:AC-2 S-05:AC-1 S-05:AC-2 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-07:AC-1 S-07:AC-2
+# S-01:AC-6 S-02:AC-1 S-02:AC-2 S-02:AC-3 S-03:AC-2 S-03:AC-3 S-04:AC-1 S-04:AC-2 S-05:AC-1 S-05:AC-2 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-07:AC-1 S-07:AC-2 S-07:AC-3
 class CharacterLifecycleTest < ActiveSupport::TestCase
   setup do
     @ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1") do |ruleset|
@@ -92,6 +92,17 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
     assert_equal "blocked", issue[:type]
     assert_equal "Chapter 2, Backgrounds", issue[:source_ref]
     assert_equal "Nimble v2.0.1", issue[:context]
+  end
+
+  test "every creation explanation carries its source and active rules context" do
+    character = Character.new(name: "Unfinished", level: 1)
+
+    character.creation_explanations.each do |explanation|
+      assert_equal "blocked", explanation[:type]
+      assert explanation[:source_ref].present?
+      assert explanation[:quote].present?
+      assert_equal character.rules_context_label, explanation[:context]
+    end
   end
 
   test "creation preserves a legal distribution of the four extra skill points" do

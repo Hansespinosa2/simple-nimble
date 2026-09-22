@@ -83,5 +83,13 @@ namespace :spec_sync do
       puts "#{criterion.reference} [#{status}] #{criterion.criterion}"
       puts "  Tests: #{files.any? ? files.join(', ') : 'No tagged test file'}"
     end
+
+    provisional_specs = Dir[Rails.root.join("specs/app/[0-9][0-9]-*.md")].select do |path|
+      File.read(path).include?("[Unknown: TBD]")
+    end
+    puts
+    puts "Provisional specs"
+    puts "================="
+    puts provisional_specs.any? ? provisional_specs.map { |path| Pathname(path).relative_path_from(Rails.root) } : "None"
   end
 end
