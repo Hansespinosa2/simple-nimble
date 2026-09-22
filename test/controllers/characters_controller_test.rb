@@ -62,4 +62,30 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
       assert_not_nil character.skill_set
     end
   end
+
+  test "should save in-game tracker state as a revision" do
+    assert_difference("CharacterRevision.where(event_type: 'game_update').count", 1) do
+      patch tracker_character_url(@character), params: {
+        character: {
+          conditions: "Smoldering",
+          inventory: "Torch, rope",
+          game_notes: "Met the ferryman.",
+          trait_set_attributes: {
+            id: @character.trait_set.id,
+            current_hp: 7,
+            temp_hp: 2,
+            current_wounds: 1,
+            current_actions: 2,
+            current_hit_dice: 1
+          }
+        }
+      }
+    end
+
+    assert_redirected_to character_url(@character)
+    @character.reload
+    assert_equal 7, @character.trait_set.current_hp
+    assert_equal "Smoldering", @character.conditions
+    assert_equal "In-game state updated", @character.character_revisions.order(:id).last.summary
+  end
 end

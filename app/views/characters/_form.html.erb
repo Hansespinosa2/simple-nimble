@@ -1,95 +1,205 @@
-<%= form_with(model: character, class: "contents") do |form| %>
+<% builder_payload = defined?(@builder_rules) && @builder_rules.present? ? @builder_rules.to_json : {}.to_json %>
+
+<%= form_with(model: character, class: "builder-form", data: { controller: "character-builder", character_builder_rules_value: builder_payload }) do |form| %>
   <% if character.errors.any? %>
-    <div id="error_explanation" class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3">
-      <h2><%= pluralize(character.errors.count, "error") %> prohibited this character from being saved:</h2>
-
-      <ul class="list-disc ml-6">
-        <% character.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
+    <section class="alert-card alert-card-danger" id="error_explanation" aria-live="polite">
+      <div class="alert-icon">!</div>
+      <div>
+        <h2><%= pluralize(character.errors.count, "thing") %> needs attention</h2>
+        <ul>
+          <% character.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </section>
   <% end %>
 
+  <section class="builder-header">
+    <div>
+      <p class="eyebrow"><%= character.persisted? ? "Character sheet" : "New character" %></p>
+      <h1><%= character.name.presence || "Untitled hero" %></h1>
+      <p class="muted">Make the choices once. Nimble handles the math.</p>
+    </div>
+    <div class="builder-header-meta">
+      <span class="<%= status_badge_class(character.status) %>"><%= character.status_label %></span>
+      <span class="rules-context"><span class="context-dot"></span><%= character.rules_context_label %></span>
+    </div>
+  </section>
 
-  <div class="flex flex-col gap-2 my-5 max-w-235">
-    <div id="character-summary" class="flex gap-5 border-1 p-2">
-      <div class="min-w-50">
-          <%= form.text_field :name, disabled: read_only, placeholder: "Enter Name", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:name].none?, "border-red-400 focus:outline-red-600": character.errors[:name].any?}] %>
-        <p class="text-gray-500 text-xs">Name</p>
-      </div>
-      <div class="min-w-50">
-          <%= form.text_field :race, disabled: read_only, placeholder: "Enter Race", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:race].none?, "border-red-400 focus:outline-red-600": character.errors[:race].any?}] %>
-        <p class="text-gray-500 text-xs">Race (legacy free text)</p>
-      </div>
-      <div class="min-w-25">
-          <%= form.text_field :nimble_class, disabled: read_only, placeholder: "Enter Class", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:nimble_class].none?, "border-red-400 focus:outline-red-600": character.errors[:nimble_class].any?}] %>
-        <p class="text-gray-500 text-xs">Class (legacy free text)</p>
-      </div>
-      <div class="min-w-10">
-        <%= form.number_field :level, disabled: read_only, placeholder: "Enter Level", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:level].none?, "border-red-400 focus:outline-red-600": character.errors[:level].any?}] %>
-        <p class="text-gray-500 text-xs">Level</p>
-      </div>
-      <div class="min-w-75">
-          <%= form.text_field :legacy_background_text, disabled: read_only, placeholder: "Enter Background", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:legacy_background_text].none?, "border-red-400 focus:outline-red-600": character.errors[:legacy_background_text].any?}] %>
-        <p class="text-gray-500 text-xs">Background (legacy free text)</p>
-      </div>
-    </div>
-    <div id="character-rules-canon" class="flex gap-5 border-1 p-2">
-      <div class="min-w-50">
-        <%= form.collection_select :character_class_id, @character_classes, :id, :name, { include_blank: "Choose class" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:character_class].none?, "border-red-400 focus:outline-red-600": character.errors[:character_class].any?}] %>
-        <p class="text-gray-500 text-xs">Class (rules canon)</p>
-      </div>
-      <div class="min-w-50">
-        <%= form.collection_select :ancestry_id, @ancestries, :id, :name, { include_blank: "Choose ancestry" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:ancestry].none?, "border-red-400 focus:outline-red-600": character.errors[:ancestry].any?}] %>
-        <p class="text-gray-500 text-xs">Ancestry (rules canon)</p>
-      </div>
-      <div class="min-w-75">
-        <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose background" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:background].none?, "border-red-400 focus:outline-red-600": character.errors[:background].any?}] %>
-        <p class="text-gray-500 text-xs">Background (rules canon)</p>
-      </div>
-      <div class="min-w-50">
-        <%= form.select :stat_array, @stat_arrays.map { |a| [a.humanize, a] }, { include_blank: "Choose stat array" }, disabled: read_only, class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:stat_array].none?, "border-red-400 focus:outline-red-600": character.errors[:stat_array].any?}] %>
-        <p class="text-gray-500 text-xs">Stat array (Standard +2/+2/+0/-1, Balanced +2/+1/+1/+0, Min-Max +3/+1/-1/-1)</p>
-      </div>
-    </div>
-    <div id="character-info" class="border-1 p-2">
-      <div class="">
-        <%= form.textarea :description, disabled: read_only, rows: 4, placeholder: "Enter Description", class: ["w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:description].none?, "border-red-400 focus:outline-red-600": character.errors[:description].any?}] %>
-        <p class="text-gray-500 text-xs">Description</p>
-      </div>
-      <div class="">
-        <%= form.text_field :languages, disabled: read_only, placeholder: "Enter Languages", class: [" w-full border-b-1", {"border-gray-400 focus:outline-blue-600": character.errors[:languages].none?, "border-red-400 focus:outline-red-600": character.errors[:languages].any?}] %>
-        <p class="text-gray-500 text-xs">Languages</p>
-      </div>
-    </div>
-    <div id="character-stats-and-skills" class="flex flex-col justify-center items-center gap-5 border-1 p-2"">
-      <%= render partial: 'attributes/stats_and_skills', locals: { form: form, read_only: read_only } %>
-    </div>
-    <div id="character-trait-set" class="flex flex-wrap justify-center items-center gap-5 border-1 p-2">
-        <%= render partial: 'attributes/trait_set', locals: {form: form, read_only: read_only} %>
+  <div class="builder-grid">
+    <div class="builder-main-column">
+      <section class="panel panel-featured">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Identity</p>
+            <h2>Tell us about your hero</h2>
+          </div>
+          <span class="step-number">01</span>
+        </div>
+        <div class="form-grid form-grid-two">
+          <div class="field field-wide">
+            <%= form.label :name, "Character name" %>
+            <%= form.text_field :name, id: "character_name", placeholder: "e.g. Mira Ashfall", disabled: read_only, autocomplete: "off" %>
+            <span class="field-hint">A name is optional while you are drafting.</span>
+          </div>
+          <div class="field">
+            <%= form.label :level, "Level" %>
+            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level" } %>
+            <span class="field-hint">New heroes start at level 1.</span>
+          </div>
+          <div class="field field-wide">
+            <%= form.label :description, "The short version" %>
+            <%= form.text_area :description, id: "character_description", rows: 3, placeholder: "What makes this hero worth following?", disabled: read_only %>
+          </div>
+          <div class="field field-wide">
+            <%= form.label :legacy_background_text, "Story notes" %>
+            <%= form.text_field :legacy_background_text, id: "character_background", placeholder: "A vow, a rumor, a reason to adventure…", disabled: read_only %>
+            <span class="field-hint">Flavor only. The rules background is chosen below.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel-featured" data-character-builder-target="choicesPanel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Rules choices</p>
+            <h2>Build the foundation</h2>
+            <p class="panel-subtitle">These decisions drive every derived value on the sheet.</p>
+          </div>
+          <span class="step-number">02</span>
+        </div>
+        <div class="form-grid form-grid-two">
+          <div class="field">
+            <%= form.label :character_class_id, "Class" %>
+            <%= form.collection_select :character_class_id, @character_classes, :id, :name, { include_blank: "Choose a class" }, disabled: read_only, data: { character_builder_target: "characterClass", action: "change->character-builder#refresh" } %>
+            <span class="field-hint" data-character-builder-target="classHint">Two Key Stats shape your build.</span>
+          </div>
+          <div class="field">
+            <%= form.label :ancestry_id, "Ancestry" %>
+            <%= form.collection_select :ancestry_id, @ancestries, :id, :name, { include_blank: "Choose an ancestry" }, disabled: read_only, data: { character_builder_target: "ancestry", action: "change->character-builder#refresh" } %>
+            <span class="field-hint" data-character-builder-target="ancestryHint">Ancestry traits apply automatically.</span>
+          </div>
+          <div class="field">
+            <%= form.label :background_id, "Background" %>
+            <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose a background" }, disabled: read_only, data: { character_builder_target: "background", action: "change->character-builder#refresh" } %>
+            <span class="field-hint" data-character-builder-target="backgroundHint">Backgrounds can have creation prerequisites.</span>
+          </div>
+          <div class="field">
+            <%= form.label :stat_array, "Stat array" %>
+            <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: read_only, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
+            <span class="field-hint">Standard +2/+2/+0/−1 · Balanced +2/+1/+1/+0 · Min-Max +3/+1/−1/−1</span>
+          </div>
+        </div>
+        <div class="rules-callout" data-character-builder-target="rulesCallout">
+          <span class="callout-icon">✦</span>
+          <span>Choose a class, ancestry, background, and stat array to see how the rules combine.</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Automatic math</p>
+            <h2>Core stats</h2>
+            <p class="panel-subtitle">The app assigns the array to Key and Secondary Stats for you.</p>
+          </div>
+          <span class="step-number">03</span>
+        </div>
+        <div class="stat-strip" data-character-builder-target="statsPreview">
+          <% Character::STAT_NAMES.each do |stat| %>
+            <div class="stat-card">
+              <span class="stat-abbr"><%= stat_display_name(stat) %></span>
+              <strong data-stat-value="<%= stat %>"><%= signed_value(character.stat_value(stat)) %></strong>
+              <span class="stat-caption" data-stat-role="<%= stat %>">Secondary</span>
+            </div>
+          <% end %>
+        </div>
+        <div class="derived-strip">
+          <div class="derived-item"><span>Starting HP</span><strong data-character-builder-target="hpPreview"><%= character.trait_set&.max_hp || "—" %></strong></div>
+          <div class="derived-item"><span>Armor</span><strong data-character-builder-target="armorPreview"><%= character.trait_set&.armor || "—" %></strong></div>
+          <div class="derived-item"><span>Initiative</span><strong data-character-builder-target="initiativePreview"><%= signed_value(character.trait_set&.initiative) if character.trait_set %></strong></div>
+          <div class="derived-item"><span>Hit Die</span><strong data-character-builder-target="hitDiePreview"><%= character.trait_set&.hit_die || "—" %></strong></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Your edge</p>
+            <h2>Skill points</h2>
+            <p class="panel-subtitle">Spend <strong><%= character.skill_point_budget %></strong> extra points at level <%= character.level || 1 %>. Skills cannot exceed +12.</p>
+          </div>
+          <span class="step-number">04</span>
+        </div>
+        <div class="skill-grid">
+          <%= form.fields_for :skill_set do |skill_fields| %>
+            <% Character::SKILL_NAMES.each do |skill| %>
+              <div class="skill-field">
+                <%= skill_fields.label skill, skill_display_name(skill) %>
+                <%= skill_fields.number_field skill, min: -5, max: 12, disabled: read_only, data: { skill: skill } %>
+                <span data-skill-base="<%= skill %>">base <%= signed_value(character.skill_initial_value(skill)) %></span>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="skill-budget" data-character-builder-target="skillBudget">Spend <strong><%= character.skill_points_spent %>/<%= character.skill_point_budget %></strong> extra points</div>
+      </section>
     </div>
 
-    <div id="character-spells" class="border-1 p-2">
-      <% if not read_only %>
-        <%= form.collection_check_boxes :spell_ids, Spell.order(:tier), :id, :name do |cb| %>
-          <label class="inline-flex items-center gap-2 py-1">
-            <%= cb.check_box class: "rounded" %>
-            <span class="<%= color_from_spell_school(cb.object.school)%>"><%=cb.object.name %></span>
-          </label>
+    <aside class="builder-side-column">
+      <section class="panel preview-panel">
+        <div class="panel-heading compact">
+          <div>
+            <p class="eyebrow">Live preview</p>
+            <h2>What changes</h2>
+          </div>
+          <span class="preview-pulse"></span>
+        </div>
+        <div class="preview-list">
+          <div><span>Rules context</span><strong><%= character.rules_context_label %></strong></div>
+          <div><span>Languages</span><strong data-character-builder-target="languagesPreview"><%= character.languages.presence || "Common" %></strong></div>
+          <div><span>Speed</span><strong data-character-builder-target="speedPreview"><%= character.trait_set&.speed || "—" %></strong></div>
+          <div><span>Max wounds</span><strong data-character-builder-target="woundsPreview"><%= character.trait_set&.max_wounds || "—" %></strong></div>
+        </div>
+        <div class="preview-note" data-character-builder-target="previewNote">Derived values update as you choose.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading compact">
+          <div>
+            <p class="eyebrow">Optional</p>
+            <h2>Spells</h2>
+          </div>
+          <span class="mini-label">Reference</span>
+        </div>
+        <% if read_only %>
+          <div class="spell-chips">
+            <% character.spells.order(:tier, :name).each do |spell| %>
+              <span class="spell-chip <%= color_from_spell_school(spell.school) %>"><%= spell.name %></span>
+            <% end %>
+            <% if character.spells.empty? %><span class="muted">No spells chosen.</span><% end %>
+          </div>
+        <% else %>
+          <div class="spell-picker">
+            <%= form.collection_check_boxes :spell_ids, Spell.order(:tier, :name), :id, :name do |check| %>
+              <label class="spell-option">
+                <%= check.check_box %>
+                <span><%= check.object.name %></span>
+                <small>Tier <%= check.object.tier %> · <%= check.object.school %></small>
+              </label>
+            <% end %>
+          </div>
         <% end %>
-      <% else %>
-       <% character.spells.each do |spell| %> 
-        <span class="<%= color_from_spell_school(spell.school)%>"><%=spell.name %></span>
-       <% end %>
+      </section>
+
+      <% unless read_only %>
+        <section class="panel action-panel">
+          <p class="muted">Drafts are safe to save at any point. Finalizing runs every rules check.</p>
+          <%= form.submit "Save draft", class: "button button-secondary" %>
+          <%= button_tag "Save and mark playable", type: "submit", name: "finalize", value: "1", class: "button button-primary" %>
+        </section>
       <% end %>
-    </div>
+    </aside>
   </div>
-
-  <% unless read_only %>
-    <div class="inline">
-      <%= form.submit class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
-    </div>
-  <% end %>
 <% end %>
-

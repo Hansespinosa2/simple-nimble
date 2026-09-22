@@ -1,15 +1,128 @@
-<% content_for :title, "Showing character" %>
+<% content_for :title, @character.name.presence || "Character sheet" %>
 
-<div class="md:w-2/3 w-full">
-  <% if notice.present? %>
-    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-md inline-block" id="notice"><%= notice %></p>
+<div class="page-shell sheet-shell">
+  <% if notice.present? %><div class="alert-card alert-card-success"><span class="alert-icon">✓</span><span><%= notice %></span></div><% end %>
+  <% if alert.present? %><div class="alert-card alert-card-danger"><span class="alert-icon">!</span><span><%= alert %></span></div><% end %>
+
+  <header class="sheet-header">
+    <div class="sheet-title-block">
+      <%= link_to "← Your characters", characters_path, class: "text-link" %>
+      <div class="sheet-title-row">
+        <div class="avatar avatar-large avatar-<%= @character.id.to_i % 5 %>"><%= (@character.name.presence || "?")[0, 2].upcase %></div>
+        <div>
+          <p class="eyebrow">Nimble character sheet</p>
+          <h1><%= @character.name.presence || "Untitled hero" %></h1>
+          <p class="sheet-subtitle"><%= [ @character.character_class&.name || @character.nimble_class, @character.ancestry&.name || @character.race, "Level #{@character.level || '—'}" ].compact.join(" · ") %></p>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-header-actions">
+      <span class="<%= status_badge_class(@character.status) %>"><%= @character.status_label %></span>
+      <%= link_to "Edit sheet", edit_character_path(@character), class: "button button-secondary" %>
+      <% if @character.level_up_eligible? %><%= link_to "Level up", new_character_level_up_path(@character), class: "button button-primary" %><% end %>
+    </div>
+  </header>
+
+  <% if @character.draft? && @character.creation_explanations.any? %>
+    <section class="rules-review-panel">
+      <div class="rules-review-heading"><div><p class="eyebrow">Finish your draft</p><h2>Almost playable</h2><p>Resolve these rules checks before you enter a game.</p></div><%= link_to "Continue editing", edit_character_path(@character), class: "button button-secondary" %></div>
+      <div class="explanation-grid">
+        <% @character.creation_explanations.each do |explanation| %>
+          <div class="explanation explanation-blocked"><span class="explanation-marker">!</span><div><strong><%= explanation[:message] %></strong><small><%= explanation[:source_ref] %> · “<%= explanation[:quote] %>”</small></div></div>
+        <% end %>
+      </div>
+    </section>
   <% end %>
 
-  <h1 class="font-bold text-4xl">Showing character</h1>
+  <section class="vitals-grid">
+    <div class="vital-card vital-card-hp"><span class="vital-label">Current HP</span><strong><%= @character.trait_set&.current_hp || "—" %><small> / <%= @character.trait_set&.max_hp || "—" %></small></strong><span class="vital-foot">Temp <%= @character.trait_set&.temp_hp || 0 %></span></div>
+    <div class="vital-card"><span class="vital-label">Armor</span><strong><%= @character.trait_set&.armor || "—" %></strong><span class="vital-foot">Unarmored</span></div>
+    <div class="vital-card"><span class="vital-label">Initiative</span><strong><%= signed_value(@character.trait_set&.initiative) if @character.trait_set %></strong><span class="vital-foot">DEX + ancestry</span></div>
+    <div class="vital-card"><span class="vital-label">Speed</span><strong><%= @character.trait_set&.speed || "—" %></strong><span class="vital-foot">spaces</span></div>
+    <div class="vital-card"><span class="vital-label">Wounds</span><strong><%= @character.trait_set&.current_wounds || "—" %><small> / <%= @character.trait_set&.max_wounds || "—" %></small></strong><span class="vital-foot">Hit Dice <%= @character.trait_set&.current_hit_dice || "—" %>/<%= @character.trait_set&.max_hit_dice || "—" %></span></div>
+  </section>
 
-  <%= render "form", character: @character, read_only: true %>
+  <div class="sheet-grid">
+    <div class="sheet-main-column">
+      <section class="panel sheet-panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">Abilities</p><h2>Stats & skills</h2></div><span class="mini-label">Rules-derived</span></div>
+        <div class="sheet-stat-grid">
+          <% Character::STAT_NAMES.each do |stat| %>
+            <div class="sheet-stat"><span><%= stat_display_name(stat) %></span><strong><%= signed_value(@character.stat_value(stat)) %></strong><small><%= @character.character_class&.key_stats&.include?(stat) ? "Key" : "Secondary" %></small></div>
+          <% end %>
+        </div>
+        <div class="sheet-skill-grid">
+          <% Character::SKILL_NAMES.each do |skill| %>
+            <div class="sheet-skill"><span><%= skill_display_name(skill) %></span><strong><%= signed_value(@character.skill_value(skill)) %></strong></div>
+          <% end %>
+        </div>
+      </section>
 
-  <%= link_to "Edit this character", edit_character_path(@character), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= link_to "Back to characters", characters_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= button_to "Destroy this character", @character, method: :delete, form_class: "sm:inline-block mt-2 sm:mt-0 sm:ml-2", class: "w-full rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer", data: { turbo_confirm: "Are you sure?" } %>
+      <section class="panel sheet-panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">Origin</p><h2>Rules context</h2></div><span class="rules-context"><span class="context-dot"></span><%= @character.rules_context_label %></span></div>
+        <div class="origin-grid">
+          <div class="origin-card"><span class="origin-label">Class</span><strong><%= @character.character_class&.name || @character.nimble_class || "Not chosen" %></strong><p><%= @character.character_class ? "#{@character.character_class.key_stats.map { |stat| stat_display_name(stat) }.join(' + ')} Key Stats · #{@character.character_class.hit_die}" : "Choose a rules class to unlock derived values." %></p></div>
+          <div class="origin-card"><span class="origin-label">Ancestry</span><strong><%= @character.ancestry&.name || @character.race || "Not chosen" %></strong><p><%= @character.ancestry&.trait_summary || "Ancestry traits will appear here." %></p></div>
+          <div class="origin-card"><span class="origin-label">Background</span><strong><%= @character.background&.name || @character.legacy_background_text || "Not chosen" %></strong><p><%= @character.background&.description || "Background story notes are kept with the sheet." %></p></div>
+          <div class="origin-card"><span class="origin-label">Languages</span><strong><%= @character.languages.presence || "Common" %></strong><p>Common plus INT and ancestry grants.</p></div>
+        </div>
+      </section>
+
+      <section class="panel sheet-panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">Magic</p><h2>Spells</h2></div><%= link_to "Browse reference", spells_path, class: "text-link" %></div>
+        <div class="spell-chips">
+          <% @character.spells.order(:tier, :name).each do |spell| %><%= link_to spell.name, spell, class: "spell-chip #{color_from_spell_school(spell.school)}" %><% end %>
+          <% if @character.spells.empty? %><span class="muted">No spells on this sheet yet.</span><% end %>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sheet-side-column">
+      <section class="panel tracker-panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">At the table</p><h2>Track the moment</h2></div><span class="mini-label">Autosaved as a revision</span></div>
+        <%= form_with model: @character, url: tracker_character_path(@character), method: :patch, class: "tracker-form" do |tracker_form| %>
+          <%= tracker_form.fields_for :trait_set do |trait_fields| %>
+            <div class="tracker-number-grid">
+              <label><span>HP</span><%= trait_fields.number_field :current_hp, min: 0, max: @character.trait_set&.max_hp %></label>
+              <label><span>Temp HP</span><%= trait_fields.number_field :temp_hp, min: 0 %></label>
+              <label><span>Wounds</span><%= trait_fields.number_field :current_wounds, min: 0, max: @character.trait_set&.max_wounds %></label>
+              <label><span>Actions</span><%= trait_fields.number_field :current_actions, min: 0, max: @character.trait_set&.max_actions %></label>
+              <label><span>Hit Dice</span><%= trait_fields.number_field :current_hit_dice, min: 0, max: @character.trait_set&.max_hit_dice %></label>
+            </div>
+          <% end %>
+          <div class="field"><%= tracker_form.label :conditions, "Conditions" %><%= tracker_form.text_field :conditions, placeholder: "e.g. Smoldering, Inspired" %></div>
+          <div class="field"><%= tracker_form.label :inventory, "Inventory / notes" %><%= tracker_form.text_area :inventory, rows: 3, placeholder: "What is in reach right now?" %></div>
+          <div class="field"><%= tracker_form.label :game_notes, "Session notes" %><%= tracker_form.text_area :game_notes, rows: 3, placeholder: "Remember this for next time…" %></div>
+          <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
+        <% end %>
+      </section>
+
+      <section class="panel timeline-panel">
+        <div class="panel-heading compact"><div><p class="eyebrow">Continuity</p><h2>Recent changes</h2></div><%= link_to "View all", history_character_path(@character), class: "text-link" %></div>
+        <div class="timeline">
+          <% @revisions.each do |revision| %>
+            <div class="timeline-item"><span class="<%= revision_event_class(revision.event_type) %>"></span><div><strong><%= revision.event_label %></strong><p><%= revision.summary %></p><time><%= time_ago_in_words(revision.created_at) %> ago</time></div></div>
+          <% end %>
+          <% if @revisions.empty? %><p class="muted">Your first save will appear here.</p><% end %>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="panel sharing-panel">
+    <div class="panel-heading compact"><div><p class="eyebrow">Share the sheet</p><h2>Let your table see it</h2><p class="panel-subtitle">Character ownership stays here. Shared views are read-only.</p></div><%= link_to "Campaigns", campaigns_path, class: "text-link" %></div>
+    <% if @campaigns.any? %>
+      <%= form_with url: character_shares_path(@character), class: "share-form" do |share_form| %>
+        <%= share_form.collection_select :campaign_id, @campaigns, :id, :name, { include_blank: "Choose a campaign" } %>
+        <%= share_form.submit "Share read-only sheet", class: "button button-secondary" %>
+      <% end %>
+    <% else %>
+      <div class="sharing-empty"><p>Create a campaign workspace first, then share this sheet with a read-only link.</p><%= link_to "Create a campaign", new_campaign_path, class: "button button-secondary" %></div>
+    <% end %>
+    <% if @character.character_shares.any? %>
+      <div class="share-list"><% @character.character_shares.includes(:campaign).each do |share| %><div><span><%= share.campaign.name %></span><%= link_to "Open shared view", shared_character_path(share.share_token), class: "text-link" %></div><% end %></div>
+    <% end %>
+  </section>
+
+  <div class="page-footer-actions"><%= button_to "Delete character", @character, method: :delete, class: "text-link text-link-danger", data: { turbo_confirm: "Delete this character and its revision history?" } %></div>
 </div>

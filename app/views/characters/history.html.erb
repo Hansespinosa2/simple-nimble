@@ -1,0 +1,23 @@
+<% content_for :title, "History · #{@character.name.presence || 'character'}" %>
+
+<div class="page-shell narrow-shell">
+  <div class="subpage-header">
+    <div><%= link_to "← #{@character.name.presence || 'Character'}", @character, class: "text-link" %><p class="eyebrow">Audit trail</p><h1>Character history</h1><p class="muted">Every finalized milestone and table update keeps a full snapshot.</p></div>
+    <span class="rules-context"><span class="context-dot"></span><%= @character.rules_context_label %></span>
+  </div>
+  <section class="panel history-panel">
+    <div class="timeline timeline-large">
+      <% @revisions.each do |revision| %>
+        <article class="timeline-item">
+          <span class="<%= revision_event_class(revision.event_type) %>"></span>
+          <div class="history-entry">
+            <div class="history-entry-heading"><div><p class="eyebrow"><%= revision.event_label %></p><h2><%= revision.summary %></h2></div><time><%= revision.created_at.strftime("%b %-d, %Y · %H:%M") %></time></div>
+            <p class="muted">Level <%= revision.from_level || "—" %><%= " → #{revision.to_level}" if revision.to_level && revision.to_level != revision.from_level %> · <%= revision.snapshot.dig("rules", "ruleset") %></p>
+            <details><summary>View snapshot</summary><pre><%= JSON.pretty_generate(revision.snapshot) %></pre></details>
+          </div>
+        </article>
+      <% end %>
+      <% if @revisions.empty? %><p class="muted">No revisions recorded yet.</p><% end %>
+    </div>
+  </section>
+</div>

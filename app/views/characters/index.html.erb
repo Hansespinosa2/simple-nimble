@@ -1,29 +1,65 @@
 <% content_for :title, "Characters" %>
 
-<div class="w-full">
-  <% if notice.present? %>
-    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-md inline-block" id="notice"><%= notice %></p>
-  <% end %>
+<div class="page-shell dashboard-shell">
+  <% if notice.present? %><div class="alert-card alert-card-success"><span class="alert-icon">✓</span><span><%= notice %></span></div><% end %>
 
-  <div class="flex justify-between items-center">
-    <h1 class="font-bold text-4xl">Characters</h1>
-    <%= link_to "New character", new_character_path, class: "rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white block font-medium" %>
+  <section class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Nimble character vault</p>
+      <h1>Your heroes</h1>
+      <p class="hero-subtitle">Build cleanly. Play confidently. Keep every important change in one place.</p>
+    </div>
+    <%= link_to "+ New character", new_character_path, class: "button button-primary" %>
+  </section>
+
+  <div class="dashboard-metrics">
+    <div class="metric-card"><span class="metric-icon metric-icon-gold">✦</span><div><strong><%= @characters.count { |character| character.playable? } %></strong><span>Playable</span></div></div>
+    <div class="metric-card"><span class="metric-icon metric-icon-blue">◌</span><div><strong><%= @characters.count { |character| character.draft? } %></strong><span>Drafts</span></div></div>
+    <div class="metric-card"><span class="metric-icon metric-icon-green">↗</span><div><strong><%= @characters.sum { |character| character.level.to_i } %></strong><span>Total levels</span></div></div>
   </div>
 
-  <div id="characters" class="min-w-full divide-y divide-gray-200 space-y-5">
+  <div class="list-toolbar">
+    <div><p class="eyebrow">Your roster</p><h2><%= pluralize(@characters.size, "character") %></h2></div>
+    <%= form_with url: characters_path, method: :get, class: "search-form", local: true do |form| %>
+      <%= form.search_field :q, value: params[:q], placeholder: "Search characters…", aria: { label: "Search characters" } %>
+      <%= form.submit "Search", class: "button button-quiet" %>
+    <% end %>
+  </div>
+
+  <div id="characters" class="character-grid">
     <% if @characters.any? %>
       <% @characters.each do |character| %>
-        <div class="flex flex-col sm:flex-row justify-between items-center pb-5 sm:pb-0">
-          <%= render "form", character: character, read_only: true %>
-          <div class="w-full sm:w-auto flex flex-col sm:flex-row space-x-2 space-y-2">
-            <%= link_to "Show", character, class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-            <%= link_to "Edit", edit_character_path(character), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-            <%= button_to "Destroy", character, method: :delete, class: "w-full sm:w-auto rounded-md px-3.5 py-2.5 text-white bg-red-600 hover:bg-red-500 font-medium cursor-pointer", data: { turbo_confirm: "Are you sure?" } %>
+        <article class="character-card">
+          <div class="character-card-topline">
+            <span class="<%= status_badge_class(character.status) %>"><%= character.status_label %></span>
+            <span class="card-level">LV <%= character.level || "—" %></span>
           </div>
-        </div>
+          <div class="character-identity">
+            <div class="avatar avatar-<%= character.id.to_i % 5 %>"><%= (character.name.presence || "?")[0, 2].upcase %></div>
+            <div>
+              <h3><%= character.name.presence || "Untitled hero" %></h3>
+              <p><%= [ character.character_class&.name || character.nimble_class, character.ancestry&.name || character.race ].compact.join(" · ").presence || "Choose a class and ancestry" %></p>
+            </div>
+          </div>
+          <div class="character-card-stats">
+            <div><span>HP</span><strong><%= character.trait_set&.current_hp || "—" %>/<%= character.trait_set&.max_hp || "—" %></strong></div>
+            <div><span>Armor</span><strong><%= character.trait_set&.armor || "—" %></strong></div>
+            <div><span>Updated</span><strong><%= time_ago_in_words(character.updated_at) %></strong></div>
+          </div>
+          <div class="character-card-actions">
+            <%= link_to "Open sheet", character, class: "button button-secondary" %>
+            <%= link_to "Edit", edit_character_path(character), class: "button button-quiet" %>
+            <% if character.level_up_eligible? %><%= link_to "Level up", new_character_level_up_path(character), class: "button button-quiet" %><% end %>
+          </div>
+        </article>
       <% end %>
     <% else %>
-      <p class="text-center my-10">No characters found.</p>
+      <section class="empty-state">
+        <div class="empty-state-mark">✦</div>
+        <h2>Your next great character starts here.</h2>
+        <p>Save an unfinished draft while you explore the rules, then finalize only when the whole build is legal.</p>
+        <%= link_to "Build a character", new_character_path, class: "button button-primary" %>
+      </section>
     <% end %>
   </div>
 </div>

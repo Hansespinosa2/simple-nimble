@@ -1,0 +1,25 @@
+<% content_for :title, "Campaigns" %>
+
+<div class="page-shell dashboard-shell">
+  <% if notice.present? %><div class="alert-card alert-card-success"><span class="alert-icon">✓</span><span><%= notice %></span></div><% end %>
+  <% if alert.present? %><div class="alert-card alert-card-danger"><span class="alert-icon">!</span><span><%= alert %></span></div><% end %>
+  <section class="dashboard-hero">
+    <div><p class="eyebrow">Shared table</p><h1>Campaigns</h1><p class="hero-subtitle">Keep the party visible without taking ownership away from the player.</p></div>
+    <%= link_to "+ New campaign", new_campaign_path, class: "button button-primary" %>
+  </section>
+  <div class="campaign-grid">
+    <% if @campaigns.any? %>
+      <% @campaigns.each do |campaign| %>
+        <article class="campaign-card panel">
+          <div class="campaign-card-heading"><span class="campaign-icon">✦</span><span class="badge badge-playable"><%= campaign.owner_account == current_account ? "Owner" : "Member" %></span></div>
+          <h2><%= campaign.name %></h2>
+          <p><%= campaign.description.presence || "A shared character table." %></p>
+          <div class="campaign-card-meta"><span><strong><%= campaign.character_shares.count %></strong> shared sheets</span><span><strong><%= campaign.campaign_memberships.count + 1 %></strong> members</span></div>
+          <%= link_to "Open campaign", campaign, class: "button button-secondary button-full" %>
+        </article>
+      <% end %>
+    <% else %>
+      <section class="empty-state"><div class="empty-state-mark">✦</div><h2>Give your table a home.</h2><p>Create a campaign, then add read-only character sheets as players join.</p><%= link_to "Create a campaign", new_campaign_path, class: "button button-primary" %></section>
+    <% end %>
+  </div>
+</div>

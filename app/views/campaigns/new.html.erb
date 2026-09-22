@@ -1,0 +1,13 @@
+<% content_for :title, "New campaign" %>
+
+<div class="page-shell narrow-shell">
+  <div class="subpage-header"><div><%= link_to "← Campaigns", campaigns_path, class: "text-link" %><p class="eyebrow">Shared table</p><h1>Start a campaign</h1><p class="muted">Your campaign is a container for read-only character visibility.</p></div></div>
+  <section class="panel session-card">
+    <% if @campaign.errors.any? %><div class="alert-card alert-card-danger"><span class="alert-icon">!</span><ul><% @campaign.errors.full_messages.each { |message| %><li><%= message %></li><% } %></ul></div><% end %>
+    <%= form_with model: @campaign, class: "session-form" do |form| %>
+      <div class="field"><%= form.label :name, "Campaign name" %><%= form.text_field :name, placeholder: "e.g. The Sunken Road", autofocus: true %></div>
+      <div class="field"><%= form.label :description, "What is this story about?" %><%= form.text_area :description, rows: 4, placeholder: "A sentence your players will recognize." %></div>
+      <%= form.submit "Create campaign", class: "button button-primary button-full" %>
+    <% end %>
+  </section>
+</div>

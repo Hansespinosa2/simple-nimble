@@ -1,7 +1,23 @@
 Rails.application.routes.draw do
   get "spells", to: "spells#index"
   get "spells/:id", to: "spells#show", as: "spell"
-  resources :characters
+  resources :characters do
+    member do
+      post :finalize
+      patch :tracker
+      get :history
+    end
+    resources :level_ups, only: %i[new create show update]
+    resources :shares, only: %i[create destroy], controller: "character_shares"
+  end
+  resources :campaigns, only: %i[index new create show] do
+    member do
+      post :join
+      delete :leave
+    end
+  end
+  resources :sessions, only: %i[new create destroy]
+  get "shared/:token", to: "shared_characters#show", as: :shared_character
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

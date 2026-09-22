@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Simple Nimble" %></title>
+    <title><%= content_for(:title) || "Simple Nimble" %> · Nimble</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -23,7 +23,24 @@
   </head>
 
   <body>
-    <main class="container font-macondo mx-auto mt-28 px-5 flex flex-col items-center ">
+    <header class="app-header">
+      <%= link_to root_path, class: "brand-lockup" do %>
+        <span class="brand-mark">✦</span>
+        <span class="brand-name">Nimble</span>
+        <span class="brand-tagline">character vault</span>
+      <% end %>
+      <nav class="app-nav" aria-label="Main navigation">
+        <%= link_to "Characters", characters_path, class: (controller_name == "characters" ? "active" : nil) %>
+        <%= link_to "Spells", spells_path, class: (controller_name == "spells" ? "active" : nil) %>
+        <%= link_to "Campaigns", campaigns_path, class: (controller_name == "campaigns" ? "active" : nil) %>
+        <% if current_account.present? %>
+          <span class="nav-account"><span class="nav-avatar"><%= current_account.display_name[0, 1].upcase %></span><span class="nav-account-label"><%= current_account.display_name %></span></span>
+        <% else %>
+          <%= link_to "Set up profile", new_session_path, class: "active" %>
+        <% end %>
+      </nav>
+    </header>
+    <main class="app-main">
       <%= yield %>
     </main>
   </body>

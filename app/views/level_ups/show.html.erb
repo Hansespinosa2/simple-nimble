@@ -1,0 +1,14 @@
+<% content_for :title, "Level-up draft" %>
+
+<div class="page-shell">
+  <div class="subpage-header">
+    <div>
+      <%= link_to "← #{@character.name.presence || 'Character'}", @character, class: "text-link" %>
+      <p class="eyebrow">Saved level-up draft · <%= @character.rules_context_label %></p>
+      <h1>Level up to <%= @planner.target_level %></h1>
+      <p class="muted">Review the preview, then apply it when the story catches up.</p>
+    </div>
+    <span class="badge badge-level-up">Draft</span>
+  </div>
+  <%= render "form", character: @character, level_up: @level_up %>
+</div>

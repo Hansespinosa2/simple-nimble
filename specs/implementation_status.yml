@@ -66,3 +66,59 @@ criteria:
     status: in_progress
     updated_at: '2026-09-22T22:27:41Z'
     notes: Showing active rules context
+  S-01:AC-1:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:45Z'
+    notes: Verifying guided creation without manual math
+  S-01:AC-3:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:46Z'
+    notes: Showing cited legality blockers in the UI
+  S-01:AC-4:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:47Z'
+    notes: Keeping creation and level-up inside the app
+  S-05:AC-4:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:48Z'
+    notes: Removing manual derived-value work from creation
+  S-05:AC-5:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:48Z'
+    notes: Supporting resumable creation drafts
+  S-06:AC-6:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:49Z'
+    notes: Keeping game updates separate from level-up mutations
+  S-08:AC-1:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:50Z'
+    notes: Sharing player-owned sheets to campaigns
+  S-08:AC-2:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:50Z'
+    notes: Adding GM-readable shared sheets
+  S-08:AC-3:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:51Z'
+    notes: Adding workspace profiles and campaign permissions
+  S-08:AC-4:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:52Z'
+    notes: Enforcing read-only share permissions
+  S-08:AC-5:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:53Z'
+    notes: Revoking shares when a player leaves
+  S-08:AC-6:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:53Z'
+    notes: Connecting sharing to explicit account and role entities
+  S-09:AC-1:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:54Z'
+    notes: Adding golden and negative workflow scenarios
+  S-09:AC-3:
+    status: in_progress
+    updated_at: '2026-09-22T23:38:55Z'
+    notes: Linking core tests to acceptance criteria

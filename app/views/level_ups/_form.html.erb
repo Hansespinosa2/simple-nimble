@@ -1,0 +1,75 @@
+<%= form_with model: [ character, level_up ], class: "level-up-form" do |form| %>
+  <% if level_up.errors.any? %>
+    <section class="alert-card alert-card-danger">
+      <div class="alert-icon">!</div>
+      <div>
+        <h2>Finish the level-up choices</h2>
+        <ul><% level_up.errors.full_messages.each { |message| %><li><%= message %></li><% } %></ul>
+      </div>
+    </section>
+  <% end %>
+
+  <section class="level-up-choice-grid">
+    <div class="panel panel-featured">
+      <p class="eyebrow">Required</p>
+      <h2>Choose your improvement</h2>
+      <p class="panel-subtitle">Every level grants one skill point. The level-up stays a preview until you apply it.</p>
+      <div class="field">
+        <%= form.label :skill_name, "Skill point" %>
+        <%= form.select :skill_name, @planner.skill_options.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Choose a skill" }, class: "choice-select" %>
+        <span class="field-hint">Choose any skill below +12. The governing stat is already included in the preview.</span>
+      </div>
+
+      <% if @planner.stat_increase_type.present? %>
+        <div class="field">
+          <%= form.label :stat_name, "Stat increase · #{@planner.stat_increase_type.capitalize} Stat" %>
+          <%= form.select :stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a stat" }, class: "choice-select" %>
+          <span class="field-hint">Chapter 3: <%= @planner.stat_increase_type == "key" ? "Key" : "Secondary" %> Stat schedule applies at level <%= @planner.target_level %>.</span>
+        </div>
+      <% else %>
+        <div class="rules-callout"><span class="callout-icon">i</span><span>No stat increase is scheduled at level <%= @planner.target_level %>. Save that choice for the next milestone.</span></div>
+      <% end %>
+
+      <div class="field">
+        <%= form.label :notes, "Level-up notes" %>
+        <%= form.text_area :notes, rows: 4, placeholder: "What changed in the story?", class: "choice-textarea" %>
+      </div>
+    </div>
+
+    <div class="panel preview-panel">
+      <div class="panel-heading compact">
+        <div>
+          <p class="eyebrow">Live preview</p>
+          <h2>Level <%= @planner.target_level %></h2>
+        </div>
+        <span class="preview-pulse"></span>
+      </div>
+      <% preview = @planner.preview %>
+      <div class="level-preview-stats">
+        <% Character::STAT_NAMES.each do |stat| %>
+          <div><span><%= stat_display_name(stat) %></span><strong><%= signed_value(preview.fetch("stats").fetch(stat)) %></strong></div>
+        <% end %>
+      </div>
+      <div class="preview-list">
+        <div><span>Max HP</span><strong><%= preview.fetch("traits").fetch("max_hp") %> <small>+<%= preview.fetch("hp_gain") %></small></strong></div>
+        <div><span>Max Hit Dice</span><strong><%= preview.fetch("traits").fetch("max_hit_dice") %></strong></div>
+        <div><span>Armor</span><strong><%= preview.fetch("traits").fetch("armor") %></strong></div>
+        <div><span>Initiative</span><strong><%= signed_value(preview.fetch("traits").fetch("initiative")) %></strong></div>
+        <div><span>Spell tier</span><strong><%= preview.fetch("spell_tier").positive? ? "Tier #{preview.fetch('spell_tier')}" : "None" %></strong></div>
+      </div>
+      <div class="explanation-stack">
+        <% preview.fetch("explanations").each do |explanation| %>
+          <div class="explanation explanation-<%= explanation.fetch(:type) %>">
+            <span class="explanation-marker"><%= explanation.fetch(:type) == "auto_applied" ? "✦" : "✓" %></span>
+            <div><strong><%= explanation.fetch(:message) %></strong><small><%= explanation.fetch(:source_ref) %> · “<%= explanation.fetch(:quote) %>”</small></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <div class="level-up-actions">
+    <%= form.submit "Save draft", class: "button button-secondary" %>
+    <%= form.submit "Apply level-up", name: "finalize", value: "1", class: "button button-primary" %>
+  </div>
+<% end %>
