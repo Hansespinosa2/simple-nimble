@@ -22,4 +22,8 @@
       <section class="empty-state"><div class="empty-state-mark">✦</div><h2>Give your table a home.</h2><p>Create a campaign, then add read-only character sheets as players join.</p><%= link_to "Create a campaign", new_campaign_path, class: "button button-primary" %></section>
     <% end %>
   </div>
+  <section class="panel campaign-join-panel">
+    <div><p class="eyebrow">Have an invite?</p><h2>Join a campaign</h2><p class="muted">Enter the code your GM shared with you.</p></div>
+    <%= form_with url: join_campaign_by_code_path, method: :post, class: "join-form" do |form| %><%= form.text_field :invite_code, placeholder: "e.g. 7F2KQ9A1", aria: { label: "Campaign invite code" } %><%= form.submit "Join campaign", class: "button button-secondary" %><% end %>
+  </section>
 </div>

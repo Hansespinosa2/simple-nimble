@@ -59,4 +59,29 @@ namespace :spec_sync do
     SpecSync::Tracker.new.validate!
     puts "Spec sync configuration is valid."
   end
+
+  desc "Generate a test-to-acceptance-criteria coverage report"
+  task coverage: :environment do
+    tracker = SpecSync::Tracker.new
+    tracker.validate!
+    test_files = Dir[Rails.root.join("test/**/*_test.rb")].sort
+    references_by_file = test_files.to_h do |path|
+      references = File.read(path).scan(/S-\d{2}:AC-\d+/).uniq
+      [ Pathname(path).relative_path_from(Rails.root).to_s, references ]
+    end
+    files_by_reference = Hash.new { |hash, key| hash[key] = [] }
+    references_by_file.each do |file, references|
+      references.each { |reference| files_by_reference[reference] << file }
+    end
+
+    puts "Spec test coverage"
+    puts "=================="
+    puts
+    tracker.criterion_statuses.each do |criterion|
+      files = files_by_reference.fetch(criterion.reference.to_s, [])
+      status = files.any? ? "covered" : "missing"
+      puts "#{criterion.reference} [#{status}] #{criterion.criterion}"
+      puts "  Tests: #{files.any? ? files.join(', ') : 'No tagged test file'}"
+    end
+  end
 end

@@ -122,3 +122,15 @@ criteria:
     status: in_progress
     updated_at: '2026-09-22T23:38:55Z'
     notes: Linking core tests to acceptance criteria
+  S-06:AC-8:
+    status: in_progress
+    updated_at: '2026-09-22T23:41:13Z'
+    notes: Adding golden level-up paths across all canon classes
+  S-09:AC-2:
+    status: in_progress
+    updated_at: '2026-09-22T23:41:14Z'
+    notes: Adding class progression coverage evidence
+  S-09:AC-4:
+    status: in_progress
+    updated_at: '2026-09-22T23:41:14Z'
+    notes: Requiring executable rules evidence alongside UI polish

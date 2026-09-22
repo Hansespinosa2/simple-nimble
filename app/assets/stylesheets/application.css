@@ -321,6 +321,9 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .campaign-card-meta span { color: var(--ink-soft); font-size: 11px; }
 .campaign-card-meta strong { color: var(--ink); font-size: 15px; margin-right: 3px; }
 .campaign-invite { align-items: center; display: flex; justify-content: space-between; margin-bottom: 30px; }
+.campaign-join-panel { align-items: center; display: flex; justify-content: space-between; margin-top: 18px; }
+.campaign-join-panel h2 { margin-bottom: 4px; }
+.campaign-join-panel p { margin-bottom: 0; }
 .campaign-invite h2 { font-family: Macondo, serif; font-size: 34px; font-weight: 400; letter-spacing: .08em; margin: 0 0 4px; }
 .campaign-invite p { font-size: 12px; margin: 0; }
 .join-form { display: flex; gap: 7px; }
@@ -368,6 +371,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
     .share-form, .sharing-empty { align-items: stretch; flex-direction: column; }
     .share-form select { max-width: none; }
     .campaign-invite { align-items: stretch; flex-direction: column; gap: 15px; }
+    .campaign-join-panel { align-items: stretch; flex-direction: column; gap: 15px; }
     .join-form input { flex: 1; width: auto; }
     .level-preview-stats { grid-template-columns: repeat(2, 1fr); }
     .level-up-actions { flex-direction: column-reverse; }

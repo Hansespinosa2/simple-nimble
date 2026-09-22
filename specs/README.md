@@ -100,6 +100,15 @@ bundle exec rake "spec_sync:mark[S-05:AC-1,todo]"
 bundle exec rake spec_sync:validate
 ```
 
+#### Generate Test Coverage
+
+Core tests can tag the criteria they exercise with `S-NN:AC-N` comments. Generate
+the current test-to-criterion report with:
+
+```bash
+bundle exec rake spec_sync:coverage
+```
+
 ### Implementation Status
 
 Each criterion has a status computed from:

@@ -1,5 +1,6 @@
 require "test_helper"
 
+# S-06:AC-1 S-06:AC-2 S-06:AC-4 S-06:AC-5 S-09:AC-1 S-09:AC-3
 class LevelUpsControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed unless CharacterClass.where(name: "Berserker").exists?

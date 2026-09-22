@@ -1,5 +1,6 @@
 class CharactersController < ApplicationController
   before_action :set_character, only: %i[ show edit update destroy finalize tracker history ]
+  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -118,6 +119,13 @@ class CharactersController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_character
       @character = Character.find(params.expect(:id))
+    end
+
+    def require_character_owner
+      return if current_account.blank? && @character.account.blank?
+      return if current_account.present? && @character.account == current_account
+
+      redirect_to @character, alert: "Only the player who owns this character can edit it."
     end
 
     # Populates the rules-canon dropdowns (spec 02/05 creation-flow choices)

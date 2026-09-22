@@ -1,5 +1,6 @@
 require "test_helper"
 
+# S-08:AC-1 S-08:AC-2 S-08:AC-3 S-08:AC-4 S-08:AC-5 S-08:AC-6 S-09:AC-1 S-09:AC-3
 class SharingControllerTest < ActionDispatch::IntegrationTest
   setup do
     @player = Account.create!(display_name: "Player One", email: "player-#{SecureRandom.hex(4)}@example.com")
@@ -38,6 +39,28 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to character_url(@character)
     assert_includes flash[:alert], "Only the character owner"
+  end
+
+  test "a GM cannot edit or level up a player-owned character" do
+    sign_in(@gm)
+
+    get edit_character_url(@character)
+    assert_redirected_to character_url(@character)
+    assert_includes flash[:alert], "Only the player who owns"
+
+    get new_character_level_up_url(@character)
+    assert_redirected_to character_url(@character)
+    assert_includes flash[:alert], "Only the player who owns"
+  end
+
+  test "a player can join a campaign with its invite code" do
+    second_player = Account.create!(display_name: "Second Player", email: "second-#{SecureRandom.hex(4)}@example.com")
+    sign_in(second_player)
+
+    post join_campaign_by_code_url, params: { invite_code: @campaign.invite_code }
+
+    assert_redirected_to campaign_url(@campaign)
+    assert @campaign.campaign_memberships.exists?(account: second_player)
   end
 
   test "leaving a campaign revokes the player's shared sheets" do

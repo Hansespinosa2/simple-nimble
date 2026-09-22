@@ -282,7 +282,9 @@ class Character < ApplicationRecord
     def assign_attributes_to_skill_set
       target = skill_set || build_skill_set
       SKILL_NAMES.each do |skill|
-        target.public_send("#{skill}=", stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + (ancestry&.all_skills_bonus || 0))
+        baseline = stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + (ancestry&.all_skills_bonus || 0)
+        submitted_value = target.public_send(skill).to_i
+        target.public_send("#{skill}=", [ submitted_value, baseline ].max)
       end
     end
 

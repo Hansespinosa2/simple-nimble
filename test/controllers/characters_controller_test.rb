@@ -1,5 +1,6 @@
 require "test_helper"
 
+# S-05:AC-1 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-06:AC-6 S-09:AC-3
 class CharactersControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed if Character.count.zero?

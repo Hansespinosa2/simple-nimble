@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       delete :leave
     end
   end
+  post "campaigns/join", to: "campaigns#join_by_code", as: :join_campaign_by_code
   resources :sessions, only: %i[new create destroy]
   get "shared/:token", to: "shared_characters#show", as: :shared_character
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

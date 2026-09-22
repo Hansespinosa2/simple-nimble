@@ -1,5 +1,6 @@
 require "test_helper"
 
+# S-02:AC-1 S-02:AC-3 S-03:AC-2 S-03:AC-3 S-04:AC-1 S-04:AC-2 S-05:AC-1 S-05:AC-2 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-07:AC-1 S-07:AC-2
 class CharacterLifecycleTest < ActiveSupport::TestCase
   setup do
     @ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1") do |ruleset|
@@ -91,5 +92,22 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
     assert_equal "blocked", issue[:type]
     assert_equal "Chapter 2, Backgrounds", issue[:source_ref]
     assert_equal "Nimble v2.0.1", issue[:context]
+  end
+
+  test "creation preserves a legal distribution of the four extra skill points" do
+    character = Character.create!(
+      name: "Specialist",
+      level: 1,
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      ruleset_version: @ruleset,
+      skill_set_attributes: { might: 7 }
+    )
+
+    assert_equal 7, character.skill_set.might
+    assert_equal 4, character.skill_points_spent
+    assert character.legal_for_creation?
   end
 end

@@ -40,6 +40,18 @@ class CampaignsController < ApplicationController
     end
   end
 
+  def join_by_code
+    invite_code = params.expect(:invite_code).to_s.strip.upcase
+    @campaign = Campaign.find_by(invite_code: invite_code)
+    if @campaign.blank?
+      redirect_to campaigns_path, alert: "No campaign matches that invite code."
+      return
+    end
+
+    @campaign.campaign_memberships.find_or_create_by!(account: current_account) { |membership| membership.role = current_account.role }
+    redirect_to @campaign, notice: "You joined #{@campaign.name}."
+  end
+
   def leave
     membership = @campaign.campaign_memberships.find_by(account: current_account)
     membership&.destroy!
