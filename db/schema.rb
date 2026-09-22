@@ -10,7 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_020347) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_090004) do
+  create_table "accounts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "display_name", null: false
+    t.string "email"
+    t.string "role", default: "player", null: false
+    t.string "session_token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_accounts_on_email", unique: true
+    t.index ["session_token"], name: "index_accounts_on_session_token", unique: true
+  end
+
   create_table "ancestries", force: :cascade do |t|
     t.integer "all_skills_bonus", default: 0, null: false
     t.integer "armor_modifier", default: 0, null: false
@@ -34,6 +45,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_020347) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "campaign_memberships", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.integer "campaign_id", null: false
+    t.datetime "created_at", null: false
+    t.string "role", default: "player", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_campaign_memberships_on_account_id"
+    t.index ["campaign_id", "account_id"], name: "index_campaign_memberships_on_campaign_id_and_account_id", unique: true
+    t.index ["campaign_id"], name: "index_campaign_memberships_on_campaign_id"
+  end
+
+  create_table "campaigns", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "invite_code", null: false
+    t.string "name", null: false
+    t.integer "owner_account_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invite_code"], name: "index_campaigns_on_invite_code", unique: true
+    t.index ["owner_account_id"], name: "index_campaigns_on_owner_account_id"
+  end
+
   create_table "character_classes", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "hit_die"
@@ -46,6 +79,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_020347) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "character_revisions", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.integer "from_level"
+    t.text "snapshot", null: false
+    t.string "summary"
+    t.integer "to_level"
+    t.datetime "updated_at", null: false
+    t.index ["character_id", "created_at"], name: "index_character_revisions_on_character_id_and_created_at"
+    t.index ["character_id"], name: "index_character_revisions_on_character_id"
+  end
+
+  create_table "character_shares", force: :cascade do |t|
+    t.integer "campaign_id", null: false
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "created_by_account_id"
+    t.string "permission", default: "read", null: false
+    t.string "share_token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["campaign_id"], name: "index_character_shares_on_campaign_id"
+    t.index ["character_id", "campaign_id"], name: "index_character_shares_on_character_id_and_campaign_id", unique: true
+    t.index ["character_id"], name: "index_character_shares_on_character_id"
+    t.index ["created_by_account_id"], name: "index_character_shares_on_created_by_account_id"
+    t.index ["share_token"], name: "index_character_shares_on_share_token", unique: true
+  end
+
   create_table "character_spells", force: :cascade do |t|
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
@@ -56,22 +117,58 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_020347) do
   end
 
   create_table "characters", force: :cascade do |t|
+    t.integer "account_id"
     t.integer "ancestry_id"
     t.integer "background_id"
     t.integer "character_class_id"
+    t.text "conditions"
     t.datetime "created_at", null: false
     t.text "description"
+    t.text "game_notes"
+    t.text "inventory"
     t.string "languages"
     t.string "legacy_background_text"
     t.integer "level"
     t.string "name"
     t.string "nimble_class"
     t.string "race"
+    t.integer "ruleset_version_id"
     t.string "stat_array"
+    t.string "status", default: "draft", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_characters_on_account_id"
     t.index ["ancestry_id"], name: "index_characters_on_ancestry_id"
     t.index ["background_id"], name: "index_characters_on_background_id"
     t.index ["character_class_id"], name: "index_characters_on_character_class_id"
+    t.index ["ruleset_version_id"], name: "index_characters_on_ruleset_version_id"
+    t.index ["status"], name: "index_characters_on_status"
+  end
+
+  create_table "level_ups", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "finalized_at"
+    t.integer "from_level", null: false
+    t.text "notes"
+    t.text "preview"
+    t.string "skill_name"
+    t.string "stat_name"
+    t.string "status", default: "draft", null: false
+    t.integer "to_level", null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id", "status"], name: "index_level_ups_on_character_id_and_status"
+    t.index ["character_id"], name: "index_level_ups_on_character_id"
+  end
+
+  create_table "ruleset_versions", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "published_at"
+    t.string "source_reference"
+    t.datetime "updated_at", null: false
+    t.string "version", null: false
+    t.index ["name", "version"], name: "index_ruleset_versions_on_name_and_version", unique: true
   end
 
   create_table "skill_sets", force: :cascade do |t|
@@ -138,11 +235,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_020347) do
     t.index ["character_id"], name: "index_trait_sets_on_character_id"
   end
 
+  add_foreign_key "campaign_memberships", "accounts"
+  add_foreign_key "campaign_memberships", "campaigns"
+  add_foreign_key "campaigns", "accounts", column: "owner_account_id"
+  add_foreign_key "character_revisions", "characters"
+  add_foreign_key "character_shares", "accounts", column: "created_by_account_id"
+  add_foreign_key "character_shares", "campaigns"
+  add_foreign_key "character_shares", "characters"
   add_foreign_key "character_spells", "characters"
   add_foreign_key "character_spells", "spells"
+  add_foreign_key "characters", "accounts"
   add_foreign_key "characters", "ancestries"
   add_foreign_key "characters", "backgrounds"
   add_foreign_key "characters", "character_classes"
+  add_foreign_key "characters", "ruleset_versions"
+  add_foreign_key "level_ups", "characters"
   add_foreign_key "skill_sets", "characters"
   add_foreign_key "stat_sets", "characters"
   add_foreign_key "trait_sets", "characters"
