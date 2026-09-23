@@ -465,6 +465,8 @@ demo_character.assign_attributes(
   ruleset_version: demo_ruleset,
   status: demo_character_was_new ? "draft" : demo_character.status
 )
+demo_character.ensure_defaults
+demo_character.skill_set.might = demo_character.skill_initial_value("might") + 4
 demo_character.save!
 demo_character.finalize_creation! if demo_character.draft? && demo_character.legal_for_creation?
 

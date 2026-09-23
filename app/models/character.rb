@@ -133,6 +133,12 @@ class Character < ApplicationRecord
           "Chapter 3, Skills",
           "New heroes receive 4 extra skill points; each later level adds 1."
         )
+      elsif skill_points_spent < skill_point_budget
+        issues << rule_issue(
+          "Spend #{skill_point_budget - skill_points_spent} more skill points before finalizing.",
+          "Chapter 3, Skills",
+          "A starting hero must distribute all 4 extra skill points."
+        )
       end
     end
 
@@ -281,8 +287,8 @@ class Character < ApplicationRecord
       target = skill_set || build_skill_set
       SKILL_NAMES.each do |skill|
         baseline = stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + (ancestry&.all_skills_bonus || 0)
-        submitted_value = target.public_send(skill).to_i
-        target.public_send("#{skill}=", [ submitted_value, baseline ].max)
+        submitted_value = target.public_send(skill)
+        target.public_send("#{skill}=", submitted_value.nil? ? baseline : [ submitted_value.to_i, baseline ].max)
       end
     end
 

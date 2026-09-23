@@ -258,7 +258,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
         ancestry_id: @ancestry.id,
         background_id: @background.id,
         stat_array: "balanced",
-        level: 1
+        level: 1,
+        skill_set_attributes: { might: 7 }
       }
     end
 end

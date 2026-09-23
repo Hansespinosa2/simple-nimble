@@ -27,14 +27,16 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
       ancestry: @ancestry,
       background: @background,
       stat_array: "standard",
-      ruleset_version: @ruleset
+      ruleset_version: @ruleset,
+      skill_set_attributes: { might: 7 }
     )
 
     assert character.draft?
     assert character.legal_for_creation?
     assert_equal 2, character.stat_set.strength
     assert_equal 2, character.stat_set.dexterity
-    assert_equal 3, character.skill_set.might
+    assert_equal 7, character.skill_set.might
+    assert_equal 4, character.skill_points_spent
     assert_equal 2, character.trait_set.armor
     assert_equal "Common", character.languages.split(", ").first
     assert_equal "created", character.character_revisions.order(:id).last.event_type
@@ -49,6 +51,22 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid) { character.finalize_creation! }
   end
 
+  test "creation requires all four starting skill points" do
+    character = Character.create!(
+      name: "Underfunded",
+      level: 1,
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      ruleset_version: @ruleset
+    )
+
+    assert_not character.legal_for_creation?
+    assert_includes character.creation_issues.map { |issue| issue[:message] }, "Spend 4 more skill points before finalizing."
+    assert_raises(ActiveRecord::RecordInvalid) { character.finalize_creation! }
+  end
+
   test "finalizing creates a playable snapshot" do
     character = Character.create!(
       name: "Ready",
@@ -57,7 +75,8 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
       ancestry: @ancestry,
       background: @background,
       stat_array: "balanced",
-      ruleset_version: @ruleset
+      ruleset_version: @ruleset,
+      skill_set_attributes: { might: 7 }
     )
 
     assert_difference -> { character.character_revisions.count }, 1 do

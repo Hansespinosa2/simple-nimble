@@ -51,6 +51,7 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='previewNote']", text: "Changes are preview-only until you save."
     assert_selector "[data-stat-role='strength']", text: "Key Stat"
     assert_selector "[data-character-builder-target='speedPreview']", text: "30"
+    fill_in "character_skill_set_attributes_might", with: 7
 
     click_on "Save and mark playable"
 

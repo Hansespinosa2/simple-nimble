@@ -22,10 +22,12 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: ancestry,
       background: background,
       stat_array: "standard",
-      ruleset_version: ruleset
+      ruleset_version: ruleset,
+      skill_set_attributes: { arcana: 4 }
     )
     @character.finalize_creation!
     @character.update_columns(level: 3, status: "playable")
+    @character.skill_set.update!(arcana: @character.skill_set.arcana + 2)
   end
 
   test "the planner explains required choices and previews without persisting" do

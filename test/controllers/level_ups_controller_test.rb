@@ -11,7 +11,8 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
-      ruleset_version: RulesetVersion.active.first
+      ruleset_version: RulesetVersion.active.first,
+      skill_set_attributes: { might: 7 }
     )
     @character.save!
     @character.finalize_creation! if @character.draft?

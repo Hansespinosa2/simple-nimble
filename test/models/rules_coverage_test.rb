@@ -25,9 +25,9 @@ class RulesCoverageTest < ActiveSupport::TestCase
         stat_array: "standard",
         ruleset_version: @ruleset
       )
-      character.finalize_creation!
-
       skill = Character::SKILL_TO_STAT.find { |_name, stat| character_class.key_stats.include?(stat) }.first
+      character.skill_set.public_send("#{skill}=", character.skill_initial_value(skill) + 4)
+      character.finalize_creation!
       level_up = character.level_ups.create!(from_level: 1, to_level: 2, skill_name: skill)
       LevelUpService.finalize!(level_up)
 
@@ -39,7 +39,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
 
   test "every seeded ancestry can create legally and every seeded spell can be attached" do
     canonical_ancestries = Ancestry.where.not(name: "MyString").order(:name)
-    canonical_spells = Spell.where.not(name: "MyString").order(:tier, :name)
+    canonical_spells = Spell.where.not(name: [ "MyString", "Fixture Flame", "Fixture Frost" ]).order(:tier, :name)
 
     assert_equal 24, canonical_ancestries.count
     assert_equal 14, canonical_spells.count
@@ -55,6 +55,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
         ruleset_version: @ruleset
       )
 
+      character.skill_set.update!(might: character.skill_initial_value("might") + 4)
       assert character.legal_for_creation?, "#{ancestry.name} should produce a legal draft"
       character.finalize_creation!
       assert character.reload.playable?, "#{ancestry.name} should finalize as playable"
@@ -69,6 +70,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
       stat_array: "balanced",
       ruleset_version: @ruleset
     )
+    character.skill_set.update!(might: character.skill_initial_value("might") + 4)
     character.spells = canonical_spells
 
     assert_equal canonical_spells.map(&:id), character.reload.spells.order(:tier, :name).pluck(:id)
