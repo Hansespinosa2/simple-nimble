@@ -64,4 +64,18 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, @character.reload.level
     assert level_up.reload.draft?
   end
+
+  test "a stale level-up draft is blocked before it can change the sheet" do
+    level_up = @character.level_ups.create!(from_level: 99, to_level: 2, skill_name: "might")
+
+    patch character_level_up_url(@character, level_up), params: {
+      level_up: { from_level: 99, to_level: 2, skill_name: "might" },
+      finalize: "1"
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "current level"
+    assert_equal 1, @character.reload.level
+    assert level_up.reload.draft?
+  end
 end

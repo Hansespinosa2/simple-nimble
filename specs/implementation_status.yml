@@ -9,3 +9,15 @@ criteria:
     status: in_progress
     updated_at: '2026-09-23T07:51:55Z'
     notes: Making core tests prove persisted behavior
+  S-06:AC-2:
+    status: in_progress
+    updated_at: '2026-09-23T07:55:25Z'
+    notes: Testing stale and tampered level-up drafts
+  S-06:AC-5:
+    status: in_progress
+    updated_at: '2026-09-23T07:55:25Z'
+    notes: Blocking illegal level-up transitions
+  S-06:AC-6:
+    status: in_progress
+    updated_at: '2026-09-23T07:55:26Z'
+    notes: Proving unrelated game state is preserved

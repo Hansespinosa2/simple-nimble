@@ -1,10 +1,11 @@
 class LevelUpService
   def self.finalize!(level_up)
-    planner = LevelUpPlanner.new(level_up.character, level_up)
-    return fail_level_up!(level_up, planner) unless planner.valid?
-
     character = level_up.character
-    character.transaction do
+    character.with_lock do
+      level_up.reload
+      planner = LevelUpPlanner.new(character, level_up)
+      fail_level_up!(level_up, planner) unless planner.valid?
+
       character.update!(status: "level_up") if character.playable?
       preview = planner.preview
       apply_preview!(character, preview)

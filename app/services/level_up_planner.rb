@@ -27,6 +27,7 @@ class LevelUpPlanner
     result << issue("This character is not in a playable state.", "Chapter 4, Character Lifecycle", "Level-up begins from a PlayableValid character.") unless character.playable? || character.level_up_in_progress?
     result << issue("Resolve the character's creation checks before leveling up.", "Chapter 3, Character Creation", "A level-up can only begin from a legal character state.") unless character.creation_issues.empty?
     result << issue("This character is already at the maximum level.", "Chapter 3, Character Progression", "Characters advance from level 1 through level 20.") if character.level.to_i >= 20
+    result << issue("Level-up must start from the character's current level.", "Chapter 4, Character Lifecycle", "A transition records the exact level it advances from.") unless level_up.from_level.to_i == character.level.to_i
     result << issue("Level-up must advance exactly one level.", "Chapter 3, Character Progression", "Level-up is an explicit one-level transition.") unless target_level == character.level.to_i + 1
 
     if level_up.skill_name.blank?

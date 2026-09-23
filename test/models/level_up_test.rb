@@ -73,4 +73,36 @@ class LevelUpTest < ActiveSupport::TestCase
     assert level_up.reload.draft?
     assert_includes level_up.errors.full_messages, "Will is not eligible for this level's stat increase."
   end
+
+  test "a stale or tampered starting level cannot be finalized" do
+    level_up = @character.level_ups.create!(
+      from_level: 2,
+      to_level: 4,
+      skill_name: "might",
+      stat_name: "strength"
+    )
+
+    assert_raises(ActiveRecord::RecordInvalid) { LevelUpService.finalize!(level_up) }
+    assert_equal 3, @character.reload.level
+    assert level_up.reload.draft?
+    assert_includes level_up.errors.full_messages, "Level-up must start from the character's current level."
+  end
+
+  test "finalizing a level-up preserves unrelated game state" do
+    @character.update!(description: "A scarred veteran", conditions: "Poisoned", inventory: "Torch", game_notes: "Ask about the ferryman.")
+    @character.trait_set.update!(current_hp: 7, current_wounds: 2, current_actions: 1, temp_hp: 3)
+    level_up = @character.level_ups.create!(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength")
+
+    LevelUpService.finalize!(level_up)
+    @character.reload
+
+    assert_equal "A scarred veteran", @character.description
+    assert_equal "Poisoned", @character.conditions
+    assert_equal "Torch", @character.inventory
+    assert_equal "Ask about the ferryman.", @character.game_notes
+    assert_equal 7, @character.trait_set.current_hp
+    assert_equal 2, @character.trait_set.current_wounds
+    assert_equal 1, @character.trait_set.current_actions
+    assert_equal 3, @character.trait_set.temp_hp
+  end
 end
