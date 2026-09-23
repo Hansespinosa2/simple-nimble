@@ -289,4 +289,25 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 1, preview.fetch("traits").fetch("armor")
     assert_equal 7, preview.fetch("traits").fetch("max_wounds")
   end
+
+  test "unlocking a caster resource starts the new mana track full" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Mana Unlock Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    character.finalize_creation!
+    level_up = character.level_ups.create!(from_level: 1, to_level: 2, skill_name: "arcana", hit_die_roll_one: 3, hit_die_roll_two: 2)
+
+    LevelUpService.finalize!(level_up)
+
+    tracks = character.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 8, tracks.fetch("mana").fetch("max")
+    assert_equal 8, tracks.fetch("mana").fetch("current")
+  end
 end

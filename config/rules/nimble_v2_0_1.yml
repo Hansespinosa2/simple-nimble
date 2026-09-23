@@ -80,6 +80,13 @@ classes:
       name: Fury Dice
       max_formula: KEY
       die_by_level: {1: d4, 6: d6, 9: d8, 13: d10, 17: d12}
+      pools:
+        - key: fury_dice
+          name: Fury Dice
+          max_formula: KEY
+          die_by_level: {1: d4, 6: d6, 9: d8, 13: d10, 17: d12}
+          initial_current: 0
+          reset: Rage ends / encounter
     subclasses: [Path of the Mountainheart, Path of the Red Mist]
 
   The Cheat:
@@ -127,6 +134,14 @@ classes:
       name: Combat Dice
       max_formula: "STR + upgrades"
       die_by_level: {4: d6, 5: d8, 9: d10, 13: d12, 17: d20}
+      pools:
+        - key: combat_dice
+          name: Combat Dice
+          max_formula: STR
+          start_level: 4
+          die_by_level: {4: d6, 5: d8, 9: d10, 13: d12, 17: d20}
+          initial_current: 0
+          reset: Encounter ends
     subclasses: [Champion of the Bulwark, Champion of the Vanguard, Spellblade]
 
   Hunter:
@@ -150,6 +165,12 @@ classes:
     resource:
       name: Thrill of the Hunt charges
       formula: "gained from quarry triggers; lost when combat ends"
+      pools:
+        - key: thrill_of_the_hunt
+          name: Thrill of the Hunt charges
+          start_level: 2
+          initial_current: 0
+          reset: Encounter ends
     subclasses: [Shadowpath, Wild Heart, Beastmaster]
 
   Mage:
@@ -174,6 +195,12 @@ classes:
       name: Mana
       max_formula: "INT * 3 + LVL"
       max_start_level: 2
+      pools:
+        - key: mana
+          name: Mana
+          max_formula: "INT * 3 + LVL"
+          start_level: 2
+          reset: Safe Rest
     subclasses: [Chaos, Control]
 
   Oathsworn:
@@ -199,6 +226,22 @@ classes:
       max_formula: "mana WIL + LVL; Lay on Hands 5 * LVL"
       max_start_level: 2
       die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
+      pools:
+        - key: mana
+          name: Mana
+          max_formula: "WIL + LVL"
+          start_level: 2
+          reset: Safe Rest
+        - key: lay_on_hands
+          name: Lay on Hands
+          max_formula: "5 * LVL"
+          reset: Safe Rest
+        - key: judgment_dice
+          name: Judgment Dice
+          max_by_level: {1: 2, 14: 3}
+          die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
+          initial_current: 0
+          reset: When attacked with no dice
     subclasses: [Oath of Vengeance, Oath of Refuge, Oathbreaker]
 
   Shadowmancer:
@@ -222,6 +265,11 @@ classes:
     resource:
       name: Pilfered Power uses
       max_formula: "DEX uses before patron retaliation; resets on Safe Rest"
+      pools:
+        - key: pilfered_power
+          name: Pilfered Power
+          max_formula: DEX
+          reset: Safe Rest
     subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths, Reaver]
 
   Shepherd:
@@ -246,6 +294,12 @@ classes:
       name: Mana
       max_formula: "WIL * 3 + LVL"
       max_start_level: 2
+      pools:
+        - key: mana
+          name: Mana
+          max_formula: "WIL * 3 + LVL"
+          start_level: 2
+          reset: Safe Rest
     subclasses: [Luminary of Mercy, Luminary of Malice]
 
   Songweaver:
@@ -270,6 +324,16 @@ classes:
       name: Mana and Inspiration
       max_formula: "mana INT * 3 + LVL; Inspiration 2 * WIL per Safe Rest"
       max_start_level: 2
+      pools:
+        - key: mana
+          name: Mana
+          max_formula: "INT * 3 + LVL"
+          start_level: 2
+          reset: Safe Rest
+        - key: inspiration
+          name: Inspiration
+          max_formula: "2 * WIL"
+          reset: Safe Rest
     subclasses: [Herald of Snark, Herald of Courage]
 
   Stormshifter:
@@ -294,6 +358,16 @@ classes:
       name: Mana and Beastshift charges
       max_formula: "mana WIL * 3 + LVL; Beastshift DEX charges per Safe Rest"
       max_start_level: 2
+      pools:
+        - key: mana
+          name: Mana
+          max_formula: "WIL * 3 + LVL"
+          start_level: 2
+          reset: Safe Rest
+        - key: beastshift
+          name: Beastshift
+          max_formula: DEX
+          reset: Safe Rest
     subclasses: [Circle of Fang & Claw, Circle of Sky & Storm]
 
   Zephyr:
@@ -317,4 +391,10 @@ classes:
     resource:
       name: Bursts of Speed
       max_formula: DEX
+      pools:
+        - key: bursts_of_speed
+          name: Bursts of Speed
+          max_formula: DEX
+          initial_current: 0
+          reset: Encounter ends
     subclasses: [Way of Flame, Way of Pain]

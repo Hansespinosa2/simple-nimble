@@ -51,7 +51,11 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='previewNote']", text: "Changes are preview-only until you save."
     assert_selector "[data-stat-role='strength']", text: "Key Stat"
     assert_selector "[data-character-builder-target='speedPreview']", text: "6"
-    fill_in "character_skill_set_attributes_might", with: 7
+    find("select[name='character[stat_assignments][strength]'] option[value='0']").select_option
+    find("select[name='character[stat_assignments][intelligence]'] option[value='1']").select_option
+    find("select[name='character[stat_assignments][will]'] option[value='2']").select_option
+    assert_selector "[data-character-builder-target='saveDcPreview']", text: "11"
+    fill_in "character_skill_set_attributes_might", with: 5
 
     click_on "Save and mark playable"
 

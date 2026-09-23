@@ -140,7 +140,8 @@ class LevelUpPlanner
       "resource_formula" => character.trait_set&.resource_formula,
       "resource_die" => character.trait_set&.resource_die,
       "max_resource" => character.trait_set&.max_resource,
-      "current_resource" => character.trait_set&.current_resource
+      "current_resource" => character.trait_set&.current_resource,
+      "resource_tracks" => character.trait_set&.resource_tracks
     }
 
     selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
@@ -172,14 +173,17 @@ class LevelUpPlanner
       traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
       resource_values = character.derived_resource_values_for(stat_values: stats, level: target_level)
+      resource_tracks = character.preserved_resource_tracks(resource_values.fetch(:resource_tracks))
+      legacy_resource_values = character.resource_tracker_values_for(resource_tracks)
+      traits["resource_tracks"] = resource_tracks
       traits["save_dc"] = character.save_dc_for(stats)
-      traits["max_mana"] = resource_values.fetch(:max_mana)
+      traits["max_mana"] = legacy_resource_values.fetch(:max_mana)
       traits["resource_name"] = resource_values.fetch(:name)
       traits["resource_formula"] = resource_values.fetch(:formula)
       traits["resource_die"] = resource_values.fetch(:die)
-      traits["max_resource"] = resource_values.fetch(:max_resource)
-      traits["current_mana"] = preserved_tracker_value(character.trait_set.current_mana, character.trait_set.max_mana, traits["max_mana"])
-      traits["current_resource"] = preserved_tracker_value(character.trait_set.current_resource, character.trait_set.max_resource, traits["max_resource"])
+      traits["max_resource"] = legacy_resource_values.fetch(:max_resource)
+      traits["current_mana"] = legacy_resource_values.fetch(:current_mana)
+      traits["current_resource"] = legacy_resource_values.fetch(:current_resource)
     end
 
     {

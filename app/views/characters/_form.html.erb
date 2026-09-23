@@ -120,6 +120,22 @@
             </div>
           <% end %>
         </div>
+        <% stat_options = Character::STAT_ARRAYS[character.stat_array].to_a.uniq.sort.reverse.map { |value| [ signed_value(value), value ] } %>
+        <div class="stat-placement-panel">
+          <div>
+            <strong>Place the array</strong>
+            <p class="field-hint">The rules recommend putting the highest values in Key Stats, but you may place each value in any stat.</p>
+          </div>
+          <div class="stat-placement-grid">
+            <% Character::STAT_NAMES.each do |stat| %>
+              <% selected_value = character.stat_assignment_value(stat) || (character.stat_array.present? ? character.stat_value(stat) : nil) %>
+              <label class="stat-placement-field">
+                <span><%= stat_display_name(stat) %></span>
+                <%= select_tag "character[stat_assignments][#{stat}]", options_for_select([["Choose", ""]] + stat_options, selected_value), disabled: read_only, data: { character_builder_target: "statAssignment", stat: stat, action: "change->character-builder#refresh" } %>
+              </label>
+            <% end %>
+          </div>
+        </div>
         <div class="derived-strip">
           <div class="derived-item"><span>Starting HP</span><strong data-character-builder-target="hpPreview"><%= character.trait_set&.max_hp || "—" %></strong></div>
           <div class="derived-item"><span>Armor</span><strong data-character-builder-target="armorPreview"><%= character.trait_set&.armor || "—" %></strong></div>

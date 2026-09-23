@@ -236,4 +236,87 @@ class CharacterTest < ActiveSupport::TestCase
 
     assert_equal 2, zephyr.trait_set.armor
   end
+
+  test "creation preserves a freely placed stat array and derives from that placement" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Unusual Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.create!(name: "Unusual Mage Background", description: "No modifiers."),
+      stat_array: "balanced",
+      stat_assignments: { strength: 0, dexterity: 1, intelligence: 1, will: 2 }
+    )
+
+    assert_equal({ "strength" => 0, "dexterity" => 1, "intelligence" => 1, "will" => 2 }, character.stat_assignment_values)
+    assert_equal 1, character.stat_set.intelligence
+    assert_equal 2, character.stat_set.will
+    assert_equal 12, character.trait_set.save_dc
+    assert_equal 3, character.trait_set.armor
+    assert_equal 2, character.trait_set.initiative
+    assert_equal 10, character.trait_set.inventory_slots
+  end
+
+  test "creation rejects a stat placement that does not use the selected array" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Invalid Placement",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 2, dexterity: 2, intelligence: 1, will: 0 }
+    )
+
+    assert_not character.valid?
+    assert_includes character.errors[:stat_assignments], "must use each value from the selected stat array exactly once"
+    assert_includes character.creation_issues.map { |issue| issue.fetch(:message) }, "Place each value from the Balanced array exactly once."
+  end
+
+  test "invalid stat arrays remain validation errors when assignments are present" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Unknown Array",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "invented",
+      stat_assignments: { strength: 0, dexterity: 1, intelligence: 2, will: 3 }
+    )
+
+    assert_not character.valid?
+    assert_includes character.errors[:stat_array], "is not included in the list"
+  end
+
+  test "resource tracks follow class unlocks, maxima, and encounter starting states" do
+    Rails.application.load_seed
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Fearless")
+
+    berserker = Character.create!(character_class: CharacterClass.find_by!(name: "Berserker"), ancestry:, background:, stat_array: "standard")
+    fury = berserker.trait_set.resource_tracks.first
+    assert_equal "fury_dice", fury.fetch("key")
+    assert_equal 2, fury.fetch("max")
+    assert_equal 0, fury.fetch("current")
+    assert_equal "d4", fury.fetch("die")
+
+    oathsworn = Character.create!(level: 1, character_class: CharacterClass.find_by!(name: "Oathsworn"), ancestry:, background:, stat_array: "standard")
+    judgment = oathsworn.trait_set.resource_tracks.find { |track| track.fetch("key") == "judgment_dice" }
+    assert_equal 2, judgment.fetch("max")
+    assert_equal 0, judgment.fetch("current")
+    assert_equal "2d6", judgment.fetch("die")
+
+    oathsworn_level_two = Character.create!(level: 2, character_class: CharacterClass.find_by!(name: "Oathsworn"), ancestry:, background:, stat_array: "standard")
+    tracks = oathsworn_level_two.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 4, tracks.fetch("mana").fetch("max")
+    assert_equal 4, tracks.fetch("mana").fetch("current")
+    assert_equal 10, tracks.fetch("lay_on_hands").fetch("max")
+    assert_equal 0, tracks.fetch("judgment_dice").fetch("current")
+
+    hunter = Character.create!(level: 2, character_class: CharacterClass.find_by!(name: "Hunter"), ancestry:, background:, stat_array: "standard")
+    thrill = hunter.trait_set.resource_tracks.first
+    assert_equal "thrill_of_the_hunt", thrill.fetch("key")
+    assert_nil thrill["max"]
+    assert_equal 0, thrill.fetch("current")
+  end
 end

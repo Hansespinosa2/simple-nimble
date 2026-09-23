@@ -104,8 +104,9 @@ class CharactersController < ApplicationController
   def tracker
     tracker_attributes = params.expect(character: [
       :conditions, :inventory, :game_notes,
-      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp ] }
+      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [[ :key, :current ]] } ] }
     ])
+    normalize_resource_tracks!(tracker_attributes)
 
     if @character.update(tracker_attributes)
       @character.record_revision!(event_type: "game_update", summary: "In-game state updated", from_level: @character.level, to_level: @character.level)
@@ -162,6 +163,7 @@ class CharactersController < ApplicationController
         :ancestry_id,
         :background_id,
         :stat_array,
+        { stat_assignments: Character::STAT_NAMES },
         {
           skill_set_attributes: skill_set_params_list
         },
@@ -188,6 +190,13 @@ class CharactersController < ApplicationController
     def add_creation_errors
       @character.errors.add(:base, "Resolve the highlighted rules checks before finalizing.") if @character.creation_issues.empty?
       @character.creation_issues.each { |issue| @character.errors.add(:base, issue.fetch(:message)) }
+    end
+
+    def normalize_resource_tracks!(tracker_attributes)
+      trait_attributes = tracker_attributes[:trait_set_attributes]
+      return if trait_attributes.blank? || trait_attributes[:resource_tracks].blank?
+
+      trait_attributes[:resource_tracks] = @character.normalized_resource_tracks(trait_attributes[:resource_tracks])
     end
 
     def creation_error_payload

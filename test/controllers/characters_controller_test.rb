@@ -33,6 +33,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[ancestry_id]']"
     assert_select "select[name='character[background_id]']"
     assert_select "select[name='character[stat_array]']"
+    assert_select "select[name='character[stat_assignments][strength]']"
+    assert_select "select[name='character[stat_assignments][will]']"
   end
 
   test "should embed structured origin rules in the builder payload" do
@@ -73,6 +75,22 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "balanced", created.stat_array
     assert_equal @character_class.starting_hp, created.trait_set.max_hp
     assert created.character_revisions.exists?(event_type: "finalized")
+  end
+
+  test "should persist the selected stat placement from the builder" do
+    attributes = canonical_character_attributes.merge(
+      name: "Placed Hero",
+      stat_assignments: { strength: 0, dexterity: 1, intelligence: 1, will: 2 }
+    )
+
+    post characters_url, params: { character: attributes }
+
+    assert_redirected_to character_url(Character.order(:id).last)
+    created = Character.order(:id).last
+    assert_equal 0, created.stat_set.strength
+    assert_equal 1, created.stat_set.dexterity
+    assert_equal 1, created.stat_set.intelligence
+    assert_equal 2, created.stat_set.will
   end
 
   test "should keep an incomplete character as a draft and render every blocking reason" do
@@ -249,6 +267,43 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, @character.trait_set.current_actions
     assert_equal "In-game state updated", @character.character_revisions.order(:id).last.summary
     assert_equal "Smoldering", @character.character_revisions.order(:id).last.snapshot.fetch("character").fetch("conditions")
+  end
+
+  test "should track a keyed class resource and reject a value above its maximum" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Tracked Mage",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    patch tracker_character_url(mage), params: {
+      character: {
+        trait_set_attributes: {
+          id: mage.trait_set.id,
+          resource_tracks: [ { key: "mana", current: 3 } ]
+        }
+      }
+    }
+
+    assert_redirected_to character_url(mage)
+    assert_equal 3, mage.reload.trait_set.resource_tracks.first.fetch("current")
+
+    patch tracker_character_url(mage), params: {
+      character: {
+        trait_set_attributes: {
+          id: mage.trait_set.id,
+          resource_tracks: [ { key: "mana", current: 9 } ]
+        }
+      }
+    }
+
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:alert], "could not be saved"
+    assert_equal 3, mage.reload.trait_set.resource_tracks.first.fetch("current")
   end
 
   test "should reject impossible tracker state without changing derived limits" do

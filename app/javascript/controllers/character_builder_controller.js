@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "classHint", "ancestryHint", "backgroundHint",
-    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview",
+    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment",
     "speedPreview", "woundsPreview", "resourcePreview", "previewNote", "skillBudget"
   ]
 
@@ -26,6 +26,7 @@ export default class extends Controller {
     const background = this.rulesValue.backgrounds?.[this.backgroundTarget.value]
     const array = this.rulesValue.stat_arrays?.[this.statArrayTarget.value]
 
+    this.updateStatAssignmentOptions(array, characterClass)
     this.updateStats(characterClass, array)
     this.updateSkills(characterClass, ancestry, background, array)
     this.updateDerived(characterClass, ancestry, background, array)
@@ -52,6 +53,10 @@ export default class extends Controller {
     keys.forEach((stat, index) => { statValues[stat] = sortedArray[index] })
     secondaries.forEach((stat, index) => { statValues[stat] = sortedArray[index + keys.length] })
 
+    this.element.querySelectorAll("[data-character-builder-target='statAssignment']").forEach((input) => {
+      if (input.value !== "") statValues[input.dataset.stat] = Number(input.value)
+    })
+
     this.element.querySelectorAll("[data-stat-value]").forEach((node) => {
       const stat = node.dataset.statValue
       node.textContent = statValues[stat] === undefined ? "—" : this.signed(statValues[stat])
@@ -60,6 +65,41 @@ export default class extends Controller {
     })
 
     this.statValues = statValues
+  }
+
+  updateStatAssignmentOptions(array, characterClass) {
+    const inputs = [...this.element.querySelectorAll("[data-character-builder-target='statAssignment']")]
+    if (!inputs.length) return
+
+    const arrayValues = (array || []).map(Number)
+    const arrayKey = arrayValues.join(",")
+    const arrayChanged = arrayKey !== this.lastStatArrayKey
+    const classKey = characterClass?.name || ""
+    const classChanged = classKey !== this.lastStatClassKey
+    const options = [...new Set(arrayValues)].sort((a, b) => b - a)
+
+    inputs.forEach((input) => {
+      const previous = input.value
+      input.innerHTML = '<option value="">Choose</option>'
+      options.forEach((value) => {
+        const option = document.createElement("option")
+        option.value = value
+        option.textContent = this.signed(value)
+        input.appendChild(option)
+      })
+      if (previous !== "" && options.includes(Number(previous))) input.value = previous
+    })
+
+    if (arrayChanged || classChanged || (arrayValues.length && inputs.every((input) => input.value === ""))) {
+      const sorted = [...arrayValues].sort((a, b) => b - a)
+      const orderedStats = [...(characterClass?.key_stats || []), ...(characterClass?.secondary_stats || [])]
+      const defaults = {}
+      orderedStats.forEach((stat, index) => { defaults[stat] = sorted[index] ?? "" })
+      inputs.forEach((input, index) => { input.value = defaults[input.dataset.stat] ?? sorted[index] ?? "" })
+    }
+
+    this.lastStatArrayKey = arrayKey
+    this.lastStatClassKey = classKey
   }
 
   updateSkills(characterClass, ancestry, background, array) {

@@ -1,11 +1,13 @@
 class Character < ApplicationRecord
+  serialize :stat_assignments, coder: JSON
+
   BASE_SPEED = 6
   DEFAULT_MAX_WOUNDS = 6
   BASE_INVENTORY_SLOTS = 10
 
-  # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The two
-  # highest values go to the class's 2 Key Stats, the remaining two to the
-  # 2 Secondary Stats.
+  # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The builder
+  # recommends placing the highest values in Key Stats, but the rules allow
+  # the player to place each array value freely.
   STAT_ARRAYS = {
     "standard" => [ 2, 2, 0, -1 ],
     "balanced" => [ 2, 1, 1, 0 ],
@@ -67,6 +69,7 @@ class Character < ApplicationRecord
   validates :stat_array, inclusion: { in: STAT_ARRAYS.keys }, allow_blank: true
   validates :status, inclusion: { in: STATUS_LABELS.keys }
   validates :level, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }, allow_nil: true
+  validate :stat_assignments_match_array
   validate :playable_state_is_legal, if: :playable?
 
   before_create :ensure_defaults
@@ -167,20 +170,100 @@ class Character < ApplicationRecord
     (value_for_stat(stat_values || current_stat_values, stat) * multiplier) + level.to_i
   end
 
+  def derived_resource_tracks_for(stat_values:, level: self.level)
+    pools = Array(character_class&.resource_rules.to_h["pools"])
+
+    pools.filter_map do |pool|
+      pool = pool.to_h
+      next if level.to_i < pool.fetch("start_level", 1).to_i
+
+      maximum = resource_track_max_from(pool, stat_values, level)
+      die = resource_die_for(pool["die_by_level"], level)
+      initial_current = pool.key?("initial_current") ? pool["initial_current"].to_i : maximum.to_i
+
+      {
+        "key" => pool.fetch("key"),
+        "name" => pool.fetch("name"),
+        "formula" => pool["max_formula"],
+        "max" => maximum,
+        "current" => initial_current,
+        "die" => die,
+        "reset" => pool["reset"]
+      }.compact
+    end
+  end
+
   def derived_resource_values_for(stat_values:, level: self.level)
     rules = character_class&.resource_rules.to_h
     formula = rules["max_formula"].presence || rules["formula"].presence
-    mana_max = mana_max_for(stat_values: stat_values, level: level)
-    resource_active = level.to_i >= rules.fetch("max_start_level", 1).to_i
-    resource_max = mana_max.present? || !resource_active ? nil : resource_max_from_formula(formula, stat_values)
+    tracks = derived_resource_tracks_for(stat_values: stat_values, level: level)
+    legacy_values = resource_tracker_values_for(tracks)
+    die = tracks.find { |track| track["die"].present? }&.fetch("die")
 
     {
       name: rules["name"],
       formula: formula,
-      die: resource_die_for(rules["die_by_level"], level),
-      max_mana: mana_max,
-      max_resource: resource_max
+      die: die || resource_die_for(rules["die_by_level"], level),
+      max_mana: legacy_values.fetch(:max_mana),
+      current_mana: legacy_values.fetch(:current_mana),
+      max_resource: legacy_values.fetch(:max_resource),
+      current_resource: legacy_values.fetch(:current_resource),
+      resource_tracks: tracks
     }
+  end
+
+  def resource_tracker_values_for(tracks)
+    tracks = Array(tracks)
+    mana = tracks.find { |track| track.to_h["key"] == "mana" }
+    resource = tracks.reject { |track| track.to_h["key"] == "mana" }.find { |track| track.to_h["max"].present? }
+
+    {
+      max_mana: mana&.[]("max"),
+      current_mana: mana&.[]("current"),
+      max_resource: resource&.[]("max"),
+      current_resource: resource&.[]("current")
+    }
+  end
+
+  def preserved_resource_tracks(new_tracks, preserved_tracker_state = nil)
+    preserved_tracker_state ||= {
+      resource_tracks: trait_set&.resource_tracks,
+      current_mana: trait_set&.current_mana,
+      previous_max_mana: trait_set&.max_mana,
+      current_resource: trait_set&.current_resource,
+      previous_max_resource: trait_set&.max_resource
+    }
+    previous_tracks = Array(preserved_tracker_state[:resource_tracks]).index_by { |track| track.to_h["key"] }
+    legacy_resource_available = previous_tracks.empty?
+    used_legacy_resource = false
+
+    Array(new_tracks).map do |track|
+      track = track.to_h.stringify_keys
+      previous = previous_tracks[track["key"]]
+      current = previous&.[]("current")
+      previous_max = previous&.[]("max")
+      if current.nil? && legacy_resource_available && track["key"] == "mana"
+        current = preserved_tracker_state[:current_mana]
+        previous_max = preserved_tracker_state[:previous_max_mana]
+      elsif current.nil? && legacy_resource_available && !used_legacy_resource
+        current = preserved_tracker_state[:current_resource]
+        previous_max = preserved_tracker_state[:previous_max_resource]
+        used_legacy_resource = true
+      end
+
+      current = track["current"] if current.nil?
+      track.merge("current" => preserved_or_clamped_value(current, previous_max, track["max"]))
+    end
+  end
+
+  def normalized_resource_tracks(submitted_tracks)
+    submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
+
+    Array(trait_set&.resource_tracks).map do |track|
+      track = track.to_h.stringify_keys
+      input = submitted[track["key"]]
+      input.present? ? track.merge("current" => input["current"].to_i) : track
+    end
   end
 
   def creation_issues
@@ -189,6 +272,13 @@ class Character < ApplicationRecord
     issues << rule_issue("Choose an ancestry before finalizing.", "Chapter 2, Ancestry Rules", "Every hero has one ancestry.") if ancestry.blank?
     issues << rule_issue("Choose a background before finalizing.", "Chapter 2, Backgrounds", "Every hero has one background.") if background.blank?
     issues << rule_issue("Choose a stat array before finalizing.", "Chapter 3, Character Creation", "Choose Standard, Balanced, or Min-Max and assign it to your class stats.") if stat_array.blank?
+    if character_class.present? && stat_array.present? && !stat_assignments_valid?
+      issues << rule_issue(
+        "Place each value from the #{stat_array.humanize} array exactly once.",
+        "Chapter 3, Character Creation",
+        "Choose a stat array, then place its four values across your four stats."
+      )
+    end
     issues << rule_issue("Start new characters at level 1.", "Chapter 3, Character Creation", "A starting character begins at level 1.") if level.present? && level != 1 && !playable? && !level_up_in_progress?
 
     if character_class&.spell_schools&.include?("choice") && spell_school_choice.blank?
@@ -310,6 +400,26 @@ class Character < ApplicationRecord
     stat_set&.public_send(stat).to_i
   end
 
+  def stat_assignment_values
+    values = stat_assignments.to_h.stringify_keys
+    return {} unless values.keys.intersection(STAT_NAMES).length == STAT_NAMES.length
+
+    values.slice(*STAT_NAMES).transform_values(&:to_i)
+  end
+
+  def stat_assignment_value(stat)
+    stat_assignment_values[stat.to_s]
+  end
+
+  def stat_assignments_valid?
+    return true if stat_array.blank? || character_class.blank? || stat_assignments.blank?
+
+    expected_values = STAT_ARRAYS[stat_array]
+    return false if expected_values.blank?
+
+    stat_assignment_values.size == STAT_NAMES.size && stat_assignment_values.values.sort == Array(expected_values).sort
+  end
+
   def stat_increase_type_for(level)
     return character_class.stat_increase_type_for(level) if character_class.present?
 
@@ -328,7 +438,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {
@@ -341,7 +451,7 @@ class Character < ApplicationRecord
       "skills" => skill_set&.attributes&.slice(*SKILL_NAMES),
       "traits" => trait_set&.attributes&.slice(
         "initiative", "speed", "hit_die", "current_hit_dice", "max_hit_dice", "current_actions", "max_actions",
-        "armor", "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource",
+        "armor", "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource", "resource_tracks",
         "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds", "inventory_slots"
       ),
       "spells" => spells.order(:name).pluck(:name)
@@ -394,6 +504,13 @@ class Character < ApplicationRecord
     end
 
     def sync_derived_values
+      if (stat_array_changed? || character_class_id_changed?) && !will_save_change_to_stat_assignments?
+        self.stat_assignments = nil
+      end
+      if stat_array.present? && character_class.present? && stat_assignments.blank?
+        self.stat_assignments = default_stat_assignments
+      end
+
       if character_class.present? && stat_array.present?
         assign_attributes_to_stat_set(projected_stat_values)
       end
@@ -443,6 +560,7 @@ class Character < ApplicationRecord
           previous_max_mana: target.max_mana,
           current_resource: target.current_resource,
           previous_max_resource: target.max_resource,
+          resource_tracks: target.resource_tracks,
           temp_hp: target.temp_hp
         }
       end
@@ -453,6 +571,9 @@ class Character < ApplicationRecord
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
       stat_values = current_stat_values
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
+      resource_tracks = resource_values.fetch(:resource_tracks)
+      resource_tracks = preserved_resource_tracks(resource_tracks, preserved_tracker_state) if preserved_tracker_state
+      legacy_resource_values = resource_tracker_values_for(resource_tracks)
       target.assign_attributes(
         initiative: dexterity + derived_modifier_for(:initiative_modifier),
         speed: BASE_SPEED + derived_modifier_for(:speed_modifier),
@@ -463,13 +584,14 @@ class Character < ApplicationRecord
         max_actions: 3,
         armor: armor_for(stat_values).to_i + derived_modifier_for(:armor_modifier),
         save_dc: save_dc_for(stat_values),
-        max_mana: resource_values.fetch(:max_mana),
-        current_mana: resource_values.fetch(:max_mana),
+        max_mana: legacy_resource_values.fetch(:max_mana),
+        current_mana: legacy_resource_values.fetch(:current_mana),
         resource_name: resource_values.fetch(:name),
         resource_formula: resource_values.fetch(:formula),
         resource_die: resource_values.fetch(:die),
-        max_resource: resource_values.fetch(:max_resource),
-        current_resource: resource_values.fetch(:max_resource),
+        max_resource: legacy_resource_values.fetch(:max_resource),
+        current_resource: legacy_resource_values.fetch(:current_resource),
+        resource_tracks: resource_tracks,
         inventory_slots: BASE_INVENTORY_SLOTS + stat_set&.strength.to_i,
         temp_hp: 0,
         current_hp: starting_hp,
@@ -544,6 +666,33 @@ class Character < ApplicationRecord
       value_for_stat(stat_values, stat)
     end
 
+    def resource_track_max_from(pool, stat_values, level)
+      max_by_level = pool["max_by_level"].to_h.select { |unlock_level, _maximum| level.to_i >= unlock_level.to_i }
+      return max_by_level.max_by { |unlock_level, _maximum| unlock_level.to_i }&.last&.to_i if max_by_level.present?
+
+      formula = pool["max_formula"].to_s
+      return nil if formula.blank?
+      return formula.to_i if formula.match?(/\A\d+\z/)
+
+      multiplier_match = formula.match(/\A\s*(\d+)\s*\*\s*LVL\b/i)
+      return multiplier_match[1].to_i * level.to_i if multiplier_match
+
+      return key_stat_max(stat_values) if formula.match?(/\bKEY\b/i)
+
+      stat_match = formula.match(/\b(STR|DEX|INT|WIL)\b/i)
+      return nil unless stat_match
+
+      stat = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }.fetch(stat_match[1].upcase)
+      multiplier = (formula.match(/\b#{stat_match[1]}\s*\*\s*(\d+)/i)&.[](1) || formula.match(/(\d+)\s*\*\s*#{stat_match[1]}\b/i)&.[](1)).to_i.nonzero? || 1
+      value = value_for_stat(stat_values, stat) * multiplier
+      value += level.to_i if formula.match?(/\+\s*LVL/i)
+      value
+    end
+
+    def key_stat_max(stat_values)
+      character_class.key_stats.map { |stat| value_for_stat(stat_values, stat) }.max.to_i
+    end
+
     def resource_die_for(die_by_level, level)
       entries = die_by_level.to_h.select { |unlock_level, _die| level.to_i >= unlock_level.to_i }
       entries.max_by { |unlock_level, _die| unlock_level.to_i }&.last
@@ -564,12 +713,31 @@ class Character < ApplicationRecord
     end
 
     def projected_stat_values
+      assigned_values = stat_assignment_values
+      return assigned_values.symbolize_keys if assigned_values.size == STAT_NAMES.size
+
       values = Array(STAT_ARRAYS[stat_array]).sort.reverse
       keys = character_class.key_stats
       secondaries = character_class.secondary_stats
 
       { keys[0] => values[0], keys[1] => values[1],
         secondaries[0] => values[2], secondaries[1] => values[3] }.symbolize_keys
+    end
+
+    def default_stat_assignments
+      values = Array(STAT_ARRAYS[stat_array]).sort.reverse
+      keys = character_class.key_stats
+      secondaries = character_class.secondary_stats
+
+      { keys[0] => values[0], keys[1] => values[1],
+        secondaries[0] => values[2], secondaries[1] => values[3] }.stringify_keys
+    end
+
+    def stat_assignments_match_array
+      return if stat_array.blank? || character_class.blank? || stat_assignments.blank?
+      return if stat_assignments_valid?
+
+      errors.add(:stat_assignments, "must use each value from the selected stat array exactly once")
     end
 
     def build_default_stat_set
@@ -614,12 +782,13 @@ class Character < ApplicationRecord
                       armor:             armor,
                       save_dc:           save_dc_for(stat_values),
                       max_mana:          resource_values.fetch(:max_mana),
-                      current_mana:      resource_values.fetch(:max_mana),
+                      current_mana:      resource_values.fetch(:current_mana),
                       resource_name:     resource_values.fetch(:name),
                       resource_formula:  resource_values.fetch(:formula),
                       resource_die:      resource_values.fetch(:die),
                       max_resource:      resource_values.fetch(:max_resource),
-                      current_resource:  resource_values.fetch(:max_resource),
+                      current_resource:  resource_values.fetch(:current_resource),
+                      resource_tracks:   resource_values.fetch(:resource_tracks),
                       inventory_slots:   BASE_INVENTORY_SLOTS + stat_values.fetch("strength"),
                       temp_hp:           0,
                       current_hp:        starting_hp,

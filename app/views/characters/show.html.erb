@@ -45,6 +45,18 @@
     <div class="vital-card"><span class="vital-label">Wounds</span><strong><%= @character.trait_set&.current_wounds || "—" %><small> / <%= @character.trait_set&.max_wounds || "—" %></small></strong><span class="vital-foot">Hit Dice <%= @character.trait_set&.current_hit_dice || "—" %>/<%= @character.trait_set&.max_hit_dice || "—" %></span></div>
   </section>
 
+  <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
+  <% if resource_tracks.any? %>
+    <section class="panel resource-summary-panel">
+      <div class="panel-heading compact"><div><p class="eyebrow">Class resources</p><h2>Ready to spend</h2></div><span class="mini-label">Tracked with the sheet</span></div>
+      <div class="resource-summary-grid">
+        <% resource_tracks.each do |track| %>
+          <div class="resource-summary-item"><span><%= track.fetch("name") %></span><strong><%= track.fetch("current") %><small><%= " / #{track['max']}" if track["max"].present? %></small></strong><em><%= track["reset"] %></em></div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
   <div class="sheet-grid">
     <div class="sheet-main-column">
       <section class="panel sheet-panel">
@@ -93,8 +105,19 @@
               <label><span>Wounds</span><%= trait_fields.number_field :current_wounds, min: 0, max: @character.trait_set&.max_wounds %></label>
               <label><span>Actions</span><%= trait_fields.number_field :current_actions, min: 0, max: @character.trait_set&.max_actions %></label>
               <label><span>Hit Dice</span><%= trait_fields.number_field :current_hit_dice, min: 0, max: @character.trait_set&.max_hit_dice %></label>
-              <label><span>Mana</span><%= trait_fields.number_field :current_mana, min: 0, max: @character.trait_set&.max_mana %></label>
-              <label><span><%= @character.trait_set&.resource_name.presence || "Resource" %></span><%= trait_fields.number_field :current_resource, min: 0, max: @character.trait_set&.max_resource %></label>
+              <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
+              <% if resource_tracks.any? %>
+                <% resource_tracks.each do |track| %>
+                  <label>
+                    <span><%= track.fetch("name") %><small><%= " / #{track['max']}" if track["max"].present? %></small></span>
+                    <%= hidden_field_tag "character[trait_set_attributes][resource_tracks][][key]", track.fetch("key") %>
+                    <%= number_field_tag "character[trait_set_attributes][resource_tracks][][current]", track["current"], min: 0, max: track["max"] %>
+                  </label>
+                <% end %>
+              <% else %>
+                <label><span>Mana</span><%= trait_fields.number_field :current_mana, min: 0, max: @character.trait_set&.max_mana %></label>
+                <label><span><%= @character.trait_set&.resource_name.presence || "Resource" %></span><%= trait_fields.number_field :current_resource, min: 0, max: @character.trait_set&.max_resource %></label>
+              <% end %>
             </div>
           <% end %>
           <div class="field"><%= tracker_form.label :conditions, "Conditions" %><%= tracker_form.text_field :conditions, placeholder: "e.g. Smoldering, Inspired" %></div>
