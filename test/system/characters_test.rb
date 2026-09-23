@@ -175,6 +175,30 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal 1, character.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_dragonborn_draconic_heritage" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet resolves Catch Breath rolls and spends Hit Dice" do
+    character = Character.create!(
+      name: "Breathing Sheet Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      stat_assignments: { strength: -1, dexterity: 0, intelligence: 2, will: 2 }
+    )
+    character.trait_set.update!(current_hp: 2)
+
+    visit character_url(character)
+
+    assert_text "Core Rules 2.0.1, p. 16"
+    fill_in "Single Hit Die roll (d6)", with: "6"
+    click_on "Catch Breath · 10 min"
+
+    assert_text "Catch Breath complete: recovered 5 HP."
+    assert_text "Field Rest"
+    assert_equal 7, character.reload.trait_set.current_hp
+    assert_equal 0, character.trait_set.current_hit_dice
+  end
+
   test "should update Character" do
     visit character_url(@character)
     click_on "Edit sheet", match: :first

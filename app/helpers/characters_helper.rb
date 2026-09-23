@@ -24,6 +24,7 @@ module CharactersHelper
     {
       "level_up" => "timeline-dot timeline-dot-gold",
       "safe_rest" => "timeline-dot timeline-dot-green",
+      "field_rest" => "timeline-dot timeline-dot-gold",
       "game_update" => "timeline-dot timeline-dot-blue",
       "finalized" => "timeline-dot timeline-dot-green"
     }.fetch(event_type.to_s, "timeline-dot")

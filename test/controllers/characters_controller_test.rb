@@ -432,6 +432,60 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, dragonborn.trait_set.current_resource
   end
 
+  test "healing to full refreshes a Gnome's source-defined ally reroll" do
+    Rails.application.load_seed
+    gnome = Character.create!(
+      name: "Healed Gnome",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Gnome"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    key = "ancestry_gnome_optimistic"
+    tracks = gnome.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == key ? track.merge("current" => 0) : track
+    end
+    gnome.trait_set.update!(current_hp: gnome.trait_set.max_hp - 2, resource_tracks: tracks)
+
+    patch tracker_character_url(gnome), params: {
+      character: {
+        trait_set_attributes: {
+          id: gnome.trait_set.id,
+          current_hp: gnome.trait_set.max_hp
+        }
+      }
+    }
+
+    assert_redirected_to character_url(gnome)
+    refreshed_track = gnome.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == key }
+    assert_equal 1, refreshed_track.fetch("current")
+  end
+
+  test "field rest rejects spending unavailable Hit Dice with a source explanation" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Careful Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    original_hit_dice = mage.trait_set.current_hit_dice
+    original_hp = mage.trait_set.current_hp
+    original_revisions = mage.character_revisions.count
+
+    patch field_rest_character_url(mage), params: {
+      field_rest: { mode: "catch_breath", hit_dice: original_hit_dice + 1, die_rolls: "6, 6" }
+    }
+
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:alert], "Hit Dice available"
+    assert_includes flash[:alert], "Core Rules 2.0.1, p. 16"
+    assert_equal original_hit_dice, mage.reload.trait_set.current_hit_dice
+    assert_equal original_hp, mage.trait_set.current_hp
+    assert_equal original_revisions, mage.character_revisions.count
+  end
+
   test "should reject impossible tracker state without changing derived limits" do
     original_hp = @character.trait_set.current_hp
     original_max_hp = @character.trait_set.max_hp

@@ -584,6 +584,97 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, changeling.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_changeling_new_place_new_face" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Catch Breath spends rolled Hit Dice and adds STR to each result" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Breathing Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      stat_assignments: { strength: -1, dexterity: 0, intelligence: 2, will: 2 }
+    )
+    mage.trait_set.update!(current_hp: 2)
+
+    result = mage.perform_field_rest!(mode: "catch_breath", hit_dice_count: "1", die_rolls: [ "6" ])
+
+    mage.reload
+    assert_equal(-1, mage.stat_value("strength"))
+    assert_equal 5, result.fetch(:hp_recovered)
+    assert_equal 7, mage.trait_set.current_hp
+    assert_equal 0, mage.trait_set.current_hit_dice
+    assert mage.character_revisions.exists?(event_type: "field_rest", summary: "Catch Breath: spent 1 Hit Die, recovered 5 HP")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Make Camp uses maximum Hit Die results and caps healing at max HP" do
+    Rails.application.load_seed
+    oathsworn = Character.create!(
+      name: "Camping Oathsworn",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    oathsworn.trait_set.update!(current_hp: 1, current_hit_dice: 2)
+
+    result = oathsworn.perform_field_rest!(mode: "make_camp", hit_dice_count: 2)
+
+    oathsworn.reload
+    assert_equal oathsworn.trait_set.max_hp - 1, result.fetch(:hp_recovered)
+    assert_equal oathsworn.trait_set.max_hp, oathsworn.trait_set.current_hp
+    assert_equal 0, oathsworn.trait_set.current_hit_dice
+  end
+
+  # S-02:AC-1 S-09:AC-1 S-09:AC-3
+  test "Catch Breath resolves one Hit Die before the player chooses whether to continue" do
+    Rails.application.load_seed
+    oathsworn = Character.create!(
+      name: "Sequential Rest Oathsworn",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    original_hp = oathsworn.trait_set.current_hp
+    original_hit_dice = oathsworn.trait_set.current_hit_dice
+
+    error = assert_raises(ArgumentError) do
+      oathsworn.perform_field_rest!(mode: "catch_breath", hit_dice_count: 2, die_rolls: [ "4", "5" ])
+    end
+
+    assert_includes error.message, "one Hit Die at a time"
+    assert_equal original_hp, oathsworn.reload.trait_set.current_hp
+    assert_equal original_hit_dice, oathsworn.trait_set.current_hit_dice
+  end
+
+  # S-02:AC-1 S-09:AC-1 S-09:AC-3
+  test "Catch Breath rejects die results outside the character's Hit Die" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Invalid Breath Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    original_hp = mage.trait_set.current_hp
+    original_hit_dice = mage.trait_set.current_hit_dice
+    original_revisions = mage.character_revisions.count
+
+    error = assert_raises(ArgumentError) do
+      mage.perform_field_rest!(mode: "catch_breath", hit_dice_count: 1, die_rolls: [ "7" ])
+    end
+
+    assert_includes error.message, "each from 1 to 6"
+    assert_equal original_hp, mage.reload.trait_set.current_hp
+    assert_equal original_hit_dice, mage.trait_set.current_hit_dice
+    assert_equal original_revisions, mage.character_revisions.count
+  end
+
   test "canonical class and subclass features alter derived movement, defenses, and hit dice" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

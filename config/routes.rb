@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       post :finalize
       patch :tracker
       patch :safe_rest
+      patch :field_rest
       get :history
     end
     resources :level_ups, only: %i[new create show update]

@@ -1,6 +1,6 @@
 class CharactersController < ApplicationController
-  before_action :set_character, only: %i[ show edit update destroy finalize tracker safe_rest history ]
-  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker safe_rest history ]
+  before_action :set_character, only: %i[ show edit update destroy finalize tracker safe_rest field_rest history ]
+  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker safe_rest field_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -121,6 +121,19 @@ class CharactersController < ApplicationController
     redirect_to @character, notice: "Safe Rest completed. HP, Hit Dice, and tracked resources were refreshed."
   end
 
+  def field_rest
+    attributes = params.expect(field_rest: [ :mode, :hit_dice, :die_rolls ])
+    result = @character.perform_field_rest!(
+      mode: attributes[:mode],
+      hit_dice_count: attributes[:hit_dice],
+      die_rolls: attributes[:die_rolls].to_s.split(",").map(&:strip).reject(&:blank?)
+    )
+    rest_name = result.fetch(:mode) == "make_camp" ? "Make Camp" : "Catch Breath"
+    redirect_to @character, notice: "#{rest_name} complete: recovered #{result.fetch(:hp_recovered)} HP."
+  rescue ArgumentError => error
+    redirect_to @character, alert: error.message
+  end
+
   def history
     @revisions = @character.character_revisions.order(created_at: :desc)
   end
@@ -204,7 +217,8 @@ class CharactersController < ApplicationController
 
       resource_tracks = @character.normalized_resource_tracks(
         trait_attributes[:resource_tracks],
-        current_wounds: trait_attributes[:current_wounds]
+        current_wounds: trait_attributes[:current_wounds],
+        current_hp: trait_attributes[:current_hp]
       )
       trait_attributes[:resource_tracks] = resource_tracks
       legacy_values = @character.resource_tracker_values_for(resource_tracks)

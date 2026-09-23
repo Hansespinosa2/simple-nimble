@@ -143,6 +143,28 @@
           <span class="field-hint">Core Rules 2.0.1, pp. 9, 16 · encounter-reset resources return to their starting state.</span>
           <%= button_to "Complete Safe Rest", safe_rest_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
         </div>
+        <div class="field-rest-action">
+          <p class="eyebrow">Field Rest · <%= @character.trait_set&.hit_die || "Hit Die" %></p>
+          <p>Catch Breath takes at least 10 minutes and spends one Hit Die per roll, so you can decide whether to continue. Make Camp takes 8 hours with food and sleep and uses each die’s maximum. STR is added automatically.</p>
+          <span class="field-hint">Core Rules 2.0.1, p. 16 · Hit Dice available: <%= @character.trait_set&.current_hit_dice || 0 %></span>
+          <% if (@character.trait_set&.current_hit_dice || 0).to_i.positive? %>
+            <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
+              <%= rest_form.hidden_field :mode, value: "catch_breath" %>
+              <%= rest_form.hidden_field :hit_dice, value: 1 %>
+              <div class="field-rest-fields">
+                <div class="field"><%= rest_form.label :die_rolls, "Single Hit Die roll (d#{@character.hit_die_sides})", for: "catch_breath_die_rolls" %><%= rest_form.number_field :die_rolls, id: "catch_breath_die_rolls", min: 1, max: @character.hit_die_sides, step: 1 %></div>
+              </div>
+              <%= rest_form.submit "Catch Breath · 10 min", class: "button button-secondary button-full" %>
+            <% end %>
+            <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
+              <%= rest_form.hidden_field :mode, value: "make_camp" %>
+              <div class="field"><%= rest_form.label :hit_dice, "Hit Dice to spend", for: "make_camp_hit_dice" %><%= rest_form.number_field :hit_dice, id: "make_camp_hit_dice", min: 1, max: @character.trait_set.current_hit_dice, value: 1 %></div>
+              <%= rest_form.submit "Make Camp · 8 hours", class: "button button-secondary button-full" %>
+            <% end %>
+          <% else %>
+            <p class="field-hint">No Hit Dice available to spend.</p>
+          <% end %>
+        </div>
       </section>
 
       <section class="panel timeline-panel">

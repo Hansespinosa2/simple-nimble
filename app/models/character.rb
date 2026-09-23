@@ -334,6 +334,57 @@ class Character < ApplicationRecord
     end
   end
 
+  def perform_field_rest!(mode:, hit_dice_count:, die_rolls: [])
+    mode = mode.to_s
+    count = Integer(hit_dice_count, exception: false)
+    die_sides = hit_die_sides
+
+    raise ArgumentError, "Choose Catch Breath or Make Camp. Core Rules 2.0.1, p. 16." unless %w[catch_breath make_camp].include?(mode)
+    raise ArgumentError, "Spend at least 1 Hit Die. Core Rules 2.0.1, p. 16." unless count&.positive?
+    if count > trait_set.current_hit_dice.to_i
+      raise ArgumentError, "You have only #{trait_set.current_hit_dice} Hit Dice available. Core Rules 2.0.1, p. 16."
+    end
+    raise ArgumentError, "This character has no usable Hit Die. Core Rules 2.0.1, p. 16." unless die_sides&.positive?
+
+    if mode == "catch_breath" && count != 1
+      raise ArgumentError, "Spend one Hit Die at a time for Catch Breath so you can choose whether to continue. Core Rules 2.0.1, p. 16."
+    end
+
+    rolls = Array(die_rolls).map { |roll| Integer(roll, exception: false) }
+    if mode == "catch_breath"
+      unless rolls.length == count && rolls.all? { |roll| roll&.between?(1, die_sides) }
+        raise ArgumentError, "Enter exactly #{count} roll#{'s' if count != 1}, each from 1 to #{die_sides}. Core Rules 2.0.1, p. 16."
+      end
+    end
+
+    results = mode == "make_camp" ? Array.new(count, die_sides) : rolls
+    strength = stat_value("strength").to_i
+    healing = results.sum { |roll| [ roll + strength, 0 ].max }
+    actual_healing = [ healing, trait_set.max_hp.to_i - trait_set.current_hp.to_i ].min
+    new_hp = trait_set.current_hp.to_i + actual_healing
+    tracks = normalized_resource_tracks(trait_set.resource_tracks, current_hp: new_hp)
+    resource_values = resource_tracker_values_for(tracks)
+
+    transaction do
+      trait_set.update!(
+        current_hp: new_hp,
+        current_hit_dice: trait_set.current_hit_dice.to_i - count,
+        current_mana: resource_values.fetch(:current_mana) || trait_set.current_mana,
+        current_resource: resource_values.fetch(:current_resource) || trait_set.current_resource,
+        resource_tracks: tracks
+      )
+      method_name = mode == "make_camp" ? "Make Camp" : "Catch Breath"
+      record_revision!(
+        event_type: "field_rest",
+        summary: "#{method_name}: spent #{count} Hit Die#{'s' if count != 1}, recovered #{actual_healing} HP",
+        from_level: level,
+        to_level: level
+      )
+    end
+
+    { mode:, hit_dice_spent: count, hp_recovered: actual_healing }
+  end
+
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)
     return {} if character_class.blank?
 
@@ -342,6 +393,10 @@ class Character < ApplicationRecord
 
   def hit_die_for(level: self.level, subclass_name: self.subclass_name)
     derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die || "1d6")
+  end
+
+  def hit_die_sides
+    trait_set&.hit_die.to_s[/d(\d+)/i, 1]&.to_i
   end
 
   def initiative_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
@@ -503,10 +558,11 @@ class Character < ApplicationRecord
     end
   end
 
-  def normalized_resource_tracks(submitted_tracks, current_wounds: nil)
+  def normalized_resource_tracks(submitted_tracks, current_wounds: nil, current_hp: nil)
     submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
     gained_wound = current_wounds.present? && current_wounds.to_i > (trait_set&.current_wounds || 0).to_i
-    baseline = if gained_wound
+    healed_to_full = current_hp.present? && current_hp.to_i > (trait_set&.current_hp || 0).to_i && current_hp.to_i >= (trait_set&.max_hp || 0).to_i
+    baseline = if gained_wound || healed_to_full
       derived_resource_tracks_for(stat_values: current_stat_values).index_by { |track| track.fetch("key") }
     else
       {}
@@ -517,7 +573,7 @@ class Character < ApplicationRecord
       input = submitted[track["key"]]
       current = input.present? ? input["current"].to_i : track["current"]
       reset_events = Array(track["reset_events"].presence || baseline.dig(track["key"], "reset_events"))
-      if gained_wound && reset_events.include?("wound_gained")
+      if (gained_wound && reset_events.include?("wound_gained")) || (healed_to_full && reset_events.include?("healed_to_max_hp"))
         current = track["max"]
       end
 
