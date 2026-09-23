@@ -382,7 +382,9 @@ class Character < ApplicationRecord
   end
 
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
-    pools = Array(character_class&.resource_rules.to_h["pools"])
+    class_pools = Array(character_class&.resource_rules.to_h["pools"])
+    ancestry_pools = Rules::NimbleCatalog.ancestry_resource_pools_for(ancestry&.name)
+    pools = class_pools + ancestry_pools
     choice_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices)
     derived_resource_modifiers = derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
     choice_resource_modifiers = choice_effects.fetch("resource_max_modifiers", {})
@@ -407,7 +409,9 @@ class Character < ApplicationRecord
         "max" => maximum,
         "current" => initial_current,
         "die" => die,
-        "reset" => pool["reset"]
+        "reset" => pool["reset"],
+        "source_ref" => pool["source_ref"],
+        "source_quote" => pool["source_quote"]
       }.compact
     end
   end

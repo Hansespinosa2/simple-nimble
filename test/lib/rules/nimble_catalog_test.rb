@@ -80,6 +80,21 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 1, pool.fetch("count")
   end
 
+  test "limited-use ancestry abilities have explicit uses, resets, and source text" do
+    pools = %w[Halfling Gnome Bunbun Dragonborn Kobold Orc Changeling Crystalborn Half-Giant Wyrdling]
+      .flat_map { |ancestry| @catalog.ancestry_resource_pools_for(ancestry) }
+
+    assert_equal 10, pools.length
+    pools.each do |pool|
+      assert_equal "1", pool.fetch("max_formula")
+      assert_equal 1, pool.fetch("initial_current")
+      assert pool.fetch("reset").present?
+      assert_match(/Core Rules 2\.0\.1, p\. 2[3-7]/, pool.fetch("source_ref"))
+      assert pool.fetch("source_quote").present?
+    end
+    assert_empty @catalog.ancestry_resource_pools_for("Human")
+  end
+
   test "Commander weapon mastery is a choice at six and ten, not fourteen" do
     assert_includes @catalog.choice_pools_for("Commander", 6).map { |pool| pool.fetch("name") }, "Weapon Mastery"
     assert_includes @catalog.choice_pools_for("Commander", 10).map { |pool| pool.fetch("name") }, "Weapon Mastery"

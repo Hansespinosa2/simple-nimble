@@ -98,6 +98,10 @@ module Rules
         data.fetch("background_spell_choices", {}).fetch(background_name.to_s, nil)
       end
 
+      def ancestry_resource_pools_for(ancestry_name)
+        data.fetch("ancestry_resource_pools", {}).fetch(ancestry_name.to_s, [])
+      end
+
       def spell_auto_grants_for(class_name, level)
         data.fetch("spell_choice_auto_grants", {}).fetch(class_name.to_s, {}).each_with_object([]) do |(grant_level, grants), result|
           result.concat(Array(grants)) if grant_level.to_i <= level.to_i

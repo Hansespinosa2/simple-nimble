@@ -1074,6 +1074,88 @@ background_spell_choices:
     kind: utility_spell_any
     count: 1
 
+ancestry_resource_pools:
+  Halfling:
+    - key: ancestry_halfling_elusive
+      name: Elusive · save success
+      max_formula: "1"
+      initial_current: 1
+      reset: Safe Rest
+      source_ref: Core Rules 2.0.1, p. 23
+      source_quote: "If you fail a save, you can succeed instead, 1/Safe Rest."
+  Gnome:
+    - key: ancestry_gnome_optimistic
+      name: Optimistic · ally reroll
+      max_formula: "1"
+      initial_current: 1
+      reset: Healed to max HP
+      source_ref: Core Rules 2.0.1, p. 23
+      source_quote: "Allow an ally within Reach 6 to reroll any single die, resets when healed to your max HP."
+  Bunbun:
+    - key: ancestry_bunbun_bunny_legs
+      name: Bunny Legs · hop
+      max_formula: "1"
+      initial_current: 1
+      reset: Encounter ends
+      source_ref: Core Rules 2.0.1, p. 24
+      source_quote: "Before Interposing or after Defending (after damage), hop up to your Speed in any direction for free, 1/encounter."
+  Dragonborn:
+    - key: ancestry_dragonborn_draconic_heritage
+      name: Draconic Heritage · bonus damage
+      max_formula: "1"
+      initial_current: 1
+      reset: Safe Rest or gain a Wound
+      source_ref: Core Rules 2.0.1, p. 24
+      source_quote: "When you attack: deal an additional LVL+KEY damage (ignoring armor) divided as you choose among any of your targets; recharges whenever you Safe Rest or gain a Wound."
+  Kobold:
+    - key: ancestry_kobold_wily
+      name: Wily · force reroll
+      max_formula: "1"
+      initial_current: 1
+      reset: Encounter ends
+      source_ref: Core Rules 2.0.1, p. 24
+      source_quote: "Force an enemy to reroll a non-critical attack against you, 1/encounter."
+  Orc:
+    - key: ancestry_orc_relentless
+      name: Relentless · avoid dropping to 0 HP
+      max_formula: "1"
+      initial_current: 1
+      reset: Safe Rest
+      source_ref: Core Rules 2.0.1, p. 24
+      source_quote: "When you would drop to 0 HP, you may set your HP to LVL instead, 1/Safe Rest."
+  Changeling:
+    - key: ancestry_changeling_new_place_new_face
+      name: New Place, New Face · change appearance
+      max_formula: "1"
+      initial_current: 1
+      reset: New day
+      source_ref: Core Rules 2.0.1, p. 26
+      source_quote: "You may take on the appearance of any ancestry. When you do, you may place your 2 shifting skill points into any 1 skill. 1/day."
+  Crystalborn:
+    - key: ancestry_crystalborn_reflective_aura
+      name: Reflective Aura · Defend
+      max_formula: "1"
+      initial_current: 1
+      reset: Encounter ends
+      source_ref: Core Rules 2.0.1, p. 26
+      source_quote: "When you Defend, gain KEY armor and deal KEY damage back to the attacker. 1/encounter."
+  Half-Giant:
+    - key: ancestry_half_giant_strength_of_stone
+      name: Strength of Stone · force reroll
+      max_formula: "1"
+      initial_current: 1
+      reset: Encounter ends
+      source_ref: Core Rules 2.0.1, p. 26
+      source_quote: "Force an enemy to reroll a crit against you, 1/encounter."
+  Wyrdling:
+    - key: ancestry_wyrdling_chaotic_surge
+      name: Chaotic Surge · Chaos Table
+      max_formula: "1"
+      initial_current: 1
+      reset: Encounter ends
+      source_ref: Core Rules 2.0.1, p. 27
+      source_quote: "Whenever you or a willing ally within Reach 6 casts a tiered spell, you may allow them to roll on the Chaos Table. 1/encounter."
+
 derived_effects:
   classes:
     Hunter:

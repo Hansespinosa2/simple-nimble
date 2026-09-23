@@ -200,6 +200,9 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .resource-summary-item strong { font-family: Macondo, serif; font-size: 25px; font-weight: 400; }
 .resource-summary-item strong small { color: var(--ink-soft); font-family: inherit; font-size: 13px; }
 .resource-summary-item em { color: var(--ink-soft); font-size: 10px; font-style: normal; line-height: 1.35; }
+.resource-rule-note { color: var(--ink-soft); font-size: 10px; line-height: 1.4; }
+.resource-rule-note summary { cursor: pointer; }
+.resource-rule-note p { margin: 5px 0 0; }
 .stat-card { background: var(--surface-muted); border-radius: 12px; padding: 15px 11px; text-align: center; }
 .stat-card span, .stat-card strong { display: block; }
 .stat-abbr { color: var(--ink-soft); font-size: 10px; font-weight: 850; letter-spacing: .1em; }

@@ -118,6 +118,29 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal "Met the ferryman.", @character.game_notes
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet explains and tracks a limited-use ancestry ability" do
+    character = Character.create!(
+      name: "Lucky Sheet Hero",
+      character_class: @character_class,
+      ancestry: Ancestry.find_by!(name: "Halfling"),
+      background: @background,
+      stat_array: "balanced"
+    )
+
+    visit character_url(character)
+
+    assert_text "Elusive · save success"
+    assert_text "Core Rules 2.0.1, p. 23"
+    find(".resource-rule-note summary").click
+    assert_text "If you fail a save, you can succeed instead, 1/Safe Rest."
+    find("label", text: /Elusive · save success/).find("input[type='number']").set(0)
+    click_on "Save game state"
+
+    assert_text "Game state saved"
+    assert_equal 0, character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_halfling_elusive" }.fetch("current")
+  end
+
   test "should update Character" do
     visit character_url(@character)
     click_on "Edit sheet", match: :first

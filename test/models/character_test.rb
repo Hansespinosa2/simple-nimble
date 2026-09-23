@@ -470,6 +470,42 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, thrill.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "limited-use ancestry abilities become source-backed game resource tracks" do
+    Rails.application.load_seed
+    character_class = CharacterClass.find_by!(name: "Mage")
+    background = Background.find_by!(name: "Fearless")
+    expected = {
+      "Halfling" => [ "ancestry_halfling_elusive", "Safe Rest", "Core Rules 2.0.1, p. 23" ],
+      "Gnome" => [ "ancestry_gnome_optimistic", "Healed to max HP", "Core Rules 2.0.1, p. 23" ],
+      "Bunbun" => [ "ancestry_bunbun_bunny_legs", "Encounter ends", "Core Rules 2.0.1, p. 24" ],
+      "Dragonborn" => [ "ancestry_dragonborn_draconic_heritage", "Safe Rest or gain a Wound", "Core Rules 2.0.1, p. 24" ],
+      "Kobold" => [ "ancestry_kobold_wily", "Encounter ends", "Core Rules 2.0.1, p. 24" ],
+      "Orc" => [ "ancestry_orc_relentless", "Safe Rest", "Core Rules 2.0.1, p. 24" ],
+      "Changeling" => [ "ancestry_changeling_new_place_new_face", "New day", "Core Rules 2.0.1, p. 26" ],
+      "Crystalborn" => [ "ancestry_crystalborn_reflective_aura", "Encounter ends", "Core Rules 2.0.1, p. 26" ],
+      "Half-Giant" => [ "ancestry_half_giant_strength_of_stone", "Encounter ends", "Core Rules 2.0.1, p. 26" ],
+      "Wyrdling" => [ "ancestry_wyrdling_chaotic_surge", "Encounter ends", "Core Rules 2.0.1, p. 27" ]
+    }
+
+    expected.each do |ancestry_name, (key, reset, source_ref)|
+      character = Character.create!(
+        name: "#{ancestry_name} Tracker",
+        character_class: character_class,
+        ancestry: Ancestry.find_by!(name: ancestry_name),
+        background: background,
+        stat_array: "balanced"
+      )
+      track = character.trait_set.resource_tracks.find { |entry| entry.fetch("key") == key }
+
+      assert_equal 1, track.fetch("max"), ancestry_name
+      assert_equal 1, track.fetch("current"), ancestry_name
+      assert_equal reset, track.fetch("reset"), ancestry_name
+      assert_equal source_ref, track.fetch("source_ref"), ancestry_name
+      assert track.fetch("source_quote").present?, ancestry_name
+    end
+  end
+
   test "canonical class and subclass features alter derived movement, defenses, and hit dice" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

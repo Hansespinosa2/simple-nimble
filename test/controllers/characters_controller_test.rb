@@ -365,6 +365,42 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 3, mage.reload.trait_set.resource_tracks.first.fetch("current")
   end
 
+  test "should track a source-defined ancestry ability use within its limit" do
+    Rails.application.load_seed
+    halfling = Character.create!(
+      name: "Tracked Halfling",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Halfling"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    track_key = "ancestry_halfling_elusive"
+
+    patch tracker_character_url(halfling), params: {
+      character: {
+        trait_set_attributes: {
+          id: halfling.trait_set.id,
+          resource_tracks: [ { key: track_key, current: 0 } ]
+        }
+      }
+    }
+
+    assert_redirected_to character_url(halfling)
+    assert_equal 0, halfling.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == track_key }.fetch("current")
+
+    patch tracker_character_url(halfling), params: {
+      character: {
+        trait_set_attributes: {
+          id: halfling.trait_set.id,
+          resource_tracks: [ { key: track_key, current: 2 } ]
+        }
+      }
+    }
+
+    assert_includes flash[:alert], "could not be saved"
+    assert_equal 0, halfling.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == track_key }.fetch("current")
+  end
+
   test "should reject impossible tracker state without changing derived limits" do
     original_hp = @character.trait_set.current_hp
     original_max_hp = @character.trait_set.max_hp
