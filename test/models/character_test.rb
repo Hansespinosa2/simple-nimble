@@ -349,4 +349,44 @@ class CharacterTest < ActiveSupport::TestCase
     assert_nil thrill["max"]
     assert_equal 0, thrill.fetch("current")
   end
+
+  test "canonical class and subclass features alter derived movement, defenses, and hit dice" do
+    Rails.application.load_seed
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Fearless")
+
+    wild_heart = Character.create!(
+      level: 15,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      subclass_name: "Wild Heart",
+      ancestry:,
+      background:,
+      stat_array: "standard"
+    )
+    assert_equal 18, wild_heart.trait_set.max_hp
+    assert_equal "1d10", wild_heart.trait_set.hit_die
+    assert_equal 6, wild_heart.trait_set.armor
+    assert_equal "1d10", wild_heart.snapshot_payload.fetch("progression").fetch("derived_effects").fetch("hit_die")
+
+    oathbreaker = Character.create!(
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      subclass_name: "Oathbreaker",
+      ancestry:,
+      background:,
+      stat_array: "standard"
+    )
+    assert_equal 8, oathbreaker.trait_set.max_wounds
+
+    zephyr = Character.create!(
+      level: 13,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry:,
+      background:,
+      stat_array: "standard"
+    )
+    assert_equal 10, zephyr.trait_set.speed
+    assert_equal 17, zephyr.trait_set.initiative
+    assert_equal 7, zephyr.trait_set.armor
+  end
 end

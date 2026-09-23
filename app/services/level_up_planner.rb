@@ -31,6 +31,10 @@ class LevelUpPlanner
     target_level == 3 && character.subclass_name.blank? && subclass_options.present?
   end
 
+  def selected_subclass_name
+    level_up.subclass_name.presence || character.subclass_name
+  end
+
   def progression_preview
     klass = character.character_class
     subclass_name = level_up.subclass_name.presence || character.subclass_name
@@ -44,7 +48,7 @@ class LevelUpPlanner
   end
 
   def hit_die_size
-    hit_die = character.trait_set&.hit_die.presence || character.character_class&.hit_die
+    hit_die = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
     hit_die.to_s.split("d").last.to_i.nonzero? || 6
   end
 
@@ -136,6 +140,7 @@ class LevelUpPlanner
     skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
     traits = {
       "max_hp" => character.trait_set&.max_hp.to_i,
+      "hit_die" => character.trait_set&.hit_die.presence || character.character_class&.hit_die || "1d6",
       "current_hp" => character.trait_set&.current_hp.to_i,
       "current_wounds" => character.trait_set&.current_wounds.to_i,
       "max_wounds" => character.trait_set&.max_wounds.to_i,
@@ -175,13 +180,18 @@ class LevelUpPlanner
     hp_gain = [ level_up.hit_die_roll_one.to_i, level_up.hit_die_roll_two.to_i ].max
     if character.trait_set
       traits["max_hp"] += hp_gain
+      current_level = character.level.to_i.positive? ? character.level.to_i : 1
+      current_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: current_level, subclass_name: character.subclass_name)
+      target_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: target_level, subclass_name: selected_subclass_name)
+      traits["max_hp"] += target_max_hp_modifier - current_max_hp_modifier
       traits["current_hp"] = traits["max_hp"] if character.trait_set.current_hp.to_i >= character.trait_set.max_hp.to_i
-      traits["max_hit_dice"] = target_level + character.derived_modifier_for(:max_hit_dice_modifier)
+      traits["max_hit_dice"] = target_level + character.derived_modifier_for(:max_hit_dice_modifier, level: target_level, subclass_name: selected_subclass_name)
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + 1, traits["max_hit_dice"] ].min
-      traits["initiative"] = stats.fetch("dexterity") + character.derived_modifier_for(:initiative_modifier)
-      traits["speed"] = Character::BASE_SPEED + character.derived_modifier_for(:speed_modifier)
-      traits["armor"] = character.armor_for(stats).to_i + character.derived_modifier_for(:armor_modifier)
-      traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier)
+      traits["initiative"] = character.initiative_for(stats, level: target_level, subclass_name: selected_subclass_name)
+      traits["speed"] = character.speed_for(level: target_level, subclass_name: selected_subclass_name)
+      traits["hit_die"] = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
+      traits["armor"] = character.armor_for(stats, level: target_level, subclass_name: selected_subclass_name).to_i + character.derived_modifier_for(:armor_modifier, level: target_level, subclass_name: selected_subclass_name)
+      traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier, level: target_level, subclass_name: selected_subclass_name)
       traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
       resource_values = character.derived_resource_values_for(stat_values: stats, level: target_level)
@@ -206,7 +216,7 @@ class LevelUpPlanner
       "hp_gain" => hp_gain,
       "hit_die_rolls" => [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ],
       "stat_increase_type" => stat_increase_type,
-      "subclass" => level_up.subclass_name.presence || character.subclass_name,
+      "subclass" => selected_subclass_name,
       "spell_tier" => spell_tier_for(target_level),
       "progression" => progression_preview,
       "explanations" => applied_explanations(stats, hp_gain)
@@ -269,7 +279,7 @@ class LevelUpPlanner
         },
         {
           type: "auto_applied",
-          message: "Max HP increases by #{hp_gain} (higher of #{level_up.hit_die_roll_one} and #{level_up.hit_die_roll_two} on #{character.trait_set&.hit_die || '1d6'}).",
+          message: "Max HP increases by #{hp_gain} (higher of #{level_up.hit_die_roll_one} and #{level_up.hit_die_roll_two} on #{character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)}).",
           source_ref: "Chapter 3, Derived Values",
           quote: "HP Increase. Roll your Hit Die with advantage and increase your max HP by that much."
         }

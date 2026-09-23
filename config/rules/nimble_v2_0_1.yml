@@ -789,3 +789,29 @@ progression:
         7: ["Blazing Speed"]
         11: ["Chain Reaction"]
         15: ["Burning Soul"]
+
+derived_effects:
+  classes:
+    Hunter:
+      4:
+        speed_modifier: 2
+    Zephyr:
+      2:
+        speed_modifier: 2
+        initiative_level_bonus: true
+      9:
+        speed_modifier: 2
+      13:
+        armor_multiplier: 2
+  subclasses:
+    Hunter:
+      "Wild Heart":
+        3:
+          max_hp_modifier: 5
+          hit_die: 1d10
+        15:
+          armor_stat_addition: will
+    Oathsworn:
+      Oathbreaker:
+        3:
+          max_wounds_modifier: 2

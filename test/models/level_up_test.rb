@@ -248,6 +248,41 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_includes LevelUpPlanner.new(character, invalid).explanations.map { |explanation| explanation[:message] }, "Berserker is not a legal subclass for Mage."
   end
 
+  test "choosing Wild Heart applies its Hit Die and HP feature at level three" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Wild Heart Hero",
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { finesse: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 2, status: "playable")
+    character.skill_set.update!(finesse: 8)
+    character.trait_set.update!(max_hp: 13, current_hp: 13, max_hit_dice: 2, current_hit_dice: 2)
+    level_up = character.level_ups.create!(
+      from_level: 2,
+      to_level: 3,
+      skill_name: "finesse",
+      subclass_name: "Wild Heart",
+      hit_die_roll_one: 10,
+      hit_die_roll_two: 4
+    )
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_equal 10, planner.hit_die_size
+    assert_equal "1d10", planner.preview.fetch("traits").fetch("hit_die")
+    assert_equal 28, planner.preview.fetch("traits").fetch("max_hp")
+
+    LevelUpService.finalize!(level_up)
+
+    assert_equal "Wild Heart", character.reload.subclass_name
+    assert_equal "1d10", character.trait_set.hit_die
+    assert_equal 28, character.trait_set.max_hp
+  end
+
   test "a hit die roll outside the character die is blocked with a source explanation" do
     level_up = @character.level_ups.build(
       from_level: 3,

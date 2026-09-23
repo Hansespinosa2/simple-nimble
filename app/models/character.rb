@@ -155,6 +155,27 @@ class Character < ApplicationRecord
     end
   end
 
+  def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)
+    return {} if character_class.blank?
+
+    Rules::NimbleCatalog.derived_effects_for(character_class.name, subclass_name, level.to_i.positive? ? level : 1)
+  end
+
+  def hit_die_for(level: self.level, subclass_name: self.subclass_name)
+    derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die || "1d6")
+  end
+
+  def initiative_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
+    values = stat_values || current_stat_values
+    level_value = level.to_i.positive? ? level.to_i : 1
+    level_bonus = derived_feature_effects(level:, subclass_name:)["initiative_level_bonus"] ? level_value : 0
+    value_for_stat(values, "dexterity") + derived_modifier_for(:initiative_modifier, level:, subclass_name:) + level_bonus
+  end
+
+  def speed_for(level: self.level, subclass_name: self.subclass_name)
+    BASE_SPEED + derived_modifier_for(:speed_modifier, level:, subclass_name:)
+  end
+
   def save_dc_for(stat_values = nil)
     return nil if character_class.blank?
 
@@ -162,7 +183,7 @@ class Character < ApplicationRecord
     10 + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
   end
 
-  def armor_for(stat_values = nil)
+  def armor_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
     return nil if character_class.blank?
 
     values = stat_values || current_stat_values
@@ -170,13 +191,17 @@ class Character < ApplicationRecord
     dexterity = value_for_stat(values, "dexterity")
     base = rules.fetch("base", 0).to_i
 
-    case rules.fetch("formula", "dexterity")
+    armor = case rules.fetch("formula", "dexterity")
     when "dexterity_plus_strength"
       base + dexterity + value_for_stat(values, "strength")
     else
       cap = rules["dexterity_cap"]
       base + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
     end
+    effects = derived_feature_effects(level:, subclass_name:)
+    armor *= effects.fetch("armor_multiplier", 1).to_i
+    armor += value_for_stat(values, effects["armor_stat_addition"]) if effects["armor_stat_addition"].present?
+    armor
   end
 
   def mana_max_for(stat_values: nil, level: self.level)
@@ -477,7 +502,8 @@ class Character < ApplicationRecord
       },
       "progression" => {
         "class_features" => progression_features_through,
-        "subclass_features" => subclass_progression_features_through
+        "subclass_features" => subclass_progression_features_through,
+        "derived_effects" => derived_feature_effects
       },
       "stats" => stat_set&.attributes&.slice("strength", "dexterity", "intelligence", "will"),
       "skills" => skill_set&.attributes&.slice(*SKILL_NAMES),
@@ -500,10 +526,11 @@ class Character < ApplicationRecord
     )
   end
 
-  def derived_modifier_for(attribute)
-    [ ancestry, background ].compact.sum do |origin|
+  def derived_modifier_for(attribute, level: self.level, subclass_name: self.subclass_name)
+    origin_modifier = [ ancestry, background ].compact.sum do |origin|
       origin.respond_to?(attribute) ? origin.public_send(attribute).to_i : 0
     end
+    origin_modifier + derived_feature_effects(level:, subclass_name:).fetch(attribute.to_s, 0).to_i
   end
 
   def ensure_defaults
@@ -597,24 +624,24 @@ class Character < ApplicationRecord
         }
       end
       level_value = level.to_i.positive? ? level.to_i : 1
-      dexterity = stat_set&.dexterity.to_i
-      starting_hp = character_class&.starting_hp || 10
-      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier)
-      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
+      subclass_for_effects = self.subclass_name
+      starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
       resource_tracks = resource_values.fetch(:resource_tracks)
       resource_tracks = preserved_resource_tracks(resource_tracks, preserved_tracker_state) if preserved_tracker_state
       legacy_resource_values = resource_tracker_values_for(resource_tracks)
       target.assign_attributes(
-        initiative: dexterity + derived_modifier_for(:initiative_modifier),
-        speed: BASE_SPEED + derived_modifier_for(:speed_modifier),
-        hit_die: character_class&.hit_die || "1d6",
+        initiative: initiative_for(stat_values, level: level_value, subclass_name: subclass_for_effects),
+        speed: speed_for(level: level_value, subclass_name: subclass_for_effects),
+        hit_die: hit_die_for(level: level_value, subclass_name: subclass_for_effects),
         current_hit_dice: max_hit_dice,
         max_hit_dice: max_hit_dice,
         current_actions: 3,
         max_actions: 3,
-        armor: armor_for(stat_values).to_i + derived_modifier_for(:armor_modifier),
+        armor: armor_for(stat_values, level: level_value, subclass_name: subclass_for_effects).to_i + derived_modifier_for(:armor_modifier, level: level_value, subclass_name: subclass_for_effects),
         save_dc: save_dc_for(stat_values),
         max_mana: legacy_resource_values.fetch(:max_mana),
         current_mana: legacy_resource_values.fetch(:current_mana),
@@ -793,15 +820,16 @@ class Character < ApplicationRecord
     end
 
     def build_default_trait_set
-      hit_die = character_class&.hit_die || "1d6"
-      starting_hp = character_class&.starting_hp || 10
       level_value = level.to_i.positive? ? level.to_i : 1
+      subclass_for_effects = self.subclass_name
+      hit_die = hit_die_for(level: level_value, subclass_name: subclass_for_effects)
+      starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
-      initiative = derived_modifier_for(:initiative_modifier)
-      speed = BASE_SPEED + derived_modifier_for(:speed_modifier)
-      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier)
-      armor = armor_for(stat_values).to_i + derived_modifier_for(:armor_modifier)
-      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
+      initiative = initiative_for(stat_values, level: level_value, subclass_name: subclass_for_effects)
+      speed = speed_for(level: level_value, subclass_name: subclass_for_effects)
+      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
+      armor = armor_for(stat_values, level: level_value, subclass_name: subclass_for_effects).to_i + derived_modifier_for(:armor_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
 
       build_trait_set initiative:        initiative,

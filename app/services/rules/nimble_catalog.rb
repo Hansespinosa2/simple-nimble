@@ -58,6 +58,29 @@ module Rules
           .fetch(level.to_i, [])
       end
 
+      def derived_effects_for(class_name, subclass_name, level)
+        derived_effects = data.fetch("derived_effects", {})
+        schedules = [
+          derived_effects.fetch("classes", {}).fetch(class_name.to_s, {}),
+          derived_effects.fetch("subclasses", {}).fetch(class_name.to_s, {}).fetch(subclass_name.to_s, {})
+        ]
+        effects = {}
+        schedules.each do |schedule|
+          schedule.each do |effect_level, effect_values|
+            next if effect_level.to_i > level.to_i
+
+            effects.merge!(effect_values) do |key, previous, current|
+              if %w[speed_modifier max_hp_modifier max_wounds_modifier].include?(key.to_s)
+                previous.to_i + current.to_i
+              else
+                current
+              end
+            end
+          end
+        end
+        effects
+      end
+
       def classes
         data.fetch("classes")
       end
