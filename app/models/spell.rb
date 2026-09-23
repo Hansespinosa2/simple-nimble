@@ -12,8 +12,13 @@ class Spell < ApplicationRecord
     return false if character.character_class.blank?
     return false if class_restricted_from?(character)
     return false unless character.known_spell_schools.include?(school)
+    return false if utility? && !character.utility_spell_names.include?(name)
 
     tier.to_i <= character.character_class.spell_tier_for(character.level)
+  end
+
+  def utility?
+    tier.to_i == -1
   end
 
   def citation

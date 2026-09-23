@@ -10,6 +10,7 @@ class LevelUpService
       preview = planner.preview
       apply_preview!(character, preview)
       character.update!(level: preview.fetch("level"), status: "playable")
+      character.sync_granted_utility_spells!(level: preview.fetch("level"), ledger: character.spell_choice_ledger)
       level_up.update!(status: "finalized", preview: preview, finalized_at: Time.current)
       character.record_revision!(
         event_type: "level_up",
@@ -34,6 +35,14 @@ class LevelUpService
       feature_choice_ledger[pool_name][level_key] = Array(selections)
     end
     character.update!(feature_choices: feature_choice_ledger)
+
+    spell_choice_ledger = character.spell_choice_ledger
+    level_key = preview.fetch("level").to_i.to_s
+    preview.fetch("spell_choices").each do |pool_name, selections|
+      spell_choice_ledger[pool_name] ||= {}
+      spell_choice_ledger[pool_name][level_key] = Array(selections)
+    end
+    character.update!(spell_choices: spell_choice_ledger)
 
     trait_updates = preview.fetch("traits").slice(
       "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "speed", "hit_die", "armor", "inventory_slots",

@@ -459,4 +459,66 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_includes messages, "Sunder Armor (Heavy) requires Sunder Armor (Medium) first."
     assert_equal "Heroes 2.0.1, p. 16", planner.issues.find { |issue| issue[:message].include?("requires") }.fetch(:source_ref)
   end
+
+  test "Mage utility-school choices are required, source-validated, and persisted" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Utility Choice Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 2, status: "playable")
+    character.skill_set.update!(arcana: 8)
+
+    level_up = character.level_ups.create!(
+      from_level: 2,
+      to_level: 3,
+      skill_name: "arcana",
+      subclass_name: "Chaos",
+      spell_choices: { "Elemental Mastery" => [ "Fire" ] },
+      hit_die_roll_one: 3,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert planner.valid?, planner.explanations.map { |explanation| explanation[:message] }.join(" | ")
+    assert_equal [ "Fire", "Ice", "Lightning" ], planner.spell_choice_pools.first.fetch("options")
+
+    LevelUpService.finalize!(level_up)
+    character.reload
+
+    assert_equal [ "Fire" ], character.spell_choice_ledger.fetch("Elemental Mastery").fetch("3")
+    assert character.spells.exists?(name: "Firebrand")
+    assert_not character.spells.exists?(name: "Ice Disk")
+    assert_includes character.snapshot_payload.fetch("progression").fetch("spell_choices").first.fetch(:selected), "Fire"
+  end
+
+  test "utility spell choices are blocked when the source pool is incomplete" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Missing Utility Choice Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 2, status: "playable")
+    character.skill_set.update!(arcana: 8)
+    level_up = character.level_ups.build(from_level: 2, to_level: 3, skill_name: "arcana", subclass_name: "Chaos", hit_die_roll_one: 3, hit_die_roll_two: 2)
+
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_not planner.valid?
+    issue = planner.issues.find { |item| item[:message].include?("Elemental Mastery") }
+    assert_equal "Heroes 2.0.1, p. 33", issue.fetch(:source_ref)
+    assert_includes issue.fetch(:message), "Choose 1 Elemental Mastery option"
+  end
 end

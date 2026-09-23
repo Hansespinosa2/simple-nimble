@@ -1012,6 +1012,55 @@ choice_pools:
         - "Vital Rejuvenation"
         - Windstrider
 
+spell_choice_pools:
+  Mage:
+    "Elemental Mastery":
+      source_ref: Heroes 2.0.1, p. 33
+      choices: {3: 1, 6: 1, 14: 1}
+      kind: utility_school
+      allowed_schools: [Fire, Ice, Lightning]
+  Oathsworn:
+    "Master of Radiance":
+      source_ref: Heroes 2.0.1, p. 38
+      choices: {7: 1, 11: 1}
+      kind: utility_spell
+      allowed_schools: [Radiant]
+  Shadowmancer:
+    Shadowmastery:
+      source_ref: Heroes 2.0.1, p. 45
+      choices: {6: 1, 8: 1}
+      kind: utility_spell
+      allowed_schools: [Necrotic]
+  Shepherd:
+    "Master of Twilight · Necrotic":
+      source_ref: Heroes 2.0.1, p. 50
+      choices: {3: 1, 6: 1}
+      kind: utility_spell
+      allowed_schools: [Necrotic]
+    "Master of Twilight · Radiant":
+      source_ref: Heroes 2.0.1, p. 50
+      choices: {3: 1, 6: 1}
+      kind: utility_spell
+      allowed_schools: [Radiant]
+  Songweaver:
+    Windbag:
+      source_ref: Heroes 2.0.1, p. 56
+      choices: {3: 1, 6: 1}
+      kind: utility_spell_each_known_school
+  Stormshifter:
+    Stormcaller:
+      source_ref: Heroes 2.0.1, p. 62
+      choices: {4: 1, 7: 1}
+      kind: utility_spell_each_known_school
+
+spell_choice_auto_grants:
+  Shepherd:
+    11: [Necrotic, Radiant]
+  Shadowmancer:
+    14: [Necrotic]
+  Songweaver:
+    14: [known]
+
 derived_effects:
   classes:
     Hunter:

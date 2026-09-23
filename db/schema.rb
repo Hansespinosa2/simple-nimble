@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_233000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -143,6 +143,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_230000) do
     t.string "nimble_class"
     t.string "race"
     t.integer "ruleset_version_id"
+    t.text "spell_choices"
     t.string "spell_school_choice"
     t.text "starting_equipment"
     t.string "stat_array"
@@ -171,6 +172,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_230000) do
     t.string "second_stat_name"
     t.string "skill_from"
     t.string "skill_name"
+    t.text "spell_choices"
     t.string "stat_name"
     t.string "status", default: "draft", null: false
     t.string "subclass_name"

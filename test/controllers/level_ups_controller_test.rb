@@ -72,6 +72,29 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Death Blow" ], @character.reload.recorded_feature_choices.fetch("Savage Arsenal")
   end
 
+  test "level-three Mage page exposes the utility-school choice" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Utility Choice Controller Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    mage.finalize_creation!
+    mage.update_columns(level: 2, status: "playable")
+    mage.skill_set.update!(arcana: 8)
+
+    get new_character_level_up_url(mage)
+
+    assert_response :success
+    assert_select "select[name='level_up[spell_choices][Elemental Mastery][]']"
+    assert_select ".spell-choice-field", /Heroes 2.0.1, p. 33/
+    assert_select ".spell-choice-field option", text: "Fire"
+  end
+
   test "saving a draft enters the explicit level-up state without changing the sheet" do
     assert_difference("LevelUp.count") do
       post character_level_ups_url(@character), params: {

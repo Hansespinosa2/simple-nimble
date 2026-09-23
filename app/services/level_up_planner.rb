@@ -43,6 +43,7 @@ class LevelUpPlanner
       "features" => klass&.features_for(target_level).to_a,
       "subclass_features" => subclass_name.present? ? klass&.subclass_features_for(subclass_name, target_level).to_a : [],
       "feature_choices" => feature_choice_pools,
+      "spell_choices" => spell_choice_pools,
       "subclass_name" => subclass_name,
       "source_ref" => klass&.source_reference
     }
@@ -61,6 +62,20 @@ class LevelUpPlanner
     feature_choices_by_name = feature_choices
     character.character_class.feature_choice_pools_for(target_level).map do |pool|
       pool.merge("selected" => feature_choices_by_name.fetch(pool.fetch("name"), []))
+    end
+  end
+
+  def spell_choices
+    raw_choices = level_up.spell_choices.respond_to?(:to_h) ? level_up.spell_choices.to_h : {}
+    raw_choices.stringify_keys.transform_values do |selections|
+      Array(selections).compact_blank.map(&:to_s)
+    end
+  end
+
+  def spell_choice_pools
+    spell_choices_by_name = spell_choices
+    character.spell_choice_pools_for(target_level).map do |pool|
+      pool.merge("selected" => spell_choices_by_name.fetch(pool.fetch("name"), []))
     end
   end
 
@@ -89,6 +104,7 @@ class LevelUpPlanner
     end
 
     validate_feature_choices(result)
+    validate_spell_choices(result)
 
     if level_up.skill_name.blank?
       result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants 1 skill point.")
@@ -237,6 +253,7 @@ class LevelUpPlanner
       "stat_increase_type" => stat_increase_type,
       "subclass" => selected_subclass_name,
       "feature_choices" => feature_choices,
+      "spell_choices" => spell_choices,
       "spell_tier" => spell_tier_for(target_level),
       "progression" => progression_preview,
       "explanations" => applied_explanations(stats, hp_gain)
@@ -347,6 +364,56 @@ class LevelUpPlanner
             "#{selection} requires #{required_options.join(', ')} first.",
             pool.fetch("source_ref"),
             "Meet the prerequisite printed beside that option before selecting it."
+          )
+        end
+      end
+    end
+
+    def validate_spell_choices(result)
+      pools = character.spell_choice_pools_for(target_level)
+      known_pool_names = pools.map { |pool| pool.fetch("name") }
+
+      spell_choices.each_key do |pool_name|
+        next if known_pool_names.include?(pool_name)
+
+        result << issue(
+          "#{pool_name} is not a spell-choice pool unlocked at level #{target_level}.",
+          character.character_class&.source_reference || "Heroes 2.0.1, Utility Spells",
+          "Only choices granted by the current level's spell progression may be selected."
+        )
+      end
+
+      pools.each do |pool|
+        pool_name = pool.fetch("name")
+        selections = spell_choices.fetch(pool_name, [])
+        expected_count = pool.fetch("count").to_i
+        option_names = Array(pool.fetch("options", []))
+
+        if selections.length != expected_count
+          plural = expected_count == 1 ? "option" : "options"
+          result << issue(
+            "Choose #{expected_count} #{pool_name} #{plural} at level #{target_level}.",
+            pool.fetch("source_ref"),
+            "Choose #{expected_count} utility spell#{expected_count == 1 ? '' : 's'} from the granted list."
+          )
+        end
+
+        invalid_options = selections - option_names
+        unless invalid_options.empty?
+          result << issue(
+            "#{invalid_options.join(', ')} is not a legal #{pool_name} choice.",
+            pool.fetch("source_ref"),
+            "Choose only utility spells or schools listed for this feature."
+          )
+        end
+
+        prior_selections = character.recorded_spell_choices.fetch(pool_name, [])
+        repeated_options = selections & prior_selections
+        unless repeated_options.empty?
+          result << issue(
+            "#{repeated_options.join(', ')} has already been chosen for #{pool_name}.",
+            pool.fetch("source_ref"),
+            "Choose a new utility spell or school at each scheduled choice."
           )
         end
       end

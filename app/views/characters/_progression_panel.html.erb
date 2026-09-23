@@ -1,7 +1,8 @@
 <% class_features = character.progression_features_through %>
 <% subclass_features = character.subclass_progression_features_through %>
 <% feature_choices = character.feature_choice_entries_through %>
-<% if class_features.any? || subclass_features.any? || feature_choices.any? %>
+<% spell_choices = character.spell_choice_entries_through %>
+<% if class_features.any? || subclass_features.any? || feature_choices.any? || spell_choices.any? %>
   <section class="panel progression-panel">
     <div class="panel-heading compact">
       <div><p class="eyebrow">Class progression</p><h2>Features unlocked</h2></div>
@@ -16,6 +17,9 @@
       <% end %>
       <% feature_choices.each do |choice| %>
         <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em></div>
+      <% end %>
+      <% spell_choices.each do |choice| %>
+        <div class="progression-entry progression-entry-choice progression-entry-spell"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em></div>
       <% end %>
     </div>
   </section>

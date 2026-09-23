@@ -388,6 +388,22 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal [ "Decoy" ], entries.last.fetch(:selected)
   end
 
+  test "source-defined utility spell auto-grants become available at their milestone" do
+    Rails.application.load_seed
+    shepherd = Character.new(
+      name: "Utility Auto Grant Hero",
+      level: 11,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard"
+    )
+
+    assert_includes shepherd.utility_spell_names, "Light"
+    assert_includes shepherd.utility_spell_names, "Gravecraft"
+    assert shepherd.granted_utility_spells.exists?(name: "False Face")
+  end
+
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

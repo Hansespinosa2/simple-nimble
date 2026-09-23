@@ -772,3 +772,28 @@ end
   { school: "Necrotic", name: "Shadow Blast", tier: 0, range: 8, action_cost: 1, damage: "1d12+KEY", class_restriction: [ "Shadowmancer" ], description: "Shadowmancer only. Once per round, strike a target with a Necrotic blast." },
   { school: "Necrotic", name: "Summon Shadow", tier: 0, range: 1, action_cost: 1, class_restriction: [ "Shadowmancer" ], description: "Shadowmancer only. Summon a shadow minion; command all minions to move and attack once per turn." }
 ].each { |attributes| seed_reference_spell.call(attributes) }
+
+### UTILITY SPELLS ###
+### These are granted by class features, not automatically by knowing a school.
+[
+  { school: "Ice", name: "Ice Disk", description: "Conjure a floating disk of ice that follows you and carries up to 250 lbs. for 1 hour." },
+  { school: "Ice", name: "Chillcraft", description: "Harmlessly freeze, thaw, or move a bath-sized amount of water; or conjure a small sheet of ice." },
+  { school: "Ice", name: "Wintry Scrying", description: "Turn a small patch of water into a reflective icy mirror that shows a nearby location for 10 minutes." },
+  { school: "Fire", name: "Firebrand", description: "Secretly mark a surface with a symbol or message revealed by a chosen command word." },
+  { school: "Fire", name: "Fire Step", description: "After a minute of casting, teleport to a fire source you can see." },
+  { school: "Fire", name: "Kindle", description: "Conjure a minor visual illusion or ignite a small unheld item within Range 6." },
+  { school: "Lightning", name: "Spark Buddy", description: "Conjure a Tiny electrical helper for 1 hour to fetch objects, open unlocked doors, or deliver a harmless shock." },
+  { school: "Lightning", name: "Spark Step", description: "Teleport to a metal object within Range 4." },
+  { school: "Lightning", name: "Tempest's Command", description: "Dispel or suppress a minor magical effect, or amplify your voice like thunder for 1 minute." },
+  { school: "Radiant", name: "Light", description: "Cause an item to brightly glow like a torch while you hold the spell." },
+  { school: "Radiant", name: "Beautify", description: "Clean stains, repair a small non-magical tear or break, or conjure tiny beautiful things." },
+  { school: "Radiant", name: "Bond of Peace", description: "Communicate simple thoughts with a friendly creature or grant advantage to soothe anger or fear." },
+  { school: "Wind", name: "Wind Whisper", description: "Whisper a message into the wind to a specified target within 100 miles." },
+  { school: "Wind", name: "Helpful Gust", description: "Gently move a Tiny unheld item within Reach 6 or generate an illusory scent." },
+  { school: "Wind", name: "Feather Fall", description: "As a reaction, cause a falling creature within Reach 6 to float safely to the ground." },
+  { school: "Necrotic", name: "Gravecraft", description: "Soil a surface with blood or filth, or shape and move a body-sized plot of earth." },
+  { school: "Necrotic", name: "False Face", description: "After a minute of casting and a piece of the subject, change your appearance to look like them for 10 minutes." },
+  { school: "Necrotic", name: "Thought Leech", description: "Read the surface thoughts of a creature within Reach 6; creatures can sense the intrusion." }
+].each do |attributes|
+  seed_reference_spell.call(attributes.merge(tier: -1))
+end

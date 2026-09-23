@@ -71,6 +71,21 @@ module Rules
         choice_pools_for_class(class_name).fetch(pool_name.to_s, nil)
       end
 
+      def spell_choice_pools_for(class_name, level)
+        data.fetch("spell_choice_pools", {}).fetch(class_name.to_s, {}).filter_map do |pool_name, definition|
+          count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
+          next if count.nil?
+
+          definition.merge("name" => pool_name.to_s, "level" => level.to_i, "count" => count.to_i)
+        end
+      end
+
+      def spell_auto_grants_for(class_name, level)
+        data.fetch("spell_choice_auto_grants", {}).fetch(class_name.to_s, {}).each_with_object([]) do |(grant_level, grants), result|
+          result.concat(Array(grants)) if grant_level.to_i <= level.to_i
+        end.uniq
+      end
+
       def derived_effects_for(class_name, subclass_name, level)
         derived_effects = data.fetch("derived_effects", {})
         schedules = [

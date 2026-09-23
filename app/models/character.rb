@@ -1,6 +1,7 @@
 class Character < ApplicationRecord
   serialize :stat_assignments, coder: JSON
   serialize :feature_choices, coder: JSON
+  serialize :spell_choices, coder: JSON
 
   BASE_SPEED = 6
   DEFAULT_MAX_WOUNDS = 6
@@ -210,6 +211,105 @@ class Character < ApplicationRecord
       character_class.feature_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
     end
     level.to_i == first_level ? selections_by_level.fetch("legacy") : []
+  end
+
+  def spell_choice_ledger
+    spell_choices.to_h.stringify_keys.transform_values do |selections|
+      if selections.respond_to?(:to_h) && !selections.is_a?(Array)
+        selections.to_h.stringify_keys.transform_values { |level_selections| Array(level_selections).compact_blank.map(&:to_s) }
+      else
+        { "legacy" => Array(selections).compact_blank.map(&:to_s) }
+      end
+    end
+  end
+
+  def recorded_spell_choices
+    spell_choice_ledger.transform_values do |selections_by_level|
+      selections_by_level.values.flatten.compact_blank.map(&:to_s)
+    end
+  end
+
+  def spell_choice_pools_for(level)
+    return [] if character_class.blank?
+
+    character_class.spell_choice_pools_for(level).flat_map do |pool|
+      case pool.fetch("kind")
+      when "utility_school"
+        [ pool.merge("options" => Array(pool.fetch("allowed_schools", []))) ]
+      when "utility_spell"
+        [ pool.merge("options" => utility_spell_options(pool.fetch("allowed_schools", []))) ]
+      when "utility_spell_each_known_school"
+        known_spell_schools.map do |school|
+          pool.merge(
+            "name" => "#{pool.fetch('name')} (#{school})",
+            "base_name" => pool.fetch("name"),
+            "school" => school,
+            "options" => utility_spell_options([ school ])
+          )
+        end
+      else
+        []
+      end
+    end
+  end
+
+  def spell_choice_pools_through(level = self.level)
+    return [] if character_class.blank?
+
+    level = level.presence || 1
+    ledger = spell_choice_ledger
+
+    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+      spell_choice_pools_for(choice_level).map do |pool|
+        pool.merge(
+          "level" => choice_level,
+          "selected" => spell_choice_selections_for(pool.fetch("name"), choice_level, ledger)
+        )
+      end
+    end
+  end
+
+  def spell_choice_entries_through(level = self.level)
+    spell_choice_pools_through(level).filter_map do |pool|
+      next if pool.fetch("selected").empty?
+
+      {
+        level: pool.fetch("level"),
+        name: pool.fetch("name"),
+        selected: pool.fetch("selected"),
+        source_ref: pool.fetch("source_ref")
+      }
+    end
+  end
+
+  def spell_choice_selections_for(pool_name, level, ledger = spell_choice_ledger)
+    selections_by_level = ledger.fetch(pool_name.to_s, {})
+    return selections_by_level.fetch(level.to_i.to_s, []) if selections_by_level.key?(level.to_i.to_s)
+    return [] unless selections_by_level.key?("legacy")
+
+    first_level = 1.upto([ level.to_i, 20 ].min).find do |candidate_level|
+      spell_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
+    end
+    level.to_i == first_level ? selections_by_level.fetch("legacy") : []
+  end
+
+  def utility_spell_names(level: self.level, ledger: spell_choice_ledger)
+    utility_schools = Spell.where(tier: -1).distinct.pluck(:school)
+    selections = ledger.values.flat_map(&:values).flatten.compact_blank.map(&:to_s)
+    auto_grants = character_class&.spell_auto_grants_for(level.to_i.positive? ? level : 1) || []
+    auto_schools = auto_grants.include?("known") ? known_spell_schools : auto_grants
+    schools = (selections & utility_schools) + auto_schools
+    direct_names = selections - utility_schools
+
+    Spell.where(tier: -1, school: schools).pluck(:name) + direct_names
+  end
+
+  def granted_utility_spells(level: self.level, ledger: spell_choice_ledger)
+    Spell.where(name: utility_spell_names(level:, ledger:))
+  end
+
+  def sync_granted_utility_spells!(level: self.level, ledger: spell_choice_ledger)
+    self.spells = (spells.to_a + granted_utility_spells(level:, ledger:).to_a).uniq
   end
 
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)
@@ -544,7 +644,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments", "feature_choices",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {
@@ -561,6 +661,7 @@ class Character < ApplicationRecord
         "class_features" => progression_features_through,
         "subclass_features" => subclass_progression_features_through,
         "feature_choices" => feature_choice_entries_through,
+        "spell_choices" => spell_choice_entries_through,
         "derived_effects" => derived_feature_effects
       },
       "stats" => stat_set&.attributes&.slice("strength", "dexterity", "intelligence", "will"),
@@ -821,6 +922,10 @@ class Character < ApplicationRecord
 
     def rule_issue(message, source_ref, quote)
       { message: message, source_ref: source_ref, quote: quote }
+    end
+
+    def utility_spell_options(schools)
+      Spell.where(tier: -1, school: Array(schools)).order(:school, :name).pluck(:name)
     end
 
     def build_projected_stat_set
