@@ -64,6 +64,16 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_includes starting_equipment.fetch("gold_per_level_source_quote"), "multiply that by the level"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-3
+  test "background starting gear remains explicitly unitemized rather than being invented" do
+    starting_equipment = @catalog.starting_equipment_rules
+
+    assert_equal "not_itemized_in_parsed_sources", starting_equipment.fetch("background_gear_status")
+    assert_equal "Core Rules 2.0.1, p. 20", starting_equipment.fetch("background_gear_source_ref")
+    assert_includes starting_equipment.fetch("background_gear_source_quote"), "class and background"
+    assert_match(/do not itemize gear by background/, starting_equipment.fetch("background_gear_note"))
+  end
+
   test "class entries expose equipment and resource data used by the sheet" do
     mage = CharacterClass.find_by!(name: "Mage")
 

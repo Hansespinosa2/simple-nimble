@@ -28,6 +28,10 @@ derived_values:
 
 starting_equipment:
   source_ref: Core Rules 2.0.1, p. 20
+  background_gear_status: not_itemized_in_parsed_sources
+  background_gear_source_ref: Core Rules 2.0.1, p. 20
+  background_gear_source_quote: "equipment listed for their class and background"
+  background_gear_note: "The Core Rules include background equipment with class gear, but the parsed source files do not itemize gear by background. Confirm any background package with your GM and add agreed items manually; no grant is assumed."
   gold_per_level: 50
   gold_per_inventory_slot: 500
   gold_scales_with_starting_level: true

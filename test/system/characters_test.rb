@@ -94,10 +94,12 @@ class CharactersTest < ApplicationSystemTestCase
     select "Fearless", from: "Background"
     select "Balanced", from: "Stat array"
     assert_selector "[data-character-builder-target='armorPreview']", text: "1"
+    assert_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
     select "Starting gold instead (50 gp per level)", from: "Starting equipment"
 
     assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
     assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
+    assert_no_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
     assert_text "Core Rules 2.0.1, pp. 20, 33; Heroes 2.0.1, p. 67"
     assert_text "class-appropriate unarmored Armor, including Zephyr’s DEX + STR"
     click_on "Save draft"
@@ -135,6 +137,7 @@ class CharactersTest < ApplicationSystemTestCase
     click_on "Save draft"
 
     assert_text "Draft saved"
+    assert_text "Starting gold replaces the class/background gear package"
     armor_card = find(".vital-card", text: "Unarmored DEX + origin")
     assert_equal "0", armor_card.find("strong").text
     assert_text "Core Rules 2.0.1, p. 33"

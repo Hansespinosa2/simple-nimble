@@ -2,6 +2,8 @@
 <% slots_used = character.inventory_slots_used %>
 <% over_capacity = slots_used > character.inventory_slots_capacity %>
 
+<%= render "characters/starting_equipment_panel", character: character %>
+
 <section class="panel inventory-panel" aria-labelledby="inventory-heading">
   <div class="panel-heading compact">
     <div><p class="eyebrow">Carried gear</p><h2 id="inventory-heading">Inventory</h2></div>

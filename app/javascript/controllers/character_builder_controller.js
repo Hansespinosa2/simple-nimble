@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
-    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment", "startingEquipmentChoice", "startingEquipmentPreview",
+    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment", "startingEquipmentChoice", "startingEquipmentPreview", "backgroundEquipmentNote",
     "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget"
   ]
 
@@ -58,9 +58,11 @@ export default class extends Controller {
   }
 
   updateStartingEquipment(characterClass) {
+    const startingGold = this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold"
+    if (this.hasBackgroundEquipmentNoteTarget) this.backgroundEquipmentNoteTarget.hidden = startingGold
     if (!this.hasStartingEquipmentPreviewTarget) return
 
-    if (this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold") {
+    if (startingGold) {
       const goldPerLevel = Number(this.rulesValue.starting_equipment?.gold_per_level || 50)
       const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
       this.setTargetText("startingEquipmentPreview", `${goldPerLevel * Math.max(level, 1)} gp`)

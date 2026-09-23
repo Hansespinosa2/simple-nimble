@@ -34,6 +34,15 @@ module CharactersHelper
     "#{basis} + origin · #{source_ref}"
   end
 
+  def starting_equipment_context(character)
+    rules = Rules::NimbleCatalog.starting_equipment_rules
+    if character.starting_equipment_choice == "starting_gold"
+      "Starting gold replaces the class/background gear package and is tracked with carried inventory. #{rules.fetch('source_ref')}."
+    else
+      "#{rules.fetch('background_gear_note')} #{rules.fetch('background_gear_source_ref')}."
+    end
+  end
+
   def revision_event_class(event_type)
     {
       "level_up" => "timeline-dot timeline-dot-gold",

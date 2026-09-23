@@ -1,0 +1,10 @@
+<% if character.character_class.present? %>
+  <section class="panel starting-equipment-panel" aria-labelledby="starting-equipment-heading">
+    <div class="panel-heading compact">
+      <div><p class="eyebrow">Starting loadout</p><h2 id="starting-equipment-heading">Equipment</h2></div>
+      <span class="mini-label"><%= character.starting_equipment_choice == "starting_gold" ? "Gold start" : "Class gear" %></span>
+    </div>
+    <p><strong><%= character.starting_equipment.presence || "Not recorded" %></strong></p>
+    <p class="muted"><%= starting_equipment_context(character) %></p>
+  </section>
+<% end %>
