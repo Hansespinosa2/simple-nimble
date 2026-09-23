@@ -31,9 +31,12 @@ class LevelUpTest < ActiveSupport::TestCase
   test "the planner explains required choices and previews without persisting" do
     level_up = @character.level_ups.build(from_level: 3, to_level: 4, skill_name: "might")
     planner = LevelUpPlanner.new(@character, level_up)
+    preview = planner.preview
 
     assert_not planner.valid?
     assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Choose a key stat to increase."
+    assert_equal 4, preview.fetch("level")
+    assert_equal 28, preview.fetch("traits").fetch("max_hp")
     assert_equal 3, @character.level
     assert_equal 16, @character.trait_set.max_hp
   end
@@ -72,6 +75,23 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 3, @character.reload.level
     assert level_up.reload.draft?
     assert_includes level_up.errors.full_messages, "Will is not eligible for this level's stat increase."
+  end
+
+  test "a skill at the maximum cannot be selected again" do
+    @character.skill_set.update!(might: 12)
+    level_up = @character.level_ups.build(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength")
+    planner = LevelUpPlanner.new(@character, level_up)
+
+    assert_not planner.valid?
+    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Might is already at the +12 skill maximum."
+  end
+
+  test "a finalized transition cannot be applied twice" do
+    level_up = LevelUp.new(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", status: "finalized")
+    planner = LevelUpPlanner.new(@character, level_up)
+
+    assert_not planner.valid?
+    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "This level-up has already been finalized."
   end
 
   test "a stale or tampered starting level cannot be finalized" do

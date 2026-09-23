@@ -35,6 +35,10 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to character_level_up_url(@character, LevelUp.last)
     assert_equal "level_up", @character.reload.status
     assert_equal 1, @character.level
+    draft = LevelUp.last
+    assert_equal "might", draft.skill_name
+    assert_equal "A new scar.", draft.notes
+    assert_equal 2, draft.preview.fetch("level")
   end
 
   test "applying a legal level-up persists the transition" do
@@ -60,7 +64,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    assert_includes response.body, "already at the +12 skill maximum"
+    assert_includes response.body, "not a recognized skill"
     assert_equal 1, @character.reload.level
     assert level_up.reload.draft?
   end

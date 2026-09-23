@@ -97,7 +97,10 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
   test "every creation explanation carries its source and active rules context" do
     character = Character.new(name: "Unfinished", level: 1)
 
-    character.creation_explanations.each do |explanation|
+    explanations = character.creation_explanations
+    assert_operator explanations.length, :>=, 1
+
+    explanations.each do |explanation|
       assert_equal "blocked", explanation[:type]
       assert explanation[:source_ref].present?
       assert explanation[:quote].present?
