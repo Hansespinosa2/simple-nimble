@@ -13,4 +13,23 @@ class TraitSetTest < ActiveSupport::TestCase
     assert_equal 1, traits.current_wounds
     assert_equal 2, traits.current_actions
   end
+
+  test "rejects impossible tracker values on the server" do
+    character = Character.create!(name: "Bounded Tracker")
+    traits = character.trait_set
+    traits.assign_attributes(
+      current_hp: -1,
+      temp_hp: -1,
+      current_wounds: traits.max_wounds + 1,
+      current_actions: traits.max_actions + 1,
+      current_hit_dice: traits.max_hit_dice + 1
+    )
+
+    assert_not traits.valid?
+    assert_includes traits.errors[:current_hp], "must be greater than or equal to 0"
+    assert_includes traits.errors[:temp_hp], "must be greater than or equal to 0"
+    assert_includes traits.errors[:current_wounds], "cannot exceed max wounds"
+    assert_includes traits.errors[:current_actions], "cannot exceed max actions"
+    assert_includes traits.errors[:current_hit_dice], "cannot exceed max hit dice"
+  end
 end

@@ -223,6 +223,33 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Smoldering", @character.character_revisions.order(:id).last.snapshot.fetch("character").fetch("conditions")
   end
 
+  test "should reject impossible tracker state without changing derived limits" do
+    original_hp = @character.trait_set.current_hp
+    original_max_hp = @character.trait_set.max_hp
+    original_revision_count = @character.character_revisions.where(event_type: "game_update").count
+
+    patch tracker_character_url(@character), params: {
+      character: {
+        conditions: "Should not persist",
+        trait_set_attributes: {
+          id: @character.trait_set.id,
+          current_hp: original_max_hp + 1,
+          current_wounds: -1,
+          max_hp: 999,
+          armor: 999
+        }
+      }
+    }
+
+    assert_redirected_to character_url(@character)
+    assert_includes flash[:alert], "could not be saved"
+    @character.reload
+    assert_equal original_hp, @character.trait_set.current_hp
+    assert_equal original_max_hp, @character.trait_set.max_hp
+    assert_equal 0, @character.trait_set.armor
+    assert_equal original_revision_count, @character.character_revisions.where(event_type: "game_update").count
+  end
+
   private
     def canonical_character_attributes
       {
