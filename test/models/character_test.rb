@@ -115,6 +115,36 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 6, zephyr.armor_for(stats, level: 13)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "class-gear and gold-start Armor match source formulas for all eleven classes" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Zephyr")
+    expected_armor = {
+      "Berserker" => [ 3, 3 ],
+      "The Cheat" => [ 6, 3 ],
+      "Commander" => [ 8, 3 ],
+      "Hunter" => [ 6, 3 ],
+      "Mage" => [ 5, 3 ],
+      "Oathsworn" => [ 10, 3 ],
+      "Shadowmancer" => [ 5, 3 ],
+      "Shepherd" => [ 10, 3 ],
+      "Songweaver" => [ 5, 3 ],
+      "Stormshifter" => [ 6, 3 ],
+      "Zephyr" => [ 4, 4 ]
+    }
+    stats = { "strength" => 1, "dexterity" => 3 }
+
+    expected_armor.each do |class_name, (class_gear_armor, gold_start_armor)|
+      character = Character.new(
+        character_class: CharacterClass.find_by!(name: class_name),
+        starting_equipment_choice: "class_gear"
+      )
+      assert_equal class_gear_armor, character.armor_for(stats), "#{class_name} class gear should match its source Armor"
+
+      character.starting_equipment_choice = "starting_gold"
+      assert_equal gold_start_armor, character.armor_for(stats), "#{class_name} gold start should use its unarmored Armor"
+    end
+  end
+
   # S-04:AC-1 S-05:AC-5
   test "unfinished drafts may leave the stat array blank but reject unknown arrays" do
     draft = Character.new(name: "Work in progress", status: "draft", stat_array: "")
