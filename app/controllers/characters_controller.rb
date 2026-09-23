@@ -215,6 +215,8 @@ class CharactersController < ApplicationController
             secondary_stats: character_class.secondary_stats,
             hit_die: character_class.hit_die,
             starting_hp: character_class.starting_hp,
+            save_bonus: character_class.save_bonus_stat,
+            save_penalty: character_class.save_penalty_stat,
             spell_schools: character_class.spell_schools,
             source_reference: character_class.source_reference,
             starting_gear: character_class.starting_gear,

@@ -4,7 +4,7 @@ export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "classHint", "ancestryHint", "backgroundHint",
     "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment",
-    "speedPreview", "woundsPreview", "resourcePreview", "previewNote", "skillBudget"
+    "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget"
   ]
 
   static values = { rules: Object }
@@ -131,6 +131,7 @@ export default class extends Controller {
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
     const saveDc = array && keyStats.length ? 10 + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
+    const saves = characterClass ? `${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : "—"
     const mana = array ? this.manaMax(characterClass?.resource, stats, level) : "—"
     const languages = [ "Common" ]
 
@@ -145,6 +146,7 @@ export default class extends Controller {
     this.setTargetText("initiativePreview", array ? this.signed(initiative) : "—")
     this.setTargetText("hitDiePreview", characterClass?.hit_die || "—")
     this.setTargetText("saveDcPreview", saveDc)
+    this.setTargetText("savesPreview", saves)
     this.setTargetText("manaPreview", mana)
     this.setTargetText("languagesPreview", array ? languages.join(", ") : "Common")
     this.setTargetText("speedPreview", array ? speed : "—")
@@ -154,7 +156,8 @@ export default class extends Controller {
 
   updateHints(characterClass, ancestry, background) {
     const resourceHint = characterClass?.resource?.name ? ` · ${characterClass.resource.name}` : ""
-    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map(this.abbreviate).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${resourceHint}` : "Two Key Stats shape your build.")
+    const savesHint = characterClass ? ` · Saves ${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : ""
+    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map(this.abbreviate).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${savesHint}${resourceHint}` : "Two Key Stats shape your build.")
     this.setTargetText("ancestryHint", ancestry?.summary || "Ancestry traits apply automatically.")
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."

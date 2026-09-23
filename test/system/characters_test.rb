@@ -51,6 +51,7 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='previewNote']", text: "Changes are preview-only until you save."
     assert_selector "[data-stat-role='strength']", text: "Key Stat"
     assert_selector "[data-character-builder-target='speedPreview']", text: "6"
+    assert_selector "[data-character-builder-target='savesPreview']", text: "STR+ / INT−"
     find("select[name='character[stat_assignments][strength]'] option[value='0']").select_option
     find("select[name='character[stat_assignments][intelligence]'] option[value='1']").select_option
     find("select[name='character[stat_assignments][will]'] option[value='2']").select_option

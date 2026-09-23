@@ -469,6 +469,10 @@ class Character < ApplicationRecord
         "class" => character_class&.name,
         "ancestry" => ancestry&.name,
         "background" => background&.name,
+        "saves" => {
+          "bonus" => character_class&.save_bonus_stat,
+          "penalty" => character_class&.save_penalty_stat
+        },
         "ruleset" => rules_context_label
       },
       "progression" => {

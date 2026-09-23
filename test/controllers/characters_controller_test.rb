@@ -35,6 +35,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[stat_array]']"
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
+    assert_select "[data-character-builder-target='savesPreview']"
   end
 
   test "should embed structured origin rules in the builder payload" do
@@ -44,6 +45,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "skill_modifiers"
     assert_includes response.body, "language_grants"
     assert_includes response.body, "initiative_modifier"
+    assert_includes response.body, "save_bonus"
+    assert_includes response.body, "save_penalty"
   end
 
   test "should create character" do

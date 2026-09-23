@@ -137,11 +137,13 @@
           </div>
         </div>
         <div class="derived-strip">
+          <% save_summary = character.character_class ? "#{stat_display_name(character.character_class.save_bonus_stat)}+ / #{stat_display_name(character.character_class.save_penalty_stat)}−" : "—" %>
           <div class="derived-item"><span>Starting HP</span><strong data-character-builder-target="hpPreview"><%= character.trait_set&.max_hp || "—" %></strong></div>
           <div class="derived-item"><span>Armor</span><strong data-character-builder-target="armorPreview"><%= character.trait_set&.armor || "—" %></strong></div>
           <div class="derived-item"><span>Initiative</span><strong data-character-builder-target="initiativePreview"><%= signed_value(character.trait_set&.initiative) if character.trait_set %></strong></div>
           <div class="derived-item"><span>Hit Die</span><strong data-character-builder-target="hitDiePreview"><%= character.trait_set&.hit_die || "—" %></strong></div>
           <div class="derived-item"><span>Save DC</span><strong data-character-builder-target="saveDcPreview"><%= character.trait_set&.save_dc || "—" %></strong></div>
+          <div class="derived-item"><span>Saves</span><strong data-character-builder-target="savesPreview"><%= save_summary %></strong></div>
           <div class="derived-item"><span>Mana</span><strong data-character-builder-target="manaPreview"><%= character.trait_set&.max_mana || "—" %></strong></div>
         </div>
       </section>

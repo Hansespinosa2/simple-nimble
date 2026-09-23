@@ -307,6 +307,7 @@ class CharacterTest < ActiveSupport::TestCase
 
     assert_includes class_features, [ 2, "Intensifying Fury" ]
     assert_includes subclass_features, [ 11, "Titan's Fury" ]
+    assert_equal({ "bonus" => "strength", "penalty" => "intelligence" }, character.snapshot_payload.fetch("rules").fetch("saves"))
 
     Rules::NimbleCatalog.classes.each_key do |class_name|
       character_class = CharacterClass.find_by!(name: class_name)
