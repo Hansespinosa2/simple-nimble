@@ -260,7 +260,7 @@ class Character < ApplicationRecord
   def skill_initial_value(skill)
     return 0 unless stat_set
 
-    stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + (ancestry&.all_skills_bonus || 0)
+    stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + derived_modifier_for(:all_skills_bonus) + ancestry&.skill_bonus_for(skill).to_i + background&.skill_bonus_for(skill).to_i
   end
 
   def skill_value(skill)
@@ -319,6 +319,12 @@ class Character < ApplicationRecord
     )
   end
 
+  def derived_modifier_for(attribute)
+    [ ancestry, background ].compact.sum do |origin|
+      origin.respond_to?(attribute) ? origin.public_send(attribute).to_i : 0
+    end
+  end
+
   def ensure_defaults
     build_default_stat_set if not stat_set
     build_default_skill_set if not skill_set
@@ -345,7 +351,7 @@ class Character < ApplicationRecord
     end
 
     def should_sync_derived_values?
-      new_record? || character_class_id_changed? || ancestry_id_changed? || stat_array_changed?
+      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed?
     end
 
     def sync_derived_values
@@ -365,7 +371,7 @@ class Character < ApplicationRecord
     end
 
     def canonical_choices_changed?
-      character_class_id_changed? || ancestry_id_changed? || stat_array_changed?
+      character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed?
     end
 
     def assign_attributes_to_stat_set(values)
@@ -376,7 +382,7 @@ class Character < ApplicationRecord
     def assign_attributes_to_skill_set
       target = skill_set || build_skill_set
       SKILL_NAMES.each do |skill|
-        baseline = stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + (ancestry&.all_skills_bonus || 0)
+        baseline = stat_set.public_send(SKILL_TO_STAT.fetch(skill)).to_i + derived_modifier_for(:all_skills_bonus) + ancestry&.skill_bonus_for(skill).to_i + background&.skill_bonus_for(skill).to_i
         submitted_value = target.public_send(skill)
         target.public_send("#{skill}=", submitted_value.nil? ? baseline : [ submitted_value.to_i, baseline ].max)
       end
@@ -404,19 +410,19 @@ class Character < ApplicationRecord
       level_value = level.to_i.positive? ? level.to_i : 1
       dexterity = stat_set&.dexterity.to_i
       starting_hp = character_class&.starting_hp || 10
-      max_hit_dice = level_value + ancestry_modifier(:max_hit_dice_modifier)
-      max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
+      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier)
+      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
       stat_values = current_stat_values
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
       target.assign_attributes(
-        initiative: dexterity + ancestry_modifier(:initiative_modifier),
-        speed: BASE_SPEED + ancestry_modifier(:speed_modifier),
+        initiative: dexterity + derived_modifier_for(:initiative_modifier),
+        speed: BASE_SPEED + derived_modifier_for(:speed_modifier),
         hit_die: character_class&.hit_die || "1d6",
         current_hit_dice: max_hit_dice,
         max_hit_dice: max_hit_dice,
         current_actions: 3,
         max_actions: 3,
-        armor: dexterity + ancestry_modifier(:armor_modifier),
+        armor: dexterity + derived_modifier_for(:armor_modifier),
         save_dc: save_dc_for(stat_values),
         max_mana: resource_values.fetch(:max_mana),
         current_mana: resource_values.fetch(:max_mana),
@@ -470,6 +476,8 @@ class Character < ApplicationRecord
       languages << "Goblin" if %w[Goblin Orc].include?(ancestry&.name) && stat_value("intelligence") >= 0
       languages << "Draconic" if %w[Dragonborn Kobold].include?(ancestry&.name) && stat_value("intelligence") >= 0
       languages << "Celestial" if ancestry&.name == "Celestial" && stat_value("intelligence") >= 0
+      languages << "Infernal" if ancestry&.name == "Fiendkin" && stat_value("intelligence") >= 0
+      languages.concat(background.language_names) if background.present? && stat_value("intelligence") >= 0
       (stat_value("intelligence").positive? ? stat_value("intelligence") : 0).times do |index|
         languages << [ "Dwarvish", "Elvish", "Goblin", "Infernal", "Thieves' Cant", "Celestial", "Draconic", "Primordial", "Deep Speak" ][index] || "Additional language"
       end
@@ -477,10 +485,6 @@ class Character < ApplicationRecord
     end
 
   private
-    def ancestry_modifier(attribute)
-      ancestry&.public_send(attribute) || 0
-    end
-
     def current_stat_values
       {
         "strength" => stat_set&.strength.to_i,
@@ -546,28 +550,22 @@ class Character < ApplicationRecord
     end
 
     def build_default_skill_set
-      all_skills_bonus = ancestry_modifier(:all_skills_bonus)
+      all_skills_bonus = derived_modifier_for(:all_skills_bonus)
+      skill_values = SKILL_NAMES.index_with do |skill|
+        all_skills_bonus + ancestry&.skill_bonus_for(skill).to_i + background&.skill_bonus_for(skill).to_i
+      end
 
-      build_skill_set arcana: all_skills_bonus,
-                      insight: all_skills_bonus,
-                      examination: all_skills_bonus,
-                      finesse: all_skills_bonus,
-                      might: all_skills_bonus,
-                      lore: all_skills_bonus,
-                      influence: all_skills_bonus,
-                      naturecraft: all_skills_bonus,
-                      stealth: all_skills_bonus,
-                      perception: all_skills_bonus
+      build_skill_set(**skill_values)
     end
 
     def build_default_trait_set
       hit_die = character_class&.hit_die || "1d6"
       starting_hp = character_class&.starting_hp || 10
-      initiative = ancestry_modifier(:initiative_modifier)
-      speed = BASE_SPEED + ancestry_modifier(:speed_modifier)
-      max_hit_dice = 1 + ancestry_modifier(:max_hit_dice_modifier)
-      armor = ancestry_modifier(:armor_modifier)
-      max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
+      initiative = derived_modifier_for(:initiative_modifier)
+      speed = BASE_SPEED + derived_modifier_for(:speed_modifier)
+      max_hit_dice = 1 + derived_modifier_for(:max_hit_dice_modifier)
+      armor = derived_modifier_for(:armor_modifier)
+      max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
       stat_values = current_stat_values
       resource_values = derived_resource_values_for(stat_values: stat_values, level: 1)
 

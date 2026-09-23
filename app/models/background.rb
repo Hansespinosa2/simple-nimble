@@ -1,4 +1,7 @@
 class Background < ApplicationRecord
+  serialize :skill_modifiers, coder: JSON
+  serialize :language_grants, coder: JSON
+
   # Structured rules-canon record (spec 02): the seed catalog enumerates the
   # published backgrounds and stores creation-time prerequisites where known.
   has_many :characters, dependent: :nullify
@@ -6,6 +9,14 @@ class Background < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :prerequisite_stat, inclusion: { in: %w[strength dexterity intelligence will] }, allow_nil: true
   validates :prerequisite_max, presence: true, numericality: { only_integer: true }, if: :prerequisite_stat?
+
+  def skill_bonus_for(skill)
+    skill_modifiers.to_h.fetch(skill.to_s, 0).to_i
+  end
+
+  def language_names
+    Array(language_grants).compact
+  end
 
   # A background's stat prerequisite (e.g. "So Dumb I'm Smart Sometimes"
   # requires INT <= 0) is checked at character-creation finalization, not on

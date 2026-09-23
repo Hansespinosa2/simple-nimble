@@ -29,7 +29,8 @@ class LevelUpService
     character.skill_set.update!(preview.fetch("skills"))
 
     trait_updates = preview.fetch("traits").slice(
-      "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "armor", "inventory_slots",
+      "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "speed", "armor", "inventory_slots",
+      "current_wounds", "max_wounds",
       "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource"
     )
     character.trait_set.update!(trait_updates)

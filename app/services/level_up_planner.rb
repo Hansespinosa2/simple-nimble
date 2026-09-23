@@ -107,9 +107,12 @@ class LevelUpPlanner
     traits = {
       "max_hp" => character.trait_set&.max_hp.to_i,
       "current_hp" => character.trait_set&.current_hp.to_i,
+      "current_wounds" => character.trait_set&.current_wounds.to_i,
+      "max_wounds" => character.trait_set&.max_wounds.to_i,
       "max_hit_dice" => character.trait_set&.max_hit_dice.to_i,
       "current_hit_dice" => character.trait_set&.current_hit_dice.to_i,
       "initiative" => character.trait_set&.initiative.to_i,
+      "speed" => character.trait_set&.speed.to_i,
       "armor" => character.trait_set&.armor.to_i,
       "inventory_slots" => character.trait_set&.inventory_slots.to_i,
       "save_dc" => character.trait_set&.save_dc,
@@ -142,10 +145,13 @@ class LevelUpPlanner
     if character.trait_set
       traits["max_hp"] += hp_gain
       traits["current_hp"] = traits["max_hp"] if character.trait_set.current_hp.to_i >= character.trait_set.max_hp.to_i
-      traits["max_hit_dice"] = target_level + (character.ancestry&.max_hit_dice_modifier || 0)
+      traits["max_hit_dice"] = target_level + character.derived_modifier_for(:max_hit_dice_modifier)
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + 1, traits["max_hit_dice"] ].min
-      traits["initiative"] = stats.fetch("dexterity") + (character.ancestry&.initiative_modifier || 0)
-      traits["armor"] = stats.fetch("dexterity") + (character.ancestry&.armor_modifier || 0)
+      traits["initiative"] = stats.fetch("dexterity") + character.derived_modifier_for(:initiative_modifier)
+      traits["speed"] = Character::BASE_SPEED + character.derived_modifier_for(:speed_modifier)
+      traits["armor"] = stats.fetch("dexterity") + character.derived_modifier_for(:armor_modifier)
+      traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier)
+      traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
       resource_values = character.derived_resource_values_for(stat_values: stats, level: target_level)
       traits["save_dc"] = character.save_dc_for(stats)

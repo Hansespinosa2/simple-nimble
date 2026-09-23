@@ -92,6 +92,58 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 9, character.trait_set.max_hp
   end
 
+  test "per-skill ancestry bonuses are part of the governing skill baseline" do
+    character_class = CharacterClass.create!(
+      name: "Skill Bonus Class",
+      key_stat_one: "strength",
+      key_stat_two: "dexterity",
+      hit_die: "1d8",
+      starting_hp: 12
+    )
+    ancestry = Ancestry.create!(name: "Skill Bonus Ancestry", size: "Small", skill_modifiers: { stealth: 1 })
+    character = Character.create!(name: "Skill Bonus Hero", character_class: character_class, ancestry: ancestry, stat_array: "balanced")
+
+    assert_equal character.stat_value("dexterity") + 1, character.skill_initial_value("stealth")
+    assert_equal character.skill_initial_value("stealth"), character.skill_value("stealth")
+  end
+
+  test "changing background recalculates origin-derived values and language grants" do
+    character_class = CharacterClass.create!(
+      name: "Background Change Class",
+      key_stat_one: "intelligence",
+      key_stat_two: "will",
+      hit_die: "1d6",
+      starting_hp: 10
+    )
+    ancestry = Ancestry.create!(name: "Background Change Ancestry", size: "Medium")
+    original_background = Background.create!(name: "Original Background", description: "The first story.")
+    replacement_background = Background.create!(
+      name: "Structured Background",
+      description: "The second story.",
+      initiative_modifier: 1,
+      armor_modifier: -1,
+      max_hit_dice_modifier: 1,
+      skill_modifiers: { naturecraft: 1 },
+      language_grants: [ "Goblin" ]
+    )
+    character = Character.create!(
+      name: "Background Change Hero",
+      character_class: character_class,
+      ancestry: ancestry,
+      background: original_background,
+      stat_array: "balanced"
+    )
+
+    character.update!(background: replacement_background)
+    character.reload
+
+    assert_equal character.stat_value("dexterity") + 1, character.trait_set.initiative
+    assert_equal character.stat_value("dexterity") - 1, character.trait_set.armor
+    assert_equal 2, character.trait_set.max_hit_dice
+    assert_equal character.stat_value("will") + 1, character.skill_value("naturecraft")
+    assert_includes character.languages, "Goblin"
+  end
+
   # S-05:AC-2 S-06:AC-6
   test "canonical edits recalculate affected values without wiping tracker state" do
     original_class = CharacterClass.create!(
@@ -161,6 +213,8 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 7, character.trait_set.max_mana
     assert_equal 7, character.trait_set.current_mana
     assert_equal "Mana", character.trait_set.resource_name
+    assert_equal 2, character.trait_set.initiative
+    assert_equal(-1, character.trait_set.armor)
     assert_includes character.starting_equipment, "Staff"
     assert_includes character.inventory, "Adventurer's Garb"
     assert_includes character.character_class.armor_proficiencies, "cloth"

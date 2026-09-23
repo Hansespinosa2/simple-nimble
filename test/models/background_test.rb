@@ -29,4 +29,20 @@ class BackgroundTest < ActiveSupport::TestCase
     assert_not background.valid?
     assert_includes background.errors[:prerequisite_max], "can't be blank"
   end
+
+  test "stores flat bonuses and language grants separately from prose" do
+    background = Background.create!(
+      name: "Structured Origin",
+      description: "A source-backed origin.",
+      initiative_modifier: 1,
+      armor_modifier: -1,
+      skill_modifiers: { naturecraft: 1 },
+      language_grants: [ "Goblin" ]
+    )
+
+    assert_equal 1, background.initiative_modifier
+    assert_equal(-1, background.armor_modifier)
+    assert_equal 1, background.skill_bonus_for("naturecraft")
+    assert_equal [ "Goblin" ], background.language_names
+  end
 end

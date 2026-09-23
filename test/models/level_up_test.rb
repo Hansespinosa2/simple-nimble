@@ -209,4 +209,31 @@ class LevelUpTest < ActiveSupport::TestCase
     issue = planner.issues.find { |item| item[:message].include?("Hit Die roll") }
     assert_equal "Chapter 3, Derived Values", issue.fetch(:source_ref)
   end
+
+  test "level-up preview preserves both ancestry and background modifiers" do
+    background = Background.create!(
+      name: "Level-Up Structured Background",
+      description: "Flat rules for preview coverage.",
+      initiative_modifier: 1,
+      armor_modifier: -1,
+      max_hit_dice_modifier: 1,
+      max_wounds_modifier: 1
+    )
+    @character.update!(background: background)
+    level_up = @character.level_ups.build(
+      from_level: 3,
+      to_level: 4,
+      skill_name: "might",
+      stat_name: "strength",
+      hit_die_roll_one: 2,
+      hit_die_roll_two: 8
+    )
+
+    preview = LevelUpPlanner.new(@character, level_up).preview
+
+    assert_equal 5, preview.fetch("traits").fetch("max_hit_dice")
+    assert_equal 3, preview.fetch("traits").fetch("initiative")
+    assert_equal 1, preview.fetch("traits").fetch("armor")
+    assert_equal 7, preview.fetch("traits").fetch("max_wounds")
+  end
 end

@@ -41,7 +41,7 @@ seed_character_class = lambda do |name:, key_stats:, hit_die:, starting_hp:, sav
   )
 end
 
-seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}|
+seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}, skill_modifiers: {}|
   ancestry = Ancestry.find_or_create_by!(name: name) do |a|
     a.size = size
     a.trait_summary = trait_summary
@@ -56,12 +56,13 @@ seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}|
       all_skills_bonus: 0,
       max_hit_dice_modifier: 0,
       max_wounds_modifier: 0,
-      armor_modifier: 0
-    }.merge(modifiers)
+      armor_modifier: 0,
+      skill_modifiers: skill_modifiers
+    }.merge(modifiers).merge(skill_modifiers: skill_modifiers)
   )
 end
 
-seed_background = lambda do |name:, description:, prerequisite_stat: nil, prerequisite_max: nil|
+seed_background = lambda do |name:, description:, prerequisite_stat: nil, prerequisite_max: nil, modifiers: {}, skill_modifiers: {}, language_grants: []|
   background = Background.find_or_create_by!(name: name) do |b|
     b.description = description
     b.prerequisite_stat = prerequisite_stat
@@ -69,9 +70,17 @@ seed_background = lambda do |name:, description:, prerequisite_stat: nil, prereq
   end
 
   background.update!(
-    description: description,
-    prerequisite_stat: prerequisite_stat,
-    prerequisite_max: prerequisite_max
+    {
+      description: description,
+      prerequisite_stat: prerequisite_stat,
+      prerequisite_max: prerequisite_max,
+      initiative_modifier: 0,
+      armor_modifier: 0,
+      max_hit_dice_modifier: 0,
+      max_wounds_modifier: 0,
+      skill_modifiers: skill_modifiers,
+      language_grants: language_grants
+    }.merge(modifiers).merge(skill_modifiers: skill_modifiers, language_grants: language_grants)
   )
 end
 
@@ -190,7 +199,8 @@ end
   {
     name: "Halfling",
     size: "Small",
-    trait_summary: "Small and lucky, with +1 Stealth and one failed save reroll per Safe Rest."
+    trait_summary: "Small and lucky, with +1 Stealth and one failed save reroll per Safe Rest.",
+    skill_modifiers: { stealth: 1 }
   },
   {
     name: "Gnome",
@@ -227,7 +237,8 @@ end
   {
     name: "Orc",
     size: "Medium",
-    trait_summary: "Once per Safe Rest, dropping to 0 HP can leave you at HP equal to level, with +1 Might."
+    trait_summary: "Once per Safe Rest, dropping to 0 HP can leave you at HP equal to level, with +1 Might.",
+    skill_modifiers: { might: 1 }
   },
   {
     name: "Birdfolk",
@@ -257,7 +268,8 @@ end
   {
     name: "Half-Giant",
     size: "Large",
-    trait_summary: "Can force one critical hit reroll per encounter and gains +2 Might."
+    trait_summary: "Can force one critical hit reroll per encounter and gains +2 Might.",
+    skill_modifiers: { might: 2 }
   },
   {
     name: "Minotaur/Beastfolk",
@@ -363,7 +375,8 @@ end
   },
   {
     name: "Wild One",
-    description: "You feel more at ease in untamed places than in polite company."
+    description: "You feel more at ease in untamed places than in polite company.",
+    skill_modifiers: { naturecraft: 1 }
   },
   {
     name: "Fey Touched",
@@ -371,7 +384,8 @@ end
   },
   {
     name: "Survivalist",
-    description: "You know how to keep yourself fed, moving, and alive when comfort disappears."
+    description: "You know how to keep yourself fed, moving, and alive when comfort disappears.",
+    modifiers: { max_hit_dice_modifier: 1 }
   },
   {
     name: "Home at Sea",
@@ -383,7 +397,8 @@ end
   },
   {
     name: "Raised by Goblins",
-    description: "Goblin habits and hard lessons shaped how you talk, think, and stay alive."
+    description: "Goblin habits and hard lessons shaped how you talk, think, and stay alive.",
+    language_grants: [ "Goblin" ]
   },
   {
     name: "History Buff",
@@ -403,7 +418,8 @@ end
   },
   {
     name: "Fearless",
-    description: "You meet danger head-on and hate showing hesitation."
+    description: "You meet danger head-on and hate showing hesitation.",
+    modifiers: { initiative_modifier: 1, armor_modifier: -1 }
   }
 ].each do |attributes|
   seed_background.call(**attributes)
