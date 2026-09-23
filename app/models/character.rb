@@ -456,13 +456,14 @@ class Character < ApplicationRecord
     values = stat_values || current_stat_values
     rules = character_class.armor_rules
     dexterity = value_for_stat(values, "dexterity")
-    base = rules.fetch("base", 0).to_i
+    starting_gold = starting_equipment_choice == "starting_gold"
+    base = starting_gold ? 0 : rules.fetch("base", 0).to_i
 
     armor = case rules.fetch("formula", "dexterity")
     when "dexterity_plus_strength"
       base + dexterity + value_for_stat(values, "strength")
     else
-      cap = rules["dexterity_cap"]
+      cap = starting_gold ? nil : rules["dexterity_cap"]
       base + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
     end
     effects = derived_feature_effects(level:, subclass_name:)
@@ -864,7 +865,7 @@ class Character < ApplicationRecord
     end
 
     def should_sync_derived_values?
-      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed?
+      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || starting_equipment_choice_changed?
     end
 
     def should_sync_starting_equipment?
@@ -922,7 +923,7 @@ class Character < ApplicationRecord
     end
 
     def canonical_choices_changed?
-      character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed?
+      character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || starting_equipment_choice_changed?
     end
 
     def assign_attributes_to_stat_set(values)

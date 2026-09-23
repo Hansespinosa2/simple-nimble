@@ -55,6 +55,31 @@ class CharacterTest < ActiveSupport::TestCase
     assert_includes mage.starting_equipment, "Staff"
     assert_equal 0, mage.current_gold
     assert_equal 0, mage.gold_inventory_slots
+    assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), mage.trait_set.armor
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "switching a draft to starting gold removes class-gear armor but preserves unarmored features" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(
+      name: "Armor Preview Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    class_gear_armor = mage.trait_set.armor
+    assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), class_gear_armor
+
+    mage.update!(starting_equipment_choice: "starting_gold")
+
+    assert_equal 50, mage.current_gold
+    unarmored_armor = mage.stat_value("dexterity") + mage.derived_modifier_for(:armor_modifier)
+    assert_equal unarmored_armor, mage.trait_set.armor
+
+    mage.update!(starting_equipment_choice: "class_gear")
+    assert_equal 0, mage.current_gold
+    assert_equal class_gear_armor, mage.trait_set.armor
   end
 
   # S-04:AC-1 S-05:AC-5

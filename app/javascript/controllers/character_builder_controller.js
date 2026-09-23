@@ -152,7 +152,12 @@ export default class extends Controller {
     const intelligence = stats.intelligence || 0
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
     const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
-    const armor = this.armorValue(characterClass?.armor_rules, stats) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
+    const armorRules = { ...(characterClass?.armor_rules || {}) }
+    if (this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold") {
+      armorRules.base = 0
+      delete armorRules.dexterity_cap
+    }
+    const armor = this.armorValue(armorRules, stats) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
     const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []

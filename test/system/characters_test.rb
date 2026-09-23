@@ -93,10 +93,13 @@ class CharactersTest < ApplicationSystemTestCase
     select "Human", from: "Ancestry"
     select "Fearless", from: "Background"
     select "Balanced", from: "Stat array"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "1"
     select "Starting gold instead (50 gp per level)", from: "Starting equipment"
 
     assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
     assert_text "Core Rules 2.0.1, p. 20"
+    assert_text "unarmored DEX (p. 33)"
     click_on "Save draft"
 
     assert_text "Draft saved"
