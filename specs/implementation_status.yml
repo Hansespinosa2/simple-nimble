@@ -21,3 +21,23 @@ criteria:
     status: in_progress
     updated_at: '2026-09-23T07:55:26Z'
     notes: Proving unrelated game state is preserved
+  S-04:AC-1:
+    status: in_progress
+    updated_at: '2026-09-23T08:01:51Z'
+    notes: Verifying resumable draft saves
+  S-05:AC-5:
+    status: in_progress
+    updated_at: '2026-09-23T08:01:51Z'
+    notes: Testing unfinished draft persistence
+  S-08:AC-2:
+    status: in_progress
+    updated_at: '2026-09-23T08:01:52Z'
+    notes: Testing GM campaign inspection
+  S-08:AC-3:
+    status: in_progress
+    updated_at: '2026-09-23T08:01:52Z'
+    notes: Testing account-gated campaign access
+  S-08:AC-5:
+    status: in_progress
+    updated_at: '2026-09-23T08:01:53Z'
+    notes: Testing share revocation

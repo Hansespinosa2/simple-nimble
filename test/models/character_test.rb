@@ -1,6 +1,19 @@
 require "test_helper"
 
 class CharacterTest < ActiveSupport::TestCase
+  # S-04:AC-1 S-05:AC-5
+  test "unfinished drafts may leave the stat array blank but reject unknown arrays" do
+    draft = Character.new(name: "Work in progress", status: "draft", stat_array: "")
+
+    assert draft.valid?
+    assert_empty draft.errors[:stat_array]
+
+    draft.stat_array = "invented"
+
+    assert_not draft.valid?
+    assert_includes draft.errors[:stat_array], "is not included in the list"
+  end
+
   test "defaults remain unchanged without an ancestry" do
     character_class = CharacterClass.create!(
       name: "Warrior",

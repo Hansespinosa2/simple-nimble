@@ -30,6 +30,31 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Read-only shared sheet"
   end
 
+  test "a GM can inspect a shared sheet from the campaign workspace" do
+    sign_in(@player)
+    post character_shares_url(@character), params: { campaign_id: @campaign.id }
+    share = @character.character_shares.order(:id).last
+
+    sign_in(@gm)
+    get campaign_url(@campaign)
+
+    assert_response :success
+    assert_includes response.body, "The Shared Road"
+    assert_includes response.body, "Shared Hero"
+    assert_includes response.body, "Read-only"
+    assert_includes response.body, shared_character_path(share.share_token)
+  end
+
+  test "a non-member cannot open a campaign workspace" do
+    outsider = Account.create!(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
+    sign_in(outsider)
+
+    get campaign_url(@campaign)
+
+    assert_redirected_to campaigns_url
+    assert_includes flash[:alert], "campaign access"
+  end
+
   test "a GM cannot create a share on a player-owned character" do
     sign_in(@gm)
 
@@ -75,6 +100,10 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to campaigns_url
     assert_not CharacterShare.exists?(share.id)
     assert_not @campaign.campaign_memberships.exists?(account: @player)
+
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+    assert_response :not_found
   end
 
   private

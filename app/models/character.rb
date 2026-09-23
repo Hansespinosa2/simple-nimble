@@ -59,7 +59,7 @@ class Character < ApplicationRecord
   belongs_to :ruleset_version, optional: true
   belongs_to :account, optional: true
 
-  validates :stat_array, inclusion: { in: STAT_ARRAYS.keys }, allow_nil: true
+  validates :stat_array, inclusion: { in: STAT_ARRAYS.keys }, allow_blank: true
   validates :status, inclusion: { in: STATUS_LABELS.keys }
   validates :level, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }, allow_nil: true
   validate :playable_state_is_legal, if: :playable?

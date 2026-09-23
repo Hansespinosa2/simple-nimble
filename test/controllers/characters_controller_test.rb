@@ -4,6 +4,10 @@ require "test_helper"
 class CharactersControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed if Character.count.zero?
+    @character_class = CharacterClass.find_by!(name: "Berserker")
+    @ancestry = Ancestry.find_by!(name: "Human")
+    @background = Background.find_by!(name: "Fearless")
+    @ruleset = RulesetVersion.active.first
     @character = Character.create!(
       name: "Test Hero",
       description: "A brave adventurer seeking glory.",
@@ -18,24 +22,67 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get characters_url
     assert_response :success
+    assert_select "h1", "Your heroes"
+    assert_includes response.body, @character.name
   end
 
   test "should get new" do
     get new_character_url
     assert_response :success
+    assert_select "select[name='character[character_class_id]']"
+    assert_select "select[name='character[ancestry_id]']"
+    assert_select "select[name='character[background_id]']"
+    assert_select "select[name='character[stat_array]']"
   end
 
   test "should create character" do
     assert_difference("Character.count") do
-      post characters_url, params: { character: { legacy_background_text: @character.legacy_background_text, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
+      post characters_url, params: { character: { legacy_background_text: "A new beginning", description: "A different hero.", languages: "Common", level: 1, name: "Created Hero", nimble_class: "Scout", race: "Elf" } }
     end
 
-    assert_redirected_to character_url(Character.last)
+    created = Character.order(:id).last
+    assert_redirected_to character_url(created)
+    assert_equal "Created Hero", created.name
+    assert_equal "A different hero.", created.description
+    assert_equal "A new beginning", created.legacy_background_text
+    assert created.draft?
+    assert created.character_revisions.exists?(event_type: "created")
+  end
+
+  test "should finalize a legal character and persist derived values" do
+    # The finalize flag is a top-level form control, just as the real form submits it.
+    assert_difference("Character.count") do
+      post characters_url, params: { character: canonical_character_attributes.merge(name: "Playable Hero"), finalize: "1" }
+    end
+
+    created = Character.order(:id).last
+    assert_redirected_to character_url(created)
+    assert created.playable?
+    assert_equal @character_class, created.character_class
+    assert_equal @ancestry, created.ancestry
+    assert_equal @background, created.background
+    assert_equal "balanced", created.stat_array
+    assert_equal @character_class.starting_hp, created.trait_set.max_hp
+    assert created.character_revisions.exists?(event_type: "finalized")
+  end
+
+  test "should keep an incomplete character as a draft and render every blocking reason" do
+    assert_difference("Character.count") do
+      post characters_url, params: { character: { name: "Blocked Hero" }, finalize: "1" }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Choose a class before finalizing."
+    assert_includes response.body, "Choose an ancestry before finalizing."
+    assert_includes response.body, "Choose a background before finalizing."
+    assert Character.find_by(name: "Blocked Hero").draft?
   end
 
   test "should show character" do
     get character_url(@character)
     assert_response :success
+    assert_select "h1", @character.name
+    assert_includes response.body, @character.description
   end
 
   test "should get edit" do
@@ -44,8 +91,15 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update character" do
-    patch character_url(@character), params: { character: { legacy_background_text: @character.legacy_background_text, description: @character.description, languages: @character.languages, level: @character.level, name: @character.name, nimble_class: @character.nimble_class, race: @character.race } }
+    patch character_url(@character), params: { character: { legacy_background_text: "Updated story", description: "Now with a real plan.", languages: "Common, Dwarvish", level: 2, name: "Updated Hero", nimble_class: "Guardian", race: "Dwarf" } }
+
     assert_redirected_to character_url(@character)
+    @character.reload
+    assert_equal "Updated Hero", @character.name
+    assert_equal "Now with a real plan.", @character.description
+    assert_equal "Updated story", @character.legacy_background_text
+    assert_equal 2, @character.level
+    assert_equal "Edited", @character.character_revisions.order(:id).last.event_label
   end
 
   test "should destroy character" do
@@ -54,13 +108,15 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to characters_url
+    assert_not Character.exists?(@character.id)
   end
 
   test "should have stats and skills for each character" do
-    Character.all.each do |character|
-      puts character.name
-      assert_not_nil character.stat_set
-      assert_not_nil character.skill_set
+    Character.find_each do |character|
+      assert character.stat_set.persisted?, "#{character.name} should have persisted stats"
+      assert character.skill_set.persisted?, "#{character.name} should have persisted skills"
+      assert_equal character, character.stat_set.character
+      assert_equal character, character.skill_set.character
     end
   end
 
@@ -87,6 +143,24 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     @character.reload
     assert_equal 7, @character.trait_set.current_hp
     assert_equal "Smoldering", @character.conditions
+    assert_equal "Torch, rope", @character.inventory
+    assert_equal "Met the ferryman.", @character.game_notes
+    assert_equal 2, @character.trait_set.temp_hp
+    assert_equal 1, @character.trait_set.current_wounds
+    assert_equal 2, @character.trait_set.current_actions
     assert_equal "In-game state updated", @character.character_revisions.order(:id).last.summary
+    assert_equal "Smoldering", @character.character_revisions.order(:id).last.snapshot.fetch("character").fetch("conditions")
   end
+
+  private
+    def canonical_character_attributes
+      {
+        description: "Ready for the road.",
+        character_class_id: @character_class.id,
+        ancestry_id: @ancestry.id,
+        background_id: @background.id,
+        stat_array: "balanced",
+        level: 1
+      }
+    end
 end

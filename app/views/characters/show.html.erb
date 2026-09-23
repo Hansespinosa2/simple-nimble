@@ -13,6 +13,7 @@
           <p class="eyebrow">Nimble character sheet</p>
           <h1><%= @character.name.presence || "Untitled hero" %></h1>
           <p class="sheet-subtitle"><%= [ @character.character_class&.name || @character.nimble_class, @character.ancestry&.name || @character.race, "Level #{@character.level || '—'}" ].compact.join(" · ") %></p>
+          <% if @character.description.present? %><p class="sheet-description"><%= @character.description %></p><% end %>
         </div>
       </div>
     </div>
