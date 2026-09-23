@@ -1,4 +1,8 @@
 class Character < ApplicationRecord
+  BASE_SPEED = 6
+  DEFAULT_MAX_WOUNDS = 6
+  BASE_INVENTORY_SLOTS = 10
+
   # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The two
   # highest values go to the class's 2 Key Stats, the remaining two to the
   # 2 Secondary Stats.
@@ -217,7 +221,7 @@ class Character < ApplicationRecord
       "skills" => skill_set&.attributes&.slice(*SKILL_NAMES),
       "traits" => trait_set&.attributes&.slice(
         "initiative", "speed", "hit_die", "current_hit_dice", "max_hit_dice", "current_actions", "max_actions",
-        "armor", "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds"
+        "armor", "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds", "inventory_slots"
       ),
       "spells" => spells.order(:name).pluck(:name)
     }
@@ -311,20 +315,21 @@ class Character < ApplicationRecord
       dexterity = stat_set&.dexterity.to_i
       starting_hp = character_class&.starting_hp || 10
       max_hit_dice = level_value + ancestry_modifier(:max_hit_dice_modifier)
-      max_wounds = 6 + ancestry_modifier(:max_wounds_modifier)
+      max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
       target.assign_attributes(
         initiative: dexterity + ancestry_modifier(:initiative_modifier),
-        speed: 30 + ancestry_modifier(:speed_modifier),
+        speed: BASE_SPEED + ancestry_modifier(:speed_modifier),
         hit_die: character_class&.hit_die || "1d6",
         current_hit_dice: max_hit_dice,
         max_hit_dice: max_hit_dice,
         current_actions: 3,
         max_actions: 3,
         armor: dexterity + ancestry_modifier(:armor_modifier),
+        inventory_slots: BASE_INVENTORY_SLOTS + stat_set&.strength.to_i,
         temp_hp: 0,
         current_hp: starting_hp,
         max_hp: starting_hp,
-        current_wounds: max_wounds,
+        current_wounds: 0,
         max_wounds: max_wounds
       )
 
@@ -423,10 +428,10 @@ class Character < ApplicationRecord
       hit_die = character_class&.hit_die || "1d6"
       starting_hp = character_class&.starting_hp || 10
       initiative = ancestry_modifier(:initiative_modifier)
-      speed = 30 + ancestry_modifier(:speed_modifier)
+      speed = BASE_SPEED + ancestry_modifier(:speed_modifier)
       max_hit_dice = 1 + ancestry_modifier(:max_hit_dice_modifier)
       armor = ancestry_modifier(:armor_modifier)
-      max_wounds = 6 + ancestry_modifier(:max_wounds_modifier)
+      max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
 
       build_trait_set initiative:        initiative,
                       speed:             speed,
@@ -436,10 +441,11 @@ class Character < ApplicationRecord
                       current_actions:   3,
                       max_actions:       3,
                       armor:             armor,
+                      inventory_slots:  BASE_INVENTORY_SLOTS,
                       temp_hp:           0,
                       current_hp:        starting_hp,
                       max_hp:            starting_hp,
-                      current_wounds:    max_wounds,
+                      current_wounds:    0,
                       max_wounds:        max_wounds
     end
 end

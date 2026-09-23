@@ -76,7 +76,7 @@ export default class extends Controller {
     const intelligence = stats.intelligence || 0
     const initiative = dexterity + (ancestry?.initiative_modifier || 0)
     const armor = dexterity + (ancestry?.armor_modifier || 0)
-    const speed = 30 + (ancestry?.speed_modifier || 0)
+    const speed = 6 + (ancestry?.speed_modifier || 0)
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0)
     const languages = [ "Common" ]
 

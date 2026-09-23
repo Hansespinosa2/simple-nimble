@@ -71,7 +71,8 @@ class LevelUpPlanner
       "max_hit_dice" => character.trait_set&.max_hit_dice.to_i,
       "current_hit_dice" => character.trait_set&.current_hit_dice.to_i,
       "initiative" => character.trait_set&.initiative.to_i,
-      "armor" => character.trait_set&.armor.to_i
+      "armor" => character.trait_set&.armor.to_i,
+      "inventory_slots" => character.trait_set&.inventory_slots.to_i
     }
 
     if level_up.stat_name.present? && stat_options.include?(level_up.stat_name)
@@ -91,6 +92,7 @@ class LevelUpPlanner
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + 1, traits["max_hit_dice"] ].min
       traits["initiative"] = stats.fetch("dexterity") + (character.ancestry&.initiative_modifier || 0)
       traits["armor"] = stats.fetch("dexterity") + (character.ancestry&.armor_modifier || 0)
+      traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
     end
 
     {

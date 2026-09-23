@@ -28,7 +28,9 @@ class LevelUpService
     character.stat_set.update!(preview.fetch("stats"))
     character.skill_set.update!(preview.fetch("skills"))
 
-    trait_updates = preview.fetch("traits").slice("max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "armor")
+    trait_updates = preview.fetch("traits").slice(
+      "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "armor", "inventory_slots"
+    )
     character.trait_set.update!(trait_updates)
   end
   private_class_method :apply_preview!

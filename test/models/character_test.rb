@@ -31,11 +31,12 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, character.skill_set.stealth
     assert_equal 0, character.skill_set.perception
     assert_equal 0, character.trait_set.initiative
-    assert_equal 30, character.trait_set.speed
+    assert_equal 6, character.trait_set.speed
+    assert_equal 10, character.trait_set.inventory_slots
     assert_equal 1, character.trait_set.current_hit_dice
     assert_equal 1, character.trait_set.max_hit_dice
     assert_equal 0, character.trait_set.armor
-    assert_equal 6, character.trait_set.current_wounds
+    assert_equal 0, character.trait_set.current_wounds
     assert_equal 6, character.trait_set.max_wounds
   end
 
@@ -79,11 +80,12 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 3, character.skill_set.perception
 
     assert_equal 2, character.trait_set.initiative
-    assert_equal 29, character.trait_set.speed
+    assert_equal 5, character.trait_set.speed
+    assert_equal 10, character.trait_set.inventory_slots
     assert_equal 3, character.trait_set.current_hit_dice
     assert_equal 3, character.trait_set.max_hit_dice
     assert_equal 4, character.trait_set.armor
-    assert_equal 7, character.trait_set.current_wounds
+    assert_equal 0, character.trait_set.current_wounds
     assert_equal 7, character.trait_set.max_wounds
     assert_equal "1d10", character.trait_set.hit_die
     assert_equal 9, character.trait_set.current_hp
@@ -141,6 +143,6 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 2, character.trait_set.current_wounds
     assert_equal 1, character.trait_set.current_actions
     assert_equal 3, character.trait_set.temp_hp
-    assert_equal 32, character.trait_set.speed
+    assert_equal 8, character.trait_set.speed
   end
 end
