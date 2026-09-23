@@ -41,7 +41,7 @@ seed_character_class = lambda do |name:, key_stats:, hit_die:, starting_hp:, sav
   )
 end
 
-seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}, skill_modifiers: {}|
+seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}, skill_modifiers: {}, language_grants: []|
   ancestry = Ancestry.find_or_create_by!(name: name) do |a|
     a.size = size
     a.trait_summary = trait_summary
@@ -57,8 +57,9 @@ seed_ancestry = lambda do |name:, size:, trait_summary:, modifiers: {}, skill_mo
       max_hit_dice_modifier: 0,
       max_wounds_modifier: 0,
       armor_modifier: 0,
-      skill_modifiers: skill_modifiers
-    }.merge(modifiers).merge(skill_modifiers: skill_modifiers)
+      skill_modifiers: skill_modifiers,
+      language_grants: language_grants
+    }.merge(modifiers).merge(skill_modifiers: skill_modifiers, language_grants: language_grants)
   )
 end
 
@@ -188,13 +189,15 @@ end
     name: "Dwarf",
     size: "Medium",
     trait_summary: "Sturdy folk with +2 max Hit Dice, +1 max Wounds, and -1 Speed.",
-    modifiers: { max_hit_dice_modifier: 2, max_wounds_modifier: 1, speed_modifier: -1 }
+    modifiers: { max_hit_dice_modifier: 2, max_wounds_modifier: 1, speed_modifier: -1 },
+    language_grants: [ "Dwarvish" ]
   },
   {
     name: "Elf",
     size: "Medium",
     trait_summary: "Quick and graceful, acting with Initiative advantage and +1 Speed.",
-    modifiers: { speed_modifier: 1 }
+    modifiers: { speed_modifier: 1 },
+    language_grants: [ "Elvish" ]
   },
   {
     name: "Halfling",
@@ -206,7 +209,8 @@ end
     name: "Gnome",
     size: "Small",
     trait_summary: "Cheerful tinkerers who let an ally reroll one die before reset, but move 1 slower.",
-    modifiers: { speed_modifier: -1 }
+    modifiers: { speed_modifier: -1 },
+    language_grants: [ "Dwarvish" ]
   },
   {
     name: "Bunbun",
@@ -217,28 +221,33 @@ end
     name: "Dragonborn",
     size: "Medium",
     trait_summary: "+1 Armor and a once-per-rest or per-Wound burst of bonus damage split among targets.",
-    modifiers: { armor_modifier: 1 }
+    modifiers: { armor_modifier: 1 },
+    language_grants: [ "Draconic" ]
   },
   {
     name: "Fiendkin",
     size: "Medium",
-    trait_summary: "Infernal resilience turns one neutral save into an advantaged one."
+    trait_summary: "Infernal resilience turns one neutral save into an advantaged one.",
+    language_grants: [ "Infernal" ]
   },
   {
     name: "Goblin",
     size: "Small",
-    trait_summary: "Can skitter 2 spaces for free after being targeted by an attack or harmful effect once."
+    trait_summary: "Can skitter 2 spaces for free after being targeted by an attack or harmful effect once.",
+    language_grants: [ "Goblin" ]
   },
   {
     name: "Kobold",
     size: "Small",
-    trait_summary: "Can force one enemy reroll per encounter and shine with friendlies and dragon lore."
+    trait_summary: "Can force one enemy reroll per encounter and shine with friendlies and dragon lore.",
+    language_grants: [ "Draconic" ]
   },
   {
     name: "Orc",
     size: "Medium",
     trait_summary: "Once per Safe Rest, dropping to 0 HP can leave you at HP equal to level, with +1 Might.",
-    skill_modifiers: { might: 1 }
+    skill_modifiers: { might: 1 },
+    language_grants: [ "Goblin" ]
   },
   {
     name: "Birdfolk",
@@ -248,7 +257,8 @@ end
   {
     name: "Celestial",
     size: "Medium",
-    trait_summary: "Radiant poise turns one disadvantaged save into a neutral one."
+    trait_summary: "Radiant poise turns one disadvantaged save into a neutral one.",
+    language_grants: [ "Celestial" ]
   },
   {
     name: "Changeling",
@@ -263,13 +273,15 @@ end
   {
     name: "Dryad/Shroomling",
     size: "Small/Medium",
-    trait_summary: "Taking a Wound dazes adjacent enemies with spores or pollen."
+    trait_summary: "Taking a Wound dazes adjacent enemies with spores or pollen.",
+    language_grants: [ "Elvish" ]
   },
   {
     name: "Half-Giant",
     size: "Large",
     trait_summary: "Can force one critical hit reroll per encounter and gains +2 Might.",
-    skill_modifiers: { might: 2 }
+    skill_modifiers: { might: 2 },
+    language_grants: [ "Dwarvish" ]
   },
   {
     name: "Minotaur/Beastfolk",

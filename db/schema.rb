@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_190000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -27,6 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_180000) do
     t.integer "armor_modifier", default: 0, null: false
     t.datetime "created_at", null: false
     t.integer "initiative_modifier", default: 0, null: false
+    t.text "language_grants"
     t.integer "max_hit_dice_modifier", default: 0, null: false
     t.integer "max_wounds_modifier", default: 0, null: false
     t.string "name"

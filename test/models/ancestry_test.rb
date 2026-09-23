@@ -12,6 +12,7 @@ class AncestryTest < ActiveSupport::TestCase
     assert_equal 0, ancestry.max_wounds_modifier
     assert_equal 0, ancestry.armor_modifier
     assert_equal({}, ancestry.skill_modifiers.to_h)
+    assert_equal [], ancestry.language_names
   end
 
   test "requires a unique name and size" do

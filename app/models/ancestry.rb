@@ -1,5 +1,6 @@
 class Ancestry < ApplicationRecord
   serialize :skill_modifiers, coder: JSON
+  serialize :language_grants, coder: JSON
 
   # Structured rules-canon record (spec 02): the seed catalog enumerates the
   # published ancestries and stores the flat modifiers this sheet can derive.
@@ -17,5 +18,9 @@ class Ancestry < ApplicationRecord
 
   def skill_bonus_for(skill)
     skill_modifiers.to_h.fetch(skill.to_s, 0).to_i
+  end
+
+  def language_names
+    Array(language_grants).compact
   end
 end

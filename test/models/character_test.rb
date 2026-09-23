@@ -115,7 +115,7 @@ class CharacterTest < ActiveSupport::TestCase
       hit_die: "1d6",
       starting_hp: 10
     )
-    ancestry = Ancestry.create!(name: "Background Change Ancestry", size: "Medium")
+    ancestry = Ancestry.create!(name: "Background Change Ancestry", size: "Medium", language_grants: [ "Dwarvish" ])
     original_background = Background.create!(name: "Original Background", description: "The first story.")
     replacement_background = Background.create!(
       name: "Structured Background",
@@ -141,6 +141,7 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal character.stat_value("dexterity") - 1, character.trait_set.armor
     assert_equal 2, character.trait_set.max_hit_dice
     assert_equal character.stat_value("will") + 1, character.skill_value("naturecraft")
+    assert_includes character.languages, "Dwarvish"
     assert_includes character.languages, "Goblin"
   end
 

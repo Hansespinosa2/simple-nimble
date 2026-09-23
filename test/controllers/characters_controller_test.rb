@@ -35,6 +35,15 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[stat_array]']"
   end
 
+  test "should embed structured origin rules in the builder payload" do
+    get new_character_url
+
+    assert_response :success
+    assert_includes response.body, "skill_modifiers"
+    assert_includes response.body, "language_grants"
+    assert_includes response.body, "initiative_modifier"
+  end
+
   test "should create character" do
     assert_difference("Character.count") do
       post characters_url, params: { character: { legacy_background_text: "A new beginning", description: "A different hero.", languages: "Common", level: 1, name: "Created Hero", nimble_class: "Scout", race: "Elf" } }

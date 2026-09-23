@@ -27,8 +27,8 @@ export default class extends Controller {
     const array = this.rulesValue.stat_arrays?.[this.statArrayTarget.value]
 
     this.updateStats(characterClass, array)
-    this.updateSkills(characterClass, ancestry, array)
-    this.updateDerived(characterClass, ancestry, array)
+    this.updateSkills(characterClass, ancestry, background, array)
+    this.updateDerived(characterClass, ancestry, background, array)
     this.updateHints(characterClass, ancestry, background)
     this.updateSpellSchoolChoice(characterClass)
     this.updateSkillBudget()
@@ -62,9 +62,9 @@ export default class extends Controller {
     this.statValues = statValues
   }
 
-  updateSkills(characterClass, ancestry, array) {
+  updateSkills(characterClass, ancestry, background, array) {
     const statValues = this.statValues || {}
-    const bonus = ancestry?.all_skills_bonus || 0
+    const allSkillsBonus = (ancestry?.all_skills_bonus || 0) + (background?.all_skills_bonus || 0)
     const mapping = {
       arcana: "intelligence", examination: "intelligence", finesse: "dexterity", influence: "will",
       insight: "will", lore: "intelligence", might: "strength", naturecraft: "will",
@@ -73,26 +73,30 @@ export default class extends Controller {
 
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       const skill = input.dataset.skill
-      const base = (statValues[mapping[skill]] || 0) + bonus
+      const base = (statValues[mapping[skill]] || 0) + allSkillsBonus + (ancestry?.skill_modifiers?.[skill] || 0) + (background?.skill_modifiers?.[skill] || 0)
       const baseNode = this.element.querySelector(`[data-skill-base='${skill}']`)
       if (baseNode) baseNode.textContent = `base ${this.signed(base)}`
       if (!input.dataset.touched) input.value = base
     })
   }
 
-  updateDerived(characterClass, ancestry, array) {
+  updateDerived(characterClass, ancestry, background, array) {
     const stats = this.statValues || {}
     const dexterity = stats.dexterity || 0
     const intelligence = stats.intelligence || 0
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
-    const initiative = dexterity + (ancestry?.initiative_modifier || 0)
-    const armor = dexterity + (ancestry?.armor_modifier || 0)
-    const speed = 6 + (ancestry?.speed_modifier || 0)
-    const wounds = 6 + (ancestry?.max_wounds_modifier || 0)
+    const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
+    const armor = dexterity + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
+    const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
+    const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
     const saveDc = array && keyStats.length ? 10 + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
     const mana = array ? this.manaMax(characterClass?.resource, stats, level) : "—"
     const languages = [ "Common" ]
+
+    if (intelligence >= 0) {
+      languages.push(...(ancestry?.language_grants || []), ...(background?.language_grants || []))
+    }
 
     for (let index = 0; index < Math.max(intelligence, 0); index += 1) languages.push("+ language")
 

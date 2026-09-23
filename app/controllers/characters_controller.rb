@@ -220,15 +220,24 @@ class CharactersController < ApplicationController
             speed_modifier: ancestry.speed_modifier,
             initiative_modifier: ancestry.initiative_modifier,
             all_skills_bonus: ancestry.all_skills_bonus,
+            skill_modifiers: ancestry.skill_modifiers,
             armor_modifier: ancestry.armor_modifier,
-            max_wounds_modifier: ancestry.max_wounds_modifier
+            max_hit_dice_modifier: ancestry.max_hit_dice_modifier,
+            max_wounds_modifier: ancestry.max_wounds_modifier,
+            language_grants: ancestry.language_names
           }
         end,
         backgrounds: @backgrounds.index_by(&:id).transform_values do |background|
           {
             description: background.description,
             prerequisite_stat: background.prerequisite_stat,
-            prerequisite_max: background.prerequisite_max
+            prerequisite_max: background.prerequisite_max,
+            initiative_modifier: background.initiative_modifier,
+            armor_modifier: background.armor_modifier,
+            max_hit_dice_modifier: background.max_hit_dice_modifier,
+            max_wounds_modifier: background.max_wounds_modifier,
+            skill_modifiers: background.skill_modifiers,
+            language_grants: background.language_names
           }
         end
       }

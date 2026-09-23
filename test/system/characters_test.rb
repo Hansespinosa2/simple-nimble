@@ -65,6 +65,18 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal @background, created.background
   end
 
+  test "the guided builder previews structured skill and language grants" do
+    visit new_character_url
+
+    select "Mage", from: "Class"
+    select "Orc", from: "Ancestry"
+    select "Raised by Goblins", from: "Background"
+    select "Balanced", from: "Stat array"
+
+    assert_selector "[data-skill-base='might']", text: "base +2"
+    assert_selector "[data-character-builder-target='languagesPreview']", text: "Common, Goblin"
+  end
+
   test "the sheet tracks live game state and records the update" do
     visit character_url(@character)
 

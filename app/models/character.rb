@@ -471,12 +471,7 @@ class Character < ApplicationRecord
 
     def derived_languages
       languages = [ "Common" ]
-      languages << "Dwarvish" if %w[Dwarf Gnome Half-Giant].include?(ancestry&.name) && stat_value("intelligence") >= 0
-      languages << "Elvish" if %w[Elf Dryad/Shroomling].include?(ancestry&.name) && stat_value("intelligence") >= 0
-      languages << "Goblin" if %w[Goblin Orc].include?(ancestry&.name) && stat_value("intelligence") >= 0
-      languages << "Draconic" if %w[Dragonborn Kobold].include?(ancestry&.name) && stat_value("intelligence") >= 0
-      languages << "Celestial" if ancestry&.name == "Celestial" && stat_value("intelligence") >= 0
-      languages << "Infernal" if ancestry&.name == "Fiendkin" && stat_value("intelligence") >= 0
+      languages.concat(ancestry.language_names) if ancestry.present? && stat_value("intelligence") >= 0
       languages.concat(background.language_names) if background.present? && stat_value("intelligence") >= 0
       (stat_value("intelligence").positive? ? stat_value("intelligence") : 0).times do |index|
         languages << [ "Dwarvish", "Elvish", "Goblin", "Infernal", "Thieves' Cant", "Celestial", "Draconic", "Primordial", "Deep Speak" ][index] || "Additional language"
