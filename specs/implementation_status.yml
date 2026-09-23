@@ -1,3 +1,11 @@
 ---
 version: 1
-criteria: {}
+criteria:
+  S-09:AC-1:
+    status: in_progress
+    updated_at: '2026-09-23T07:51:54Z'
+    notes: Strengthening golden and negative scenarios
+  S-09:AC-3:
+    status: in_progress
+    updated_at: '2026-09-23T07:51:55Z'
+    notes: Making core tests prove persisted behavior
