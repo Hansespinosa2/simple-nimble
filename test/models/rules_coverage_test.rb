@@ -43,7 +43,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
     canonical_spells = Spell.where.not(name: [ "MyString", "Fixture Flame", "Fixture Frost" ]).order(:tier, :name)
 
     assert_equal 24, canonical_ancestries.count
-    assert_equal 14, canonical_spells.count
+    assert_equal 58, canonical_spells.count
 
     canonical_ancestries.each do |ancestry|
       character = Character.create!(

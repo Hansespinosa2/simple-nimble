@@ -43,6 +43,15 @@ class SpellLegalityTest < ActiveSupport::TestCase
     assert_includes @mage.creation_issues.map { |item| item[:message] }, "Razor Wind is not available to this class at level 1."
   end
 
+  test "class-restricted spells are not silently available to another caster" do
+    mockery = Spell.find_by!(name: "Vicious Mockery")
+
+    assert_not mockery.available_to?(@mage)
+    @mage.spells << mockery
+
+    assert_includes @mage.creation_issues.map { |item| item[:message] }, "Vicious Mockery is not available to this class at level 1."
+  end
+
   test "source metadata is present on seeded spells" do
     Spell.where.not(name: [ "Fixture Flame", "Fixture Frost", "MyString" ]).find_each do |spell|
       assert_equal "Core Rules 2.0.1, Spells", spell.source_ref

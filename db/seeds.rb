@@ -680,3 +680,67 @@ seed_spell.call(
   high_level: "Increment the die size 1 step every 5 levels (d6 » d8 » d10 » d12).",
   upcast: nil
 )
+
+### The remaining Core Rules main-school spells. Utility spells are deliberately
+### separate: they are granted by class feature choices, not automatically by
+### knowing a school.
+seed_reference_spell = lambda do |attributes|
+  seed_spell.call(
+    {
+      target: 1,
+      range: nil,
+      action_cost: 1,
+      damage: nil,
+      casting_time: 0,
+      high_level: nil,
+      upcast: nil
+    }.merge(attributes)
+  )
+end
+
+[
+  { school: "Ice", name: "Snowblind", tier: 0, range: 1, damage: "1d6", condition_applied: "Blinded", description: "Reach 1. On hit, the target is Blinded until the end of its next turn." },
+  { school: "Ice", name: "Frost Shield", tier: 1, target: 0, action_cost: 1, description: "Reaction: when attacked, gain 2×KEY temporary HP and Defend for free until the start of your next turn." },
+  { school: "Ice", name: "Shatter", tier: 2, range: 12, action_cost: 2, damage: "3d6", description: "A Hampered target can turn any maximum die into a crit; on crit, add 20 damage." },
+  { school: "Ice", name: "Cryosleep", tier: 3, target: 0, range: 12, action_cost: 2, condition_applied: "Dazed / Incapacitated", description: "Creatures in a 2×2 area are Dazed; failed STR saves put them to sleep." },
+  { school: "Ice", name: "Rimeblades", tier: 4, target: 0, range: 12, action_cost: 3, damage: "2d6 per space", description: "Create five contiguous difficult-terrain spaces; creatures touching them take damage." },
+  { school: "Ice", name: "Arctic Blast", tier: 5, target: 0, range: 4, action_cost: 2, damage: "4d6+10", condition_applied: "Restrained", description: "Cone 4. The area becomes difficult terrain and failed STR saves freeze survivors in place." },
+  { school: "Ice", name: "Glacier Strike", tier: 8, target: 0, range: 12, action_cost: 3, damage: "d66", description: "Strike a 3×3 area; adjacent creatures take half damage and the area becomes difficult terrain." },
+  { school: "Ice", name: "Arctic Annihilation", tier: 9, target: 0, range: 12, action_cost: 3, damage: "d66", condition_applied: "Incapacitated", description: "Encase willing creatures in ice or damage other creatures in reach; failed STR saves incapacitate survivors." },
+  { school: "Lightning", name: "Overload", tier: 0, target: 0, range: 2, action_cost: 1, damage: "2d8", condition_applied: "Charged", description: "Only cast while Charged. End Charged and damage others within Reach 2." },
+  { school: "Lightning", name: "Arc Lightning", tier: 1, range: 12, action_cost: 2, damage: "3d8", description: "The bolt also strikes the next closest creature; on a miss, it strikes you instead." },
+  { school: "Lightning", name: "Alacrity", tier: 2, target: 0, range: 4, action_cost: 1, condition_applied: "Charged", description: "Reaction: Defend for free when attacked, then teleport within range and become Charged." },
+  { school: "Lightning", name: "Stormlash", tier: 3, target: 0, range: 12, action_cost: 2, damage: "3d8+4", condition_applied: "Dazed / Incapacitated", description: "Line 12. Ignore metal armor; failed STR saves Daze or Incapacitate creatures." },
+  { school: "Lightning", name: "Electrickery", tier: 4, target: 0, range: 8, action_cost: 3, condition_applied: "Charged", description: "Reaction: redirect an attack by swapping an ally with another creature that fails a WIL save." },
+  { school: "Lightning", name: "Electrocharge", tier: 5, range: 1, action_cost: 2, condition_applied: "Charged", description: "Concentration: a touched creature gains Charged, +1 max action, +5 Armor, double Speed, and DEX-save advantage." },
+  { school: "Lightning", name: "Ride the Lightning", tier: 6, target: 0, range: 12, action_cost: 3, damage: "d88", condition_applied: "Prone / Deafened", description: "Teleport and swap with a willing creature; adjacent creatures take damage and failed STR saves push and knock them Prone." },
+  { school: "Lightning", name: "Seething Storm", tier: 9, target: 0, range: 4, action_cost: 3, damage: "d88", description: "Concentration: become a flying storm with free movement and disadvantage against attacks." },
+  { school: "Wind", name: "Breath of Life", tier: 0, range: 6, action_cost: 1, damage: "1 HP healing", description: "Restore 1 HP to a Dying creature." },
+  { school: "Wind", name: "Blustery Gale", tier: 1, range: 12, action_cost: 2, damage: "3d4", description: "Push a target 2 spaces on hit; movement distance varies by size." },
+  { school: "Wind", name: "Barrier of Wind", tier: 2, target: 0, action_cost: 1, description: "Reaction: when attacked at range, Defend for free and give ranged attacks disadvantage this round." },
+  { school: "Wind", name: "Fly", tier: 3, range: 12, action_cost: 1, description: "Concentration: touch a creature and grant it flying Speed 12." },
+  { school: "Wind", name: "Eye of the Storm", tier: 4, target: 0, range: 3, action_cost: 2, damage: "4d4+10", description: "Reach 3. Damage enemies and reposition survivors within 1 space on a failed STR save." },
+  { school: "Wind", name: "Updraft", tier: 5, target: 0, range: 12, action_cost: 3, damage: "1d6 per failed save", condition_applied: "Prone", description: "Enemies in a 5×5 area repeat DEX saves, taking falling damage and landing Prone on failures." },
+  { school: "Wind", name: "Thousand Cuts", tier: 6, range: 12, action_cost: 3, damage: "d44 with advantage", description: "Deal slashing damage and also damage enemies within Reach 1 of the target." },
+  { school: "Wind", name: "Boisterous Winds", tier: 7, target: 0, range: 12, action_cost: 2, description: "Concentration: you and allies gain flying Speed 12, free movement, and ranged attacks have disadvantage against you." },
+  { school: "Wind", name: "Vicious Mockery", tier: 0, range: 12, action_cost: 1, damage: "1d4+INT psychic", condition_applied: "Taunted", class_restriction: [ "Songweaver" ], description: "Songweaver only. On hit, the target is Taunted during its next turn." },
+  { school: "Radiant", name: "True Strike", tier: 0, range: 2, action_cost: 1, description: "Give a creature advantage on its next two attacks until the end of its next turn." },
+  { school: "Radiant", name: "Heal", tier: 1, range: 1, action_cost: 1, damage: "1d6+KEY healing", description: "Heal a creature; additional mana can add targets, reach, healing dice, or one negative condition." },
+  { school: "Radiant", name: "Warding Bond", tier: 2, range: 1, action_cost: 1, description: "For 1 minute, a willing ward takes half damage and you take the other half." },
+  { school: "Radiant", name: "Shield of Justice", tier: 3, target: 0, action_cost: 1, damage: "Radiant reflection", description: "Reaction: Defend for free when attacked and reflect Radiant damage equal to the amount blocked." },
+  { school: "Radiant", name: "Condemn", tier: 4, range: 4, action_cost: 2, damage: "30", description: "Target an enemy that crit you or an ally since your last turn; the next attack against it has advantage." },
+  { school: "Radiant", name: "Vengeance", tier: 5, range: 1, action_cost: 2, damage: "1d100", description: "Strike a creature that attacked a Dying ally or reduced one to 0 HP since your last turn." },
+  { school: "Radiant", name: "Sacrifice", tier: 6, range: 4, action_cost: 1, description: "Reduce yourself to 0 HP and distribute healing equal to your max HP among creatures in reach; may revive one creature." },
+  { school: "Radiant", name: "Redeem", tier: 9, target: 0, action_cost: 3, description: "After 24 hours and a consumed diamond, revive any number of eligible creatures within 1 mile." },
+  { school: "Radiant", name: "Lifebinding Spirit", tier: 1, range: 4, action_cost: 1, class_restriction: [ "Shepherd" ], description: "Shepherd only. Summon an immune spirit that attacks for 1d6+WIL Radiant or heals for the same amount." },
+  { school: "Necrotic", name: "Withering Touch", tier: 0, range: 1, action_cost: 1, damage: "1d12", condition_applied: "Undead", description: "On hit, the target is considered undead for 1 round." },
+  { school: "Necrotic", name: "Shadow Trap", tier: 1, range: 1, action_cost: 2, damage: "3d12", condition_applied: "Restrained", description: "Concentration: the next creature to move adjacent suffers damage and, if small, is Restrained." },
+  { school: "Necrotic", name: "Dread Visage", tier: 2, target: 0, action_cost: 1, damage: "1d12", condition_applied: "Frightened", description: "Reaction: Defend for free when attacked; melee attackers become Frightened and take damage." },
+  { school: "Necrotic", name: "Vampiric Greed", tier: 3, range: 8, action_cost: 2, damage: "4d12", description: "Gain a Wound and heal HP equal to damage dealt; survivors may cause another Wound." },
+  { school: "Necrotic", name: "Greater Shadow", tier: 4, target: 0, action_cost: 2, damage: "5d12", description: "Summon one Greater Shadow; when it dies it explodes into five shadow minions." },
+  { school: "Necrotic", name: "Gangrenous Burst", tier: 5, target: 0, range: 8, action_cost: 2, damage: "3d20", description: "Other damaged creatures in reach make STR saves or take damage, with disadvantage while Bloodied." },
+  { school: "Necrotic", name: "Unspeakable Word", tier: 6, range: 8, action_cost: 2, damage: "d66 with advantage", description: "On a failed INT save deal damage that ignores armor and does not miss or crit; on success both take half." },
+  { school: "Necrotic", name: "Creeping Death", tier: 7, range: 8, action_cost: 3, damage: "4d20", description: "If damage kills a creature, repeat the same damage on another undamaged creature in reach." },
+  { school: "Necrotic", name: "Shadow Blast", tier: 0, range: 8, action_cost: 1, damage: "1d12+KEY", class_restriction: [ "Shadowmancer" ], description: "Shadowmancer only. Once per round, strike a target with a Necrotic blast." },
+  { school: "Necrotic", name: "Summon Shadow", tier: 0, range: 1, action_cost: 1, class_restriction: [ "Shadowmancer" ], description: "Shadowmancer only. Summon a shadow minion; command all minions to move and attack once per turn." }
+].each { |attributes| seed_reference_spell.call(attributes) }
