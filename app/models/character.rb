@@ -261,9 +261,7 @@ class Character < ApplicationRecord
         assign_attributes_to_stat_set(projected_stat_values)
       end
 
-      if stat_set.present?
-        assign_attributes_to_skill_set unless skill_set.present? && !canonical_choices_changed?
-      end
+      assign_attributes_to_skill_set if stat_set.present?
 
       assign_attributes_to_trait_set if trait_set.blank? || canonical_choices_changed?
 
@@ -290,6 +288,19 @@ class Character < ApplicationRecord
 
     def assign_attributes_to_trait_set
       target = trait_set || build_trait_set
+      preserved_tracker_state = if persisted? && target.persisted?
+        {
+          current_hp: target.current_hp,
+          previous_max_hp: target.max_hp,
+          current_wounds: target.current_wounds,
+          previous_max_wounds: target.max_wounds,
+          current_hit_dice: target.current_hit_dice,
+          previous_max_hit_dice: target.max_hit_dice,
+          current_actions: target.current_actions,
+          previous_max_actions: target.max_actions,
+          temp_hp: target.temp_hp
+        }
+      end
       level_value = level.to_i.positive? ? level.to_i : 1
       dexterity = stat_set&.dexterity.to_i
       starting_hp = character_class&.starting_hp || 10
@@ -310,6 +321,29 @@ class Character < ApplicationRecord
         current_wounds: max_wounds,
         max_wounds: max_wounds
       )
+
+      if preserved_tracker_state
+        target.current_hp = preserved_or_clamped_value(
+          preserved_tracker_state[:current_hp], preserved_tracker_state[:previous_max_hp], target.max_hp
+        )
+        target.current_wounds = preserved_or_clamped_value(
+          preserved_tracker_state[:current_wounds], preserved_tracker_state[:previous_max_wounds], target.max_wounds
+        )
+        target.current_hit_dice = preserved_or_clamped_value(
+          preserved_tracker_state[:current_hit_dice], preserved_tracker_state[:previous_max_hit_dice], target.max_hit_dice
+        )
+        target.current_actions = preserved_or_clamped_value(
+          preserved_tracker_state[:current_actions], preserved_tracker_state[:previous_max_actions], target.max_actions
+        )
+        target.temp_hp = preserved_tracker_state[:temp_hp]
+      end
+    end
+
+    def preserved_or_clamped_value(current, previous_max, new_max)
+      return nil if current.nil?
+      return new_max if previous_max.present? && current >= previous_max
+
+      [ current, new_max ].compact.min
     end
 
     def derived_languages

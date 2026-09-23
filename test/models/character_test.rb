@@ -89,4 +89,58 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 9, character.trait_set.current_hp
     assert_equal 9, character.trait_set.max_hp
   end
+
+  # S-05:AC-2 S-06:AC-6
+  test "canonical edits recalculate affected values without wiping tracker state" do
+    original_class = CharacterClass.create!(
+      name: "Original Class",
+      key_stat_one: "strength",
+      key_stat_two: "dexterity",
+      hit_die: "1d10",
+      starting_hp: 12,
+      save_bonus_stat: "strength",
+      save_penalty_stat: "intelligence"
+    )
+    replacement_class = CharacterClass.create!(
+      name: "Replacement Class",
+      key_stat_one: "intelligence",
+      key_stat_two: "will",
+      hit_die: "1d6",
+      starting_hp: 20,
+      save_bonus_stat: "intelligence",
+      save_penalty_stat: "strength"
+    )
+    original_ancestry = Ancestry.create!(name: "Original Ancestry", size: "Medium")
+    replacement_ancestry = Ancestry.create!(
+      name: "Replacement Ancestry",
+      size: "Small",
+      all_skills_bonus: 2,
+      speed_modifier: 2,
+      max_wounds_modifier: 1
+    )
+    character = Character.create!(
+      name: "Editable Hero",
+      level: 1,
+      character_class: original_class,
+      ancestry: original_ancestry,
+      stat_array: "balanced"
+    )
+    character.skill_set.update!(might: 6)
+    character.trait_set.update!(current_hp: 5, current_wounds: 2, current_actions: 1, temp_hp: 3)
+
+    character.update!(character_class: replacement_class, ancestry: replacement_ancestry, stat_array: "balanced")
+    character.reload
+
+    assert_equal 2, character.stat_set.intelligence
+    assert_equal 1, character.stat_set.will
+    assert_equal 4, character.skill_set.arcana
+    assert_equal 6, character.skill_set.might
+    assert_equal 20, character.trait_set.max_hp
+    assert_equal 5, character.trait_set.current_hp
+    assert_equal 7, character.trait_set.max_wounds
+    assert_equal 2, character.trait_set.current_wounds
+    assert_equal 1, character.trait_set.current_actions
+    assert_equal 3, character.trait_set.temp_hp
+    assert_equal 32, character.trait_set.speed
+  end
 end

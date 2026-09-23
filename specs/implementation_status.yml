@@ -53,3 +53,7 @@ criteria:
     status: in_progress
     updated_at: '2026-09-23T08:05:19Z'
     notes: Verifying seeded progression corpus
+  S-05:AC-2:
+    status: in_progress
+    updated_at: '2026-09-23T08:08:30Z'
+    notes: Verifying derived recalculation during edits
