@@ -15,4 +15,11 @@ class SpellTest < ActiveSupport::TestCase
     assert Spell.new(name: "Utility", school: "Wind", tier: -1).valid?
     assert Spell.new(name: "Cantrip", school: "Fire", tier: 0).valid?
   end
+
+  test "does not allow duplicate canon names" do
+    duplicate = Spell.new(name: spells(:one).name, school: "Fire", tier: 1)
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:name], "has already been taken"
+  end
 end

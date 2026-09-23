@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_090004) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_110000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -112,6 +112,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_090004) do
     t.datetime "created_at", null: false
     t.integer "spell_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["character_id", "spell_id"], name: "index_character_spells_on_character_and_spell", unique: true
     t.index ["character_id"], name: "index_character_spells_on_character_id"
     t.index ["spell_id"], name: "index_character_spells_on_spell_id"
   end
@@ -202,6 +203,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_090004) do
     t.integer "tier"
     t.text "upcast"
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_spells_on_name_unique", unique: true
   end
 
   create_table "stat_sets", force: :cascade do |t|
