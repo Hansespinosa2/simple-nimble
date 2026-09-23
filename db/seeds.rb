@@ -469,7 +469,13 @@ demo_character.save!
 demo_character.finalize_creation! if demo_character.draft? && demo_character.legal_for_creation?
 
 ### SPELLS ###
-Spell.create(
+seed_spell = lambda do |attributes|
+  spell = Spell.find_or_initialize_by(name: attributes.fetch(:name))
+  spell.assign_attributes(attributes)
+  spell.save!
+end
+
+seed_spell.call(
   school: "Fire",
   name: "Flame Dart",
   tier: 0,
@@ -483,7 +489,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Heart's Fire",
   tier: 0,
@@ -497,7 +503,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Ignite",
   tier: 1,
@@ -511,7 +517,7 @@ Spell.create(
   upcast: "+10 damage."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Enchant Weapon",
   tier: 2,
@@ -525,7 +531,7 @@ Spell.create(
   upcast: "+KEY damage."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Flame Barrier",
   tier: 3,
@@ -539,7 +545,7 @@ Spell.create(
   upcast: "+KEY damage."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Pyroclasm",
   tier: 4,
@@ -553,7 +559,7 @@ Spell.create(
   upcast: "+1 reach, +2 damage."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Fiery Embrace",
   tier: 5,
@@ -567,7 +573,7 @@ Spell.create(
   upcast: "+1 ally."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Living Inferno",
   tier: 7,
@@ -581,7 +587,7 @@ Spell.create(
   upcast: "Also upcasts Flame Barrier and Pyroclasm."
 )
 
-Spell.create(
+seed_spell.call(
   school: "Fire",
   name: "Dragonform",
   tier: 9,
@@ -596,7 +602,7 @@ Spell.create(
 )
 
 
-Spell.create(
+seed_spell.call(
   school: "Ice",
   name: "Ice Lance",
   tier: 0,
@@ -610,7 +616,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Lightning",
   name: "Zap",
   tier: 0,
@@ -624,7 +630,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Wind",
   name: "Razor Wind",
   tier: 0,
@@ -638,7 +644,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Radiant",
   name: "Rebuke",
   tier: 0,
@@ -652,7 +658,7 @@ Spell.create(
   upcast: nil
 )
 
-Spell.create(
+seed_spell.call(
   school: "Necrotic",
   name: "Entice",
   tier: 0,

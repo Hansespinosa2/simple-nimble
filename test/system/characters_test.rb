@@ -1,6 +1,7 @@
 require "application_system_test_case"
 
 class CharactersTest < ApplicationSystemTestCase
+  # S-05:AC-1 S-05:AC-2 S-05:AC-4 S-05:AC-5 S-09:AC-1 S-09:AC-3
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
     @character_class = CharacterClass.find_by!(name: "Berserker")

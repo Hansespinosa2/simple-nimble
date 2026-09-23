@@ -41,3 +41,15 @@ criteria:
     status: in_progress
     updated_at: '2026-09-23T08:01:53Z'
     notes: Testing share revocation
+  S-02:AC-1:
+    status: in_progress
+    updated_at: '2026-09-23T08:05:18Z'
+    notes: Testing idempotent structured canon loading
+  S-02:AC-6:
+    status: in_progress
+    updated_at: '2026-09-23T08:05:19Z'
+    notes: Testing complete required canon loading
+  S-06:AC-8:
+    status: in_progress
+    updated_at: '2026-09-23T08:05:19Z'
+    notes: Verifying seeded progression corpus
