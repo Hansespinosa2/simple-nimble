@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_140000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -134,6 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_130000) do
     t.string "nimble_class"
     t.string "race"
     t.integer "ruleset_version_id"
+    t.string "spell_school_choice"
     t.string "stat_array"
     t.string "status", default: "draft", null: false
     t.datetime "updated_at", null: false
@@ -192,14 +193,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_130000) do
   create_table "spells", force: :cascade do |t|
     t.integer "action_cost"
     t.integer "casting_time"
+    t.text "class_restriction"
+    t.string "condition_applied"
     t.datetime "created_at", null: false
     t.string "damage"
     t.text "description"
     t.text "high_level"
+    t.integer "mana_cost"
     t.string "name"
     t.integer "range"
+    t.string "range_or_reach"
     t.string "school"
+    t.text "source_quote"
+    t.string "source_ref"
     t.integer "target"
+    t.string "target_type"
     t.integer "tier"
     t.text "upcast"
     t.datetime "updated_at", null: false

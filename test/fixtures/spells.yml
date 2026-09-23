@@ -12,6 +12,8 @@ one:
   casting_time: 1
   high_level: MyText
   upcast: MyText
+  source_ref: Core Rules 2.0.1, Spells
+  source_quote: Fixture spell citation
 
 two:
   school: Ice
@@ -25,3 +27,5 @@ two:
   casting_time: 1
   high_level: MyText
   upcast: MyText
+  source_ref: Core Rules 2.0.1, Spells
+  source_quote: Fixture spell citation

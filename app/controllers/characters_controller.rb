@@ -154,6 +154,7 @@ class CharactersController < ApplicationController
         :legacy_background_text,
         :description,
         :languages,
+        :spell_school_choice,
         :conditions,
         :inventory,
         :game_notes,

@@ -472,6 +472,13 @@ demo_character.finalize_creation! if demo_character.draft? && demo_character.leg
 
 ### SPELLS ###
 seed_spell = lambda do |attributes|
+  attributes = attributes.merge(
+    mana_cost: [ attributes.fetch(:tier).to_i, 0 ].max,
+    target_type: attributes[:target].to_i.zero? ? "Self / Area" : "Single Target",
+    range_or_reach: attributes[:range].to_s,
+    source_ref: "Core Rules 2.0.1, Spells",
+    source_quote: attributes[:description]
+  )
   spell = Spell.find_or_initialize_by(name: attributes.fetch(:name))
   spell.assign_attributes(attributes)
   spell.save!

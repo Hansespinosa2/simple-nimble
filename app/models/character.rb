@@ -106,6 +106,20 @@ class Character < ApplicationRecord
     creation_issues.empty?
   end
 
+  def known_spell_schools
+    schools = character_class&.spell_schools || []
+    schools = schools.reject { |school| school == "choice" }
+    schools << spell_school_choice if character_class&.spell_schools&.include?("choice") && spell_school_choice.present?
+    schools.uniq
+  end
+
+  def available_spells
+    spells = Spell.order(:tier, :name)
+    return Spell.none if character_class.blank?
+
+    spells.select { |spell| spell.available_to?(self) }
+  end
+
   def creation_issues
     issues = []
     issues << rule_issue("Choose a class before finalizing.", "Chapter 2, Class Rules", "Every hero has one class.") if character_class.blank?
@@ -113,6 +127,34 @@ class Character < ApplicationRecord
     issues << rule_issue("Choose a background before finalizing.", "Chapter 2, Backgrounds", "Every hero has one background.") if background.blank?
     issues << rule_issue("Choose a stat array before finalizing.", "Chapter 3, Character Creation", "Choose Standard, Balanced, or Min-Max and assign it to your class stats.") if stat_array.blank?
     issues << rule_issue("Start new characters at level 1.", "Chapter 3, Character Creation", "A starting character begins at level 1.") if level.present? && level != 1 && !playable? && !level_up_in_progress?
+
+    if character_class&.spell_schools&.include?("choice") && spell_school_choice.blank?
+      issues << rule_issue(
+        "Choose one additional spell school for #{character_class.name}.",
+        "Heroes 2.0.1, p. 55",
+        "You know Wind cantrips and one other school of your choice."
+      )
+    end
+
+    valid_additional_schools = %w[Fire Ice Lightning Wind Radiant Necrotic]
+    if character_class&.spell_schools&.include?("choice") && spell_school_choice.present? && !valid_additional_schools.include?(spell_school_choice)
+      issues << rule_issue(
+        "#{spell_school_choice} is not a legal additional spell school for #{character_class.name}.",
+        "Heroes 2.0.1, p. 55",
+        "Songweaver chooses one additional school alongside Wind."
+      )
+    end
+
+    self.spells.each do |spell|
+      next if spell.available_to?(self)
+
+      citation = spell.citation
+      issues << rule_issue(
+        "#{spell.name} is not available to this class at level #{level}.",
+        citation.fetch(:source_ref),
+        citation.fetch(:quote) || "Spell access is determined by class school and unlocked tier."
+      )
+    end if character_class.present?
 
     if background.present? && !background.satisfied_by?(projected_or_current_stat_set)
       issues << rule_issue(
@@ -209,7 +251,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "legacy_background_text", "description", "languages",
+        "name", "race", "nimble_class", "level", "legacy_background_text", "description", "languages", "spell_school_choice",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {

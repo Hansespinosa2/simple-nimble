@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [
-    "characterClass", "ancestry", "background", "statArray", "classHint", "ancestryHint", "backgroundHint",
+    "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "classHint", "ancestryHint", "backgroundHint",
     "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "languagesPreview",
     "speedPreview", "woundsPreview", "previewNote", "skillBudget"
   ]
@@ -10,6 +10,7 @@ export default class extends Controller {
   static values = { rules: Object }
 
   connect() {
+    this.spellSchoolChoiceInitialDisabled = this.hasSpellSchoolChoiceTarget && this.spellSchoolChoiceTarget.disabled
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       input.addEventListener("input", () => {
         input.dataset.touched = "true"
@@ -29,7 +30,16 @@ export default class extends Controller {
     this.updateSkills(characterClass, ancestry, array)
     this.updateDerived(characterClass, ancestry, array)
     this.updateHints(characterClass, ancestry, background)
+    this.updateSpellSchoolChoice(characterClass)
     this.updateSkillBudget()
+  }
+
+  updateSpellSchoolChoice(characterClass) {
+    if (!this.hasSpellSchoolChoiceFieldTarget) return
+
+    const enabled = characterClass?.spell_schools?.includes("choice") || false
+    this.spellSchoolChoiceFieldTarget.hidden = !enabled
+    if (this.hasSpellSchoolChoiceTarget) this.spellSchoolChoiceTarget.disabled = this.spellSchoolChoiceInitialDisabled || !enabled
   }
 
   updateStats(characterClass, array) {

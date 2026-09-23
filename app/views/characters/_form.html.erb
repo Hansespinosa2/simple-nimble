@@ -90,6 +90,11 @@
             <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: read_only, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
             <span class="field-hint">Standard +2/+2/+0/−1 · Balanced +2/+1/+1/+0 · Min-Max +3/+1/−1/−1</span>
           </div>
+          <div class="field field-wide" data-character-builder-target="spellSchoolChoiceField">
+            <%= form.label :spell_school_choice, "Additional spell school" %>
+            <%= form.select :spell_school_choice, %w[Fire Ice Lightning Wind Radiant Necrotic].map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: read_only, data: { character_builder_target: "spellSchoolChoice" } %>
+            <span class="field-hint">Songweaver knows Wind plus one other school.</span>
+          </div>
         </div>
         <div class="rules-callout" data-character-builder-target="rulesCallout">
           <span class="callout-icon">✦</span>
@@ -181,13 +186,18 @@
             <% if character.spells.empty? %><span class="muted">No spells chosen.</span><% end %>
           </div>
         <% else %>
+          <% spells_for_picker = character.character_class.present? ? character.available_spells : Spell.order(:tier, :name) %>
           <div class="spell-picker">
-            <%= form.collection_check_boxes :spell_ids, Spell.order(:tier, :name), :id, :name do |check| %>
-              <label class="spell-option">
-                <%= check.check_box %>
-                <span><%= check.object.name %></span>
-                <small>Tier <%= check.object.tier %> · <%= check.object.school %></small>
-              </label>
+            <% if spells_for_picker.any? %>
+              <%= form.collection_check_boxes :spell_ids, spells_for_picker, :id, :name do |check| %>
+                <label class="spell-option">
+                  <%= check.check_box %>
+                  <span><%= check.object.name %></span>
+                  <small>Tier <%= check.object.tier %> · <%= check.object.school %></small>
+                </label>
+              <% end %>
+            <% else %>
+              <span class="muted">No spells are available to this class at this level.</span>
             <% end %>
           </div>
         <% end %>
