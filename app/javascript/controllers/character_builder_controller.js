@@ -86,7 +86,7 @@ export default class extends Controller {
     const intelligence = stats.intelligence || 0
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
     const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
-    const armor = dexterity + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
+    const armor = this.armorValue(characterClass?.armor_rules, stats) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
     const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
@@ -162,6 +162,15 @@ export default class extends Controller {
     const stat = { STR: "strength", DEX: "dexterity", INT: "intelligence", WIL: "will" }[match[1].toUpperCase()]
     const multiplier = Number(match[2] || 1)
     return (stats[stat] || 0) * multiplier + level
+  }
+
+  armorValue(rules, stats) {
+    const base = Number(rules?.base || 0)
+    const dexterity = stats.dexterity || 0
+    if (rules?.formula === "dexterity_plus_strength") return base + dexterity + (stats.strength || 0)
+
+    const cap = rules?.dexterity_cap
+    return base + (cap === undefined ? dexterity : Math.min(dexterity, Number(cap)))
   }
 
   signed(value) {

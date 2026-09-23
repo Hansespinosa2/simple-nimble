@@ -75,6 +75,7 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_selector "[data-skill-base='might']", text: "base +2"
     assert_selector "[data-character-builder-target='languagesPreview']", text: "Common, Goblin"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "2"
   end
 
   test "the sheet tracks live game state and records the update" do

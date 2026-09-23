@@ -135,6 +135,23 @@ class Character < ApplicationRecord
     10 + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
   end
 
+  def armor_for(stat_values = nil)
+    return nil if character_class.blank?
+
+    values = stat_values || current_stat_values
+    rules = character_class.armor_rules
+    dexterity = value_for_stat(values, "dexterity")
+    base = rules.fetch("base", 0).to_i
+
+    case rules.fetch("formula", "dexterity")
+    when "dexterity_plus_strength"
+      base + dexterity + value_for_stat(values, "strength")
+    else
+      cap = rules["dexterity_cap"]
+      base + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
+    end
+  end
+
   def mana_max_for(stat_values: nil, level: self.level)
     return nil if character_class.blank?
 
@@ -444,7 +461,7 @@ class Character < ApplicationRecord
         max_hit_dice: max_hit_dice,
         current_actions: 3,
         max_actions: 3,
-        armor: dexterity + derived_modifier_for(:armor_modifier),
+        armor: armor_for(stat_values).to_i + derived_modifier_for(:armor_modifier),
         save_dc: save_dc_for(stat_values),
         max_mana: resource_values.fetch(:max_mana),
         current_mana: resource_values.fetch(:max_mana),
@@ -578,13 +595,14 @@ class Character < ApplicationRecord
     def build_default_trait_set
       hit_die = character_class&.hit_die || "1d6"
       starting_hp = character_class&.starting_hp || 10
+      level_value = level.to_i.positive? ? level.to_i : 1
+      stat_values = current_stat_values
       initiative = derived_modifier_for(:initiative_modifier)
       speed = BASE_SPEED + derived_modifier_for(:speed_modifier)
-      max_hit_dice = 1 + derived_modifier_for(:max_hit_dice_modifier)
-      armor = derived_modifier_for(:armor_modifier)
+      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier)
+      armor = armor_for(stat_values).to_i + derived_modifier_for(:armor_modifier)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier)
-      stat_values = current_stat_values
-      resource_values = derived_resource_values_for(stat_values: stat_values, level: 1)
+      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
 
       build_trait_set initiative:        initiative,
                       speed:             speed,

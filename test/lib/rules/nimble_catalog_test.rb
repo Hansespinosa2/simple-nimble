@@ -60,6 +60,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "cloth" ], mage.armor_proficiencies
     assert_includes mage.weapon_proficiencies, "wands"
     assert_equal "INT * 3 + LVL", mage.resource_rules.fetch("max_formula")
+    assert_equal({ "formula" => "dexterity", "base" => 2 }, mage.armor_rules)
   end
 
   test "every published class exposes its level-three subclass choices" do

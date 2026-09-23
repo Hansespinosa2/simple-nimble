@@ -167,7 +167,7 @@ class LevelUpPlanner
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + 1, traits["max_hit_dice"] ].min
       traits["initiative"] = stats.fetch("dexterity") + character.derived_modifier_for(:initiative_modifier)
       traits["speed"] = Character::BASE_SPEED + character.derived_modifier_for(:speed_modifier)
-      traits["armor"] = stats.fetch("dexterity") + character.derived_modifier_for(:armor_modifier)
+      traits["armor"] = character.armor_for(stats).to_i + character.derived_modifier_for(:armor_modifier)
       traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier)
       traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")

@@ -211,6 +211,7 @@ class CharactersController < ApplicationController
             starting_gear: character_class.starting_gear,
             armor_proficiencies: character_class.armor_proficiencies,
             weapon_proficiencies: character_class.weapon_proficiencies,
+            armor_rules: character_class.armor_rules,
             resource: character_class.resource_rules
           }
         end,
