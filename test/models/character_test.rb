@@ -368,6 +368,26 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal [ "Death Blow" ], character.snapshot_payload.fetch("progression").fetch("feature_choices").first.fetch(:selected)
   end
 
+  test "feature-choice history stays attached to the level where it was selected" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Choice History Hero",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      feature_choices: {
+        "Thrill of the Hunt" => {
+          "2" => [ "Fleet Feet", "Wild Instinct" ],
+          "4" => [ "Decoy" ]
+        }
+      }
+    )
+
+    entries = character.feature_choice_entries_through
+    assert_equal [ 2, 4 ], entries.map { |entry| entry.fetch(:level) }
+    assert_equal [ "Fleet Feet", "Wild Instinct" ], entries.first.fetch(:selected)
+    assert_equal [ "Decoy" ], entries.last.fetch(:selected)
+  end
+
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

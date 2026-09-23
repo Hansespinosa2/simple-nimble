@@ -157,8 +157,18 @@ class Character < ApplicationRecord
   end
 
   def recorded_feature_choices
+    feature_choice_ledger.transform_values do |selections_by_level|
+      selections_by_level.values.flatten.compact_blank.map(&:to_s)
+    end
+  end
+
+  def feature_choice_ledger
     feature_choices.to_h.stringify_keys.transform_values do |selections|
-      Array(selections).compact_blank.map(&:to_s)
+      if selections.respond_to?(:to_h) && !selections.is_a?(Array)
+        selections.to_h.stringify_keys.transform_values { |level_selections| Array(level_selections).compact_blank.map(&:to_s) }
+      else
+        { "legacy" => Array(selections).compact_blank.map(&:to_s) }
+      end
     end
   end
 
@@ -166,13 +176,13 @@ class Character < ApplicationRecord
     return [] if character_class.blank?
 
     level = level.presence || 1
-    choices = recorded_feature_choices
+    ledger = feature_choice_ledger
 
     1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
       character_class.feature_choice_pools_for(feature_level).map do |pool|
         pool.merge(
           "level" => feature_level,
-          "selected" => choices.fetch(pool.fetch("name"), [])
+          "selected" => feature_choice_selections_for(pool.fetch("name"), feature_level, ledger)
         )
       end
     end
@@ -189,6 +199,17 @@ class Character < ApplicationRecord
         source_ref: pool.fetch("source_ref")
       }
     end
+  end
+
+  def feature_choice_selections_for(pool_name, level, ledger = feature_choice_ledger)
+    selections_by_level = ledger.fetch(pool_name.to_s, {})
+    return selections_by_level.fetch(level.to_i.to_s, []) if selections_by_level.key?(level.to_i.to_s)
+    return [] unless selections_by_level.key?("legacy")
+
+    first_level = 1.upto([ level.to_i, 20 ].min).find do |candidate_level|
+      character_class.feature_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
+    end
+    level.to_i == first_level ? selections_by_level.fetch("legacy") : []
   end
 
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)

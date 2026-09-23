@@ -424,6 +424,7 @@ class LevelUpTest < ActiveSupport::TestCase
     character.reload
 
     assert_equal [ "Fleet Feet", "Wild Instinct" ], character.recorded_feature_choices.fetch("Thrill of the Hunt")
+    assert_equal [ "Fleet Feet", "Wild Instinct" ], character.feature_choice_ledger.fetch("Thrill of the Hunt").fetch("2")
     assert_equal [ "Fleet Feet", "Wild Instinct" ], character.snapshot_payload.fetch("progression").fetch("feature_choices").first.fetch(:selected)
     assert_equal [ "Fleet Feet", "Wild Instinct" ], level_up.reload.preview.fetch("feature_choices").fetch("Thrill of the Hunt")
   end

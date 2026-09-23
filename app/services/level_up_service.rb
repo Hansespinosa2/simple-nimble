@@ -27,11 +27,13 @@ class LevelUpService
   def self.apply_preview!(character, preview)
     character.stat_set.update!(preview.fetch("stats"))
     character.skill_set.update!(preview.fetch("skills"))
-    feature_choices = character.recorded_feature_choices
+    feature_choice_ledger = character.feature_choice_ledger
+    level_key = preview.fetch("level").to_i.to_s
     preview.fetch("feature_choices").each do |pool_name, selections|
-      feature_choices[pool_name] = feature_choices.fetch(pool_name, []) + Array(selections)
+      feature_choice_ledger[pool_name] ||= {}
+      feature_choice_ledger[pool_name][level_key] = Array(selections)
     end
-    character.update!(feature_choices: feature_choices)
+    character.update!(feature_choices: feature_choice_ledger)
 
     trait_updates = preview.fetch("traits").slice(
       "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "speed", "hit_die", "armor", "inventory_slots",
