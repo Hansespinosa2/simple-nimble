@@ -114,20 +114,14 @@ class LevelUpPlanner
     end
 
     def spell_tier_for(level)
-      unlocks = {
-        "Mage" => [ 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9 ],
-        "Oathsworn" => [ 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 7 ],
-        "Shadowmancer" => [ 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7 ],
-        "Shepherd" => [ 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6, 6, 7, 7, 8, 8, 9, 9 ],
-        "Stormshifter" => [ 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9 ],
-        "Songweaver" => [ 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 0, 0, 0, 0 ]
-      }
-      unlocks.fetch(character.character_class&.name, Array.new(20, 0)).fetch(level.to_i - 1, 0)
+      character.character_class&.spell_tier_for(level).to_i
     end
 
     def stat_increase_quote
       if stat_increase_type == "key"
         "At levels 4, 8, 12, 16, and 20, increase one Key Stat by +1."
+      elsif stat_increase_type == "any_two"
+        "At level 20, increase any 2 different stats by +1."
       else
         "At levels 5, 9, 13, and 17, increase one Secondary Stat by +1."
       end

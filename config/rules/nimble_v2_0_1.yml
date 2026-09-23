@@ -1,0 +1,294 @@
+system: Nimble
+version: v2.0.1
+sources:
+  core_rules:
+    label: Core Rules 2.0.1
+    reference: Core Rules, pp. 6-22, 44-60
+    path: specs/nimble-docs/CoreRules-2.0.1.md
+  heroes:
+    label: Heroes 2.0.1
+    reference: Heroes, pp. 7-71
+    path: specs/nimble-docs/Heroes-2.0.1.md
+  gamemasters_guide:
+    label: Gamemaster's Guide 2.0
+    reference: Gamemaster's Guide, pp. 23, 43
+    path: specs/nimble-docs/GamemastersGuide-2.0.md
+
+derived_values:
+  base_speed: 6
+  default_max_wounds: 6
+  base_inventory_slots: 10
+  language_formula: "1 + max(INT, 0) + ancestry/background grants"
+  armor_unarmored_formula: "DEX"
+  initiative_formula: "DEX"
+  max_stat: 5
+  max_skill: 12
+  hp_level_up_formula: "roll Hit Die with advantage + STR"
+  hit_dice_formula: "current level"
+
+stats:
+  strength:
+    abbreviation: STR
+    skills: [might]
+  dexterity:
+    abbreviation: DEX
+    skills: [finesse, stealth]
+  intelligence:
+    abbreviation: INT
+    skills: [arcana, examination, lore]
+  will:
+    abbreviation: WIL
+    skills: [influence, insight, naturecraft, perception]
+
+skills:
+  arcana: intelligence
+  examination: intelligence
+  finesse: dexterity
+  influence: will
+  insight: will
+  lore: intelligence
+  might: strength
+  naturecraft: will
+  perception: will
+  stealth: dexterity
+
+stat_arrays:
+  standard: [2, 2, 0, -1]
+  balanced: [2, 1, 1, 0]
+  min_max: [3, 1, -1, -1]
+
+classes:
+  Berserker:
+    source_ref: Heroes 2.0.1, pp. 7-11
+    key_stats: [strength, dexterity]
+    secondary_stats: [intelligence, will]
+    hit_die: 1d12
+    starting_hp: 20
+    save_bonus: strength
+    save_penalty: intelligence
+    armor_proficiencies: []
+    weapon_proficiencies: [strength]
+    starting_gear: [Battleaxe, "Rations (meat)", "Rope (50 ft.)"]
+    spell_schools: []
+    spell_tier_unlocks: {}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Fury Dice
+      max_formula: KEY
+      die_by_level: {1: d4, 6: d6, 9: d8, 13: d10, 17: d12}
+
+  The Cheat:
+    source_ref: Heroes 2.0.1, pp. 13-17
+    key_stats: [dexterity, intelligence]
+    secondary_stats: [will, strength]
+    hit_die: 1d6
+    starting_hp: 10
+    save_bonus: dexterity
+    save_penalty: will
+    armor_proficiencies: [leather]
+    weapon_proficiencies: [dexterity]
+    starting_gear: ["2 Daggers", Sling, "Cheap Hides", Chalk]
+    spell_schools: []
+    spell_tier_unlocks: {}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Ability counters
+      formula: "per ability: 1/turn, 1/day, or 1/Safe Rest"
+
+  Commander:
+    source_ref: Heroes 2.0.1, pp. 19-23
+    key_stats: [strength, intelligence]
+    secondary_stats: [dexterity, will]
+    hit_die: 1d10
+    starting_hp: 17
+    save_bonus: strength
+    save_penalty: dexterity
+    armor_proficiencies: [mail, shields]
+    weapon_proficiencies: [martial]
+    starting_gear: ["Short Sword", Javelins, "Rusty Mail"]
+    spell_schools: []
+    spell_tier_unlocks: {}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Combat Dice
+      max_formula: "STR + upgrades"
+      die_by_level: {4: d6, 5: d8, 9: d10, 13: d12, 17: d20}
+
+  Hunter:
+    source_ref: Heroes 2.0.1, pp. 25-29
+    key_stats: [dexterity, will]
+    secondary_stats: [strength, intelligence]
+    hit_die: 1d8
+    starting_hp: 13
+    save_bonus: dexterity
+    save_penalty: intelligence
+    armor_proficiencies: [leather]
+    weapon_proficiencies: [dexterity]
+    starting_gear: [Shortbow, "Cheap Hides", Dagger, "Hunting Trap"]
+    spell_schools: []
+    spell_tier_unlocks: {}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Thrill of the Hunt charges
+      formula: "gained from quarry triggers; lost when combat ends"
+
+  Mage:
+    source_ref: Heroes 2.0.1, pp. 31-35
+    key_stats: [intelligence, will]
+    secondary_stats: [strength, dexterity]
+    hit_die: 1d6
+    starting_hp: 10
+    save_bonus: intelligence
+    save_penalty: strength
+    armor_proficiencies: [cloth]
+    weapon_proficiencies: [blades, staves, wands]
+    starting_gear: ["Adventurer's Garb", Staff, Soap]
+    spell_schools: [Fire, Ice, Lightning]
+    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Mana
+      max_formula: "INT * 3 + LVL"
+
+  Oathsworn:
+    source_ref: Heroes 2.0.1, pp. 37-41
+    key_stats: [strength, will]
+    secondary_stats: [dexterity, intelligence]
+    hit_die: 1d10
+    starting_hp: 17
+    save_bonus: strength
+    save_penalty: dexterity
+    armor_proficiencies: [all]
+    weapon_proficiencies: [strength]
+    starting_gear: [Mace, "Rusty Mail", "Wooden Buckler", Manacles]
+    spell_schools: [Radiant]
+    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 13: 6, 17: 7}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Mana and Judgment Dice
+      max_formula: "mana WIL + LVL; Lay on Hands 5 * LVL"
+      die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
+
+  Shadowmancer:
+    source_ref: Heroes 2.0.1, pp. 43-47
+    key_stats: [intelligence, dexterity]
+    secondary_stats: [strength, will]
+    hit_die: 1d8
+    starting_hp: 13
+    save_bonus: intelligence
+    save_penalty: will
+    armor_proficiencies: [cloth]
+    weapon_proficiencies: [blades, wands]
+    starting_gear: ["Adventurer's Garb", Sickle, Shovel]
+    spell_schools: [Necrotic]
+    spell_tier_unlocks: {1: 0, 2: 1, 5: 2, 7: 3, 10: 4, 13: 5, 16: 6, 19: 7}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Pilfered Power uses
+      max_formula: "DEX uses before patron retaliation; resets on Safe Rest"
+
+  Shepherd:
+    source_ref: Heroes 2.0.1, pp. 49-53
+    key_stats: [will, strength]
+    secondary_stats: [intelligence, dexterity]
+    hit_die: 1d10
+    starting_hp: 17
+    save_bonus: will
+    save_penalty: dexterity
+    armor_proficiencies: [mail, shields]
+    weapon_proficiencies: [strength, wands]
+    starting_gear: ["Rusty Mail", Mace, "Wooden Buckler", Bell]
+    spell_schools: [Radiant, Necrotic]
+    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Mana
+      max_formula: "WIL * 3 + LVL"
+
+  Songweaver:
+    source_ref: Heroes 2.0.1, pp. 55-59
+    key_stats: [will, intelligence]
+    secondary_stats: [strength, dexterity]
+    hit_die: 1d8
+    starting_hp: 13
+    save_bonus: will
+    save_penalty: strength
+    armor_proficiencies: [cloth, leather]
+    weapon_proficiencies: [dexterity, wands]
+    starting_gear: ["Adventurer's Garb", Instrument, Dagger, Mirror]
+    spell_schools: [Wind, choice]
+    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Mana and Inspiration
+      max_formula: "mana INT * 3 + LVL; Inspiration 2 * WIL per Safe Rest"
+
+  Stormshifter:
+    source_ref: Heroes 2.0.1, pp. 61-65
+    key_stats: [will, dexterity]
+    secondary_stats: [strength, intelligence]
+    hit_die: 1d8
+    starting_hp: 13
+    save_bonus: will
+    save_penalty: strength
+    armor_proficiencies: [cloth]
+    weapon_proficiencies: [dexterity]
+    starting_gear: ["Adventurer's Garb", Staff, "Animal Treats"]
+    spell_schools: [Wind, Lightning]
+    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Mana and Beastshift charges
+      max_formula: "mana WIL * 3 + LVL; Beastshift DEX charges per Safe Rest"
+
+  Zephyr:
+    source_ref: Heroes 2.0.1, pp. 67-71
+    key_stats: [dexterity, strength]
+    secondary_stats: [intelligence, will]
+    hit_die: 1d8
+    starting_hp: 13
+    save_bonus: dexterity
+    save_penalty: intelligence
+    armor_proficiencies: []
+    weapon_proficiencies: [melee]
+    starting_gear: [Staff, "Traveling Robes & Sandals"]
+    spell_schools: []
+    spell_tier_unlocks: {}
+    stat_increases:
+      key: [4, 8, 12, 16]
+      secondary: [5, 9, 13, 17]
+      any_two: [20]
+    resource:
+      name: Bursts of Speed
+      max_formula: DEX
+

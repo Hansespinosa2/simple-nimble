@@ -28,8 +28,9 @@ class Character < ApplicationRecord
   SKILL_NAMES = SKILL_TO_STAT.keys.freeze
 
   STAT_INCREASE_LEVELS = {
-    "key" => [ 4, 8, 12, 16, 20 ],
-    "secondary" => [ 5, 9, 13, 17 ]
+    "key" => [ 4, 8, 12, 16 ],
+    "secondary" => [ 5, 9, 13, 17 ],
+    "any_two" => [ 20 ]
   }.freeze
 
   STATUS_LABELS = {
@@ -191,18 +192,18 @@ class Character < ApplicationRecord
   end
 
   def stat_increase_type_for(level)
-    return "key" if STAT_INCREASE_LEVELS.fetch("key").include?(level.to_i)
-    return "secondary" if STAT_INCREASE_LEVELS.fetch("secondary").include?(level.to_i)
+    return character_class.stat_increase_type_for(level) if character_class.present?
+
+    STAT_INCREASE_LEVELS.each do |type, levels|
+      return type if levels.include?(level.to_i)
+    end
 
     nil
   end
 
   def stat_increase_options_for(level)
-    case stat_increase_type_for(level)
-    when "key" then character_class&.key_stats || []
-    when "secondary" then character_class&.secondary_stats || []
-    else []
-    end
+    type = stat_increase_type_for(level)
+    character_class&.stat_options_for(type) || (type == "any_two" ? STAT_NAMES : [])
   end
 
   def snapshot_payload
