@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_233000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_240000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -159,6 +159,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_233000) do
     t.index ["status"], name: "index_characters_on_status"
   end
 
+  create_table "inventory_items", force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.integer "slots", default: 1, null: false
+    t.datetime "updated_at", null: false
+    t.index ["character_id"], name: "index_inventory_items_on_character_id"
+  end
+
   create_table "level_ups", force: :cascade do |t|
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
@@ -289,6 +298,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_233000) do
   add_foreign_key "characters", "backgrounds"
   add_foreign_key "characters", "character_classes"
   add_foreign_key "characters", "ruleset_versions"
+  add_foreign_key "inventory_items", "characters"
   add_foreign_key "level_ups", "characters"
   add_foreign_key "skill_sets", "characters"
   add_foreign_key "stat_sets", "characters"

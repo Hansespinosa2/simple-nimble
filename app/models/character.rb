@@ -57,6 +57,7 @@ class Character < ApplicationRecord
   has_many :level_ups, dependent: :destroy
   has_many :character_shares, dependent: :destroy
   has_many :campaigns, through: :character_shares
+  has_many :inventory_items, dependent: :destroy
 
   # Rules-canon references (spec 02/05). Optional at the model level because
   # 3 pre-existing characters predate this slice of canon and were never
@@ -131,6 +132,18 @@ class Character < ApplicationRecord
 
   def starting_equipment_summary
     character_class&.starting_gear&.join(", ")
+  end
+
+  def inventory_slots_used
+    inventory_items.sum(:slots)
+  end
+
+  def inventory_slots_capacity
+    (trait_set&.inventory_slots).to_i
+  end
+
+  def inventory_slots_remaining
+    inventory_slots_capacity - inventory_slots_used
   end
 
   def progression_features_through(level = self.level)
@@ -759,6 +772,7 @@ class Character < ApplicationRecord
         "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
+      "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots") },
       "rules" => {
         "class" => character_class&.name,
         "ancestry" => ancestry&.name,

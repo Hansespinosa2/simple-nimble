@@ -199,6 +199,35 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal 0, character.trait_set.current_hit_dice
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet tracks item slots, flags over-capacity loads, and lets gear be edited" do
+    visit character_url(@character)
+
+    capacity = @character.reload.inventory_slots_capacity
+    fill_in "Add item or stack", with: "Dragon Shield"
+    fill_in "Slots used", with: capacity + 1
+    click_on "Add item"
+
+    assert_text "Dragon Shield"
+    assert_text "Over capacity by 1 slot."
+    item = @character.reload.inventory_items.find_by!(name: "Dragon Shield")
+    row = find("[data-inventory-item-id='#{item.id}']")
+    row.find("input[name$='[slots]']").set("2")
+    within(row) { click_on "Save item" }
+
+    assert_text "Inventory item updated."
+    assert_text "2 / #{capacity} slots used"
+    item.reload
+    row = find("[data-inventory-item-id='#{item.id}']")
+    accept_confirm("Remove Dragon Shield from inventory?") do
+      within(row) { click_on "Remove" }
+    end
+
+    assert_text "Dragon Shield removed from inventory."
+    assert_text "0 / #{capacity} slots used"
+    assert_not InventoryItem.exists?(item.id)
+  end
+
   test "should update Character" do
     visit character_url(@character)
     click_on "Edit sheet", match: :first

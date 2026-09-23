@@ -10,6 +10,7 @@ Rails.application.routes.draw do
       get :history
     end
     resources :level_ups, only: %i[new create show update]
+    resources :inventory_items, only: %i[create update destroy]
     resources :shares, only: %i[create destroy], controller: "character_shares"
   end
   resources :campaigns, only: %i[index new create show] do

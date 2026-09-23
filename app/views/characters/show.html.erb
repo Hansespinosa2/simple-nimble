@@ -104,6 +104,7 @@
           <% if @character.spells.empty? %><span class="muted">No spells on this sheet yet.</span><% end %>
         </div>
       </section>
+      <%= render "inventory_items", character: @character, editable: true %>
     </div>
 
     <aside class="sheet-side-column">

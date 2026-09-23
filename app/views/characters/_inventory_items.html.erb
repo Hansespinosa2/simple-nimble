@@ -1,0 +1,49 @@
+<% items = character.inventory_items.order(:id) %>
+<% slots_used = character.inventory_slots_used %>
+<% over_capacity = slots_used > character.inventory_slots_capacity %>
+
+<section class="panel inventory-panel" aria-labelledby="inventory-heading">
+  <div class="panel-heading compact">
+    <div><p class="eyebrow">Carried gear</p><h2 id="inventory-heading">Inventory</h2></div>
+    <span class="inventory-capacity <%= "inventory-capacity-over" if over_capacity %>"><%= slots_used %> / <%= character.inventory_slots_capacity %> slots used</span>
+  </div>
+
+  <details class="inventory-rule-note">
+    <summary>Slot rules · Core Rules 2.0.1, p. 21</summary>
+    <p>Each hero has 10 + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, 500 gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
+    <p>The rules also let the GM waive inventory bookkeeping. This tracker warns when you exceed capacity but does not block the save.</p>
+  </details>
+
+  <% if over_capacity %>
+    <p class="inventory-over-capacity" role="status">Over capacity by <%= slots_used - character.inventory_slots_capacity %> <%= "slot" if slots_used - character.inventory_slots_capacity == 1 %><%= "slots" if slots_used - character.inventory_slots_capacity != 1 %>. Check the load with your GM.</p>
+  <% end %>
+
+  <% if items.any? %>
+    <ul class="inventory-item-list">
+      <% items.each do |item| %>
+        <li class="inventory-item-row" data-inventory-item-id="<%= item.id %>">
+          <% if editable %>
+            <%= form_with model: [ character, item ], class: "inventory-item-form" do |item_form| %>
+              <div class="field"><%= item_form.label :name, "Item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true %></div>
+              <div class="field"><%= item_form.label :slots, "Slots used" %><%= item_form.number_field :slots, min: 1, step: 1, required: true %></div>
+              <%= item_form.submit "Save item", class: "button button-secondary" %>
+            <% end %>
+            <%= button_to "Remove", character_inventory_item_path(character, item), method: :delete, class: "button button-quiet inventory-remove", form: { data: { turbo_confirm: "Remove #{item.name} from inventory?" } } %>
+          <% else %>
+            <strong><%= item.name %></strong><span><%= item.slots %> <%= "slot" if item.slots == 1 %><%= "slots" if item.slots != 1 %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted inventory-empty">No structured items recorded yet. Starting gear is listed under Rules context; add carried gear here to include it in the slot total.</p>
+  <% end %>
+
+  <% if editable %>
+    <%= form_with model: [ character, InventoryItem.new ], class: "inventory-create-form" do |item_form| %>
+      <div class="field"><%= item_form.label :name, "Add item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true, placeholder: "e.g. 2 potions, 1 slot" %></div>
+      <div class="field"><%= item_form.label :slots, "Slots used" %><%= item_form.number_field :slots, min: 1, step: 1, value: 1, required: true %></div>
+      <%= item_form.submit "Add item", class: "button button-primary" %>
+    <% end %>
+  <% end %>
+</section>

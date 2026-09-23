@@ -11,6 +11,7 @@ class CharacterRevision < ApplicationRecord
     "level_up" => "Leveled up",
     "safe_rest" => "Safe Rest",
     "field_rest" => "Field Rest",
+    "inventory_update" => "Inventory update",
     "game_update" => "Game update",
     "edited" => "Edited"
   }.freeze
