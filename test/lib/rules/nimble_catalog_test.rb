@@ -74,6 +74,29 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal({ "formula" => "dexterity", "base" => 2 }, mage.armor_rules)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "starting gear for all classes matches Heroes 2.0.1 class entries" do
+    expected_gear = {
+      "Berserker" => [ "Battleaxe", "Rations (meat)", "Rope (50 ft.)" ],
+      "The Cheat" => [ "2 Daggers", "Sling", "Cheap Hides", "Chalk" ],
+      "Commander" => [ "Short Sword", "Javelins", "Rusty Mail" ],
+      "Hunter" => [ "Shortbow", "Cheap Hides", "Dagger", "Hunting Trap" ],
+      "Mage" => [ "Adventurer's Garb", "Staff", "Soap" ],
+      "Oathsworn" => [ "Mace", "Rusty Mail", "Wooden Buckler", "Manacles" ],
+      "Shadowmancer" => [ "Adventurer's Garb", "Sickle", "Shovel" ],
+      "Shepherd" => [ "Rusty Mail", "Mace", "Wooden Buckler", "Bell" ],
+      "Songweaver" => [ "Adventurer's Garb", "Instrument", "Dagger", "Mirror" ],
+      "Stormshifter" => [ "Cheap Hides", "Staff", "Strange Plant" ],
+      "Zephyr" => [ "Staff", "Traveling Robes & Sandals" ]
+    }
+
+    expected_gear.each do |class_name, gear|
+      entry = @catalog.class_for(class_name)
+      assert_equal gear, entry.fetch("starting_gear"), "#{class_name} gear should match its Heroes 2.0.1 source entry"
+      assert_match(/Heroes 2\.0\.1/, entry.fetch("source_ref"))
+    end
+  end
+
   test "feature choice effects add together for repeated source options" do
     effects = @catalog.feature_choice_effects_for(
       "Commander",
