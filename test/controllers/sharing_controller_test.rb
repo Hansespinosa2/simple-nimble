@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-08:AC-1 S-08:AC-2 S-08:AC-3 S-08:AC-4 S-08:AC-5 S-08:AC-6 S-09:AC-1 S-09:AC-3
+# S-04:AC-4 S-08:AC-1 S-08:AC-2 S-08:AC-3 S-08:AC-4 S-08:AC-5 S-08:AC-6 S-09:AC-1 S-09:AC-3
 class SharingControllerTest < ActionDispatch::IntegrationTest
   setup do
     @player = Account.create!(display_name: "Player One", email: "player-#{SecureRandom.hex(4)}@example.com")

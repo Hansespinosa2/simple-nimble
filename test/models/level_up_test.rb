@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-04:AC-3 S-06:AC-1 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-06:AC-5 S-06:AC-6 S-07:AC-1 S-07:AC-2 S-07:AC-3
+# S-01:AC-2 S-01:AC-3 S-04:AC-3 S-06:AC-1 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-06:AC-5 S-06:AC-6 S-07:AC-1 S-07:AC-2 S-07:AC-3 S-07:AC-5
 class LevelUpTest < ActiveSupport::TestCase
   setup do
     ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1")

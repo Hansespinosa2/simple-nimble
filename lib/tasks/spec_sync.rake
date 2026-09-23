@@ -66,7 +66,7 @@ namespace :spec_sync do
     tracker.validate!
     test_files = Dir[Rails.root.join("test/**/*_test.rb")].sort
     references_by_file = test_files.to_h do |path|
-      references = File.read(path).scan(/S-\d{2}:AC-\d+/).uniq
+      references = SpecSync::TestCoverage.references_in(File.read(path))
       [ Pathname(path).relative_path_from(Rails.root).to_s, references ]
     end
     files_by_reference = Hash.new { |hash, key| hash[key] = [] }

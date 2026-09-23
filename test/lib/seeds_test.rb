@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-02:AC-1 S-05:AC-6 S-06:AC-8 S-09:AC-2 S-09:AC-3
+# S-02:AC-1 S-02:AC-6 S-05:AC-6 S-06:AC-8 S-09:AC-2 S-09:AC-3
 class SeedsTest < ActiveSupport::TestCase
   test "loading the canonical seed data twice does not duplicate records" do
     Rails.application.load_seed

@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-01:AC-6 S-02:AC-1 S-02:AC-2 S-02:AC-3 S-03:AC-2 S-03:AC-3 S-04:AC-1 S-04:AC-2 S-05:AC-1 S-05:AC-2 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-07:AC-1 S-07:AC-2 S-07:AC-3
+# S-01:AC-1 S-01:AC-3 S-01:AC-4 S-01:AC-6 S-02:AC-1 S-02:AC-2 S-02:AC-3 S-03:AC-2 S-03:AC-3 S-04:AC-1 S-04:AC-2 S-05:AC-1 S-05:AC-2 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-07:AC-1 S-07:AC-2 S-07:AC-3 S-07:AC-5
 class CharacterLifecycleTest < ActiveSupport::TestCase
   setup do
     @ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1") do |ruleset|

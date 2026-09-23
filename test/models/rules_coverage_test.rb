@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-06:AC-8 S-09:AC-1 S-09:AC-2 S-09:AC-3 S-09:AC-4 S-09:AC-5
+# S-01:AC-1 S-01:AC-2 S-02:AC-6 S-05:AC-6 S-06:AC-8 S-09:AC-1 S-09:AC-2 S-09:AC-3 S-09:AC-4 S-09:AC-5
 class RulesCoverageTest < ActiveSupport::TestCase
   CLASS_NAMES = %w[
     Berserker The\ Cheat Commander Hunter Mage Oathsworn Shadowmancer Shepherd Songweaver Stormshifter Zephyr
@@ -35,5 +35,42 @@ class RulesCoverageTest < ActiveSupport::TestCase
       assert character.playable?, "#{class_name} should remain playable after level-up"
       assert level_up.reload.finalized?, "#{class_name} should record a finalized transition"
     end
+  end
+
+  test "every seeded ancestry can create legally and every seeded spell can be attached" do
+    canonical_ancestries = Ancestry.where.not(name: "MyString").order(:name)
+    canonical_spells = Spell.where.not(name: "MyString").order(:tier, :name)
+
+    assert_equal 24, canonical_ancestries.count
+    assert_equal 14, canonical_spells.count
+
+    canonical_ancestries.each do |ancestry|
+      character = Character.create!(
+        name: "Ancestry Coverage #{ancestry.name}",
+        level: 1,
+        character_class: CharacterClass.find_by!(name: "Mage"),
+        ancestry: ancestry,
+        background: @background,
+        stat_array: "balanced",
+        ruleset_version: @ruleset
+      )
+
+      assert character.legal_for_creation?, "#{ancestry.name} should produce a legal draft"
+      character.finalize_creation!
+      assert character.reload.playable?, "#{ancestry.name} should finalize as playable"
+    end
+
+    character = Character.create!(
+      name: "Spell Coverage",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      ruleset_version: @ruleset
+    )
+    character.spells = canonical_spells
+
+    assert_equal canonical_spells.map(&:id), character.reload.spells.order(:tier, :name).pluck(:id)
   end
 end

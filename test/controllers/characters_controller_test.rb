@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-05:AC-1 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-06:AC-6 S-09:AC-3
+# S-01:AC-1 S-01:AC-3 S-01:AC-4 S-05:AC-1 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-06:AC-6 S-07:AC-4 S-07:AC-6 S-09:AC-3
 class CharactersControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed if Character.count.zero?
@@ -75,6 +75,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Choose a class before finalizing."
     assert_includes response.body, "Choose an ancestry before finalizing."
     assert_includes response.body, "Choose a background before finalizing."
+    assert_includes response.body, "Choose a stat array before finalizing."
     assert Character.find_by(name: "Blocked Hero").draft?
   end
 
