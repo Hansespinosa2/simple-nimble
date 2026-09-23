@@ -134,6 +134,25 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Edited", @character.character_revisions.order(:id).last.event_label
   end
 
+  test "should not permit direct derived-field edits outside the explicit flows" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Protected Hero"))
+    character.finalize_creation!
+    original_stats = character.stat_set.attributes.slice("strength", "dexterity", "intelligence", "will")
+    original_traits = character.trait_set.attributes.slice("max_hp", "armor", "initiative")
+
+    patch character_url(character), params: {
+      character: {
+        stat_set_attributes: { id: character.stat_set.id, strength: 99 },
+        trait_set_attributes: { id: character.trait_set.id, max_hp: 999, armor: 99, initiative: 99 }
+      }
+    }
+
+    assert_response :bad_request
+    character.reload
+    assert_equal original_stats, character.stat_set.attributes.slice("strength", "dexterity", "intelligence", "will")
+    assert_equal original_traits, character.trait_set.attributes.slice("max_hp", "armor", "initiative")
+  end
+
   test "should create a character through the JSON endpoint" do
     assert_difference("Character.count") do
       post characters_url(format: :json), params: { character: canonical_character_attributes.merge(name: "JSON Hero") }, as: :json
