@@ -11,8 +11,8 @@ class Spell < ApplicationRecord
   def available_to?(character)
     return false if character.character_class.blank?
     return false if class_restricted_from?(character)
-    return false unless character.known_spell_schools.include?(school)
     return false if utility? && !character.utility_spell_names.include?(name)
+    return false unless utility? || character.known_spell_schools.include?(school)
 
     tier.to_i <= character.character_class.spell_tier_for(character.level)
   end

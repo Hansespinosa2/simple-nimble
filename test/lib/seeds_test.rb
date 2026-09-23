@@ -13,6 +13,7 @@ class SeedsTest < ActiveSupport::TestCase
     assert_equal 24, Ancestry.where.not(name: [ "MyString" ]).count
     assert_equal 14, Spell.where(name: canonical_spell_names).count
     assert Character.find_by!(name: "Mira Ashfall").playable?
+    assert_includes Character.find_by!(name: "Mira Ashfall").spells.pluck(:name), "Firebrand"
   end
 
   private

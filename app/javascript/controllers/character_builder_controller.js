@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [
-    "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "classHint", "ancestryHint", "backgroundHint",
+    "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
     "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment",
     "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget"
   ]
@@ -11,6 +11,7 @@ export default class extends Controller {
 
   connect() {
     this.spellSchoolChoiceInitialDisabled = this.hasSpellSchoolChoiceTarget && this.spellSchoolChoiceTarget.disabled
+    this.backgroundSpellChoiceInitialDisabled = this.hasBackgroundSpellChoiceTarget && this.backgroundSpellChoiceTarget.disabled
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       input.addEventListener("input", () => {
         input.dataset.touched = "true"
@@ -32,6 +33,7 @@ export default class extends Controller {
     this.updateDerived(characterClass, ancestry, background, array)
     this.updateHints(characterClass, ancestry, background)
     this.updateSpellSchoolChoice(characterClass)
+    this.updateBackgroundSpellChoice(background)
     this.updateSkillBudget()
   }
 
@@ -41,6 +43,17 @@ export default class extends Controller {
     const enabled = characterClass?.spell_schools?.includes("choice") || false
     this.spellSchoolChoiceFieldTarget.hidden = !enabled
     if (this.hasSpellSchoolChoiceTarget) this.spellSchoolChoiceTarget.disabled = this.spellSchoolChoiceInitialDisabled || !enabled
+  }
+
+  updateBackgroundSpellChoice(background) {
+    if (!this.hasBackgroundSpellChoiceFieldTarget) return
+
+    const enabled = background?.starting_spell_choice || false
+    this.backgroundSpellChoiceFieldTarget.hidden = !enabled
+    if (this.hasBackgroundSpellChoiceTarget) {
+      if (!enabled) this.backgroundSpellChoiceTarget.value = ""
+      this.backgroundSpellChoiceTarget.disabled = this.backgroundSpellChoiceInitialDisabled
+    }
   }
 
   updateStats(characterClass, array) {
@@ -162,6 +175,7 @@ export default class extends Controller {
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
     if (background?.prerequisite_stat) backgroundHint += ` Requires ${this.abbreviate(background.prerequisite_stat)} ≤ ${background.prerequisite_max}.`
+    if (background?.starting_spell_choice) backgroundHint += " Grants 1 Utility Spell."
     this.setTargetText("backgroundHint", backgroundHint)
 
     if (this.hasRulesCalloutTarget) {

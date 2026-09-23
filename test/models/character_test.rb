@@ -404,6 +404,40 @@ class CharacterTest < ActiveSupport::TestCase
     assert shepherd.granted_utility_spells.exists?(name: "False Face")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1
+  test "Academy Dropout requires and grants one source-defined Utility Spell" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Academy Dropout Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Academy Dropout"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    missing_choice = character.creation_issues.find { |issue| issue.fetch(:message).include?("Academy Dropout requires") }
+
+    assert_equal "Core Rules 2.0.1, p. 28", missing_choice.fetch(:source_ref)
+    assert_includes character.spell_choice_pools_for(1).first.fetch("options"), "Wind Whisper"
+
+    character.update!(spell_choices: { "Academy Dropout" => { "1" => [ "Snowblind" ] } })
+    invalid_choice = character.creation_issues.find { |issue| issue.fetch(:message).include?("not a Utility Spell option") }
+    assert_equal "Core Rules 2.0.1, p. 28", invalid_choice.fetch(:source_ref)
+    assert_not character.legal_for_creation?
+
+    character.update!(spell_choices: { "Academy Dropout" => { "1" => [ "Wind Whisper" ] } })
+    assert character.legal_for_creation?, character.creation_issues.map { |issue| issue.fetch(:message) }.join(" | ")
+    character.finalize_creation!
+
+    character.reload
+    assert_includes character.utility_spell_names, "Wind Whisper"
+    assert_includes character.spells.pluck(:name), "Wind Whisper"
+    assert_includes character.available_spells.map(&:name), "Wind Whisper"
+    choice = character.spell_choice_entries_through.first
+    assert_equal [ "Wind Whisper" ], choice.fetch(:selected)
+    assert_equal "Core Rules 2.0.1, p. 28", choice.fetch(:source_ref)
+  end
+
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

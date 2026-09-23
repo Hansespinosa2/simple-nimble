@@ -104,7 +104,7 @@ class CharactersController < ApplicationController
   def tracker
     tracker_attributes = params.expect(character: [
       :conditions, :inventory, :game_notes,
-      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [[ :key, :current ]] } ] }
+      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [ [ :key, :current ] ] } ] }
     ])
     normalize_resource_tracks!(tracker_attributes)
 
@@ -167,6 +167,7 @@ class CharactersController < ApplicationController
         {
           skill_set_attributes: skill_set_params_list
         },
+        { spell_choices: {} },
         spell_ids: []
       ])
     end
@@ -249,7 +250,8 @@ class CharactersController < ApplicationController
             max_hit_dice_modifier: background.max_hit_dice_modifier,
             max_wounds_modifier: background.max_wounds_modifier,
             skill_modifiers: background.skill_modifiers,
-            language_grants: background.language_names
+            language_grants: background.language_names,
+            starting_spell_choice: Rules::NimbleCatalog.background_spell_choice_for(background.name).present?
           }
         end
       }

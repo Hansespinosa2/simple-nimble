@@ -475,29 +475,6 @@ Character.find_or_create_by!(
   languages: "Common, Infernal"
 )
 
-### A canonical playable demo character keeps the happy path visible after setup.
-demo_ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1") do |ruleset|
-  ruleset.source_reference = "Nimble Core Rules, Heroes, and Gamemaster's Guide"
-  ruleset.published_at = Date.new(2026, 7, 1)
-end
-demo_character = Character.find_or_initialize_by(name: "Mira Ashfall")
-demo_character_was_new = demo_character.new_record?
-demo_character.assign_attributes(
-  level: 1,
-  description: "A bright-eyed Mage carrying a map that was never meant to be found.",
-  languages: "Common, Elvish",
-  character_class: CharacterClass.find_by!(name: "Mage"),
-  ancestry: Ancestry.find_by!(name: "Human"),
-  background: Background.find_by!(name: "Academy Dropout"),
-  stat_array: "balanced",
-  ruleset_version: demo_ruleset,
-  status: demo_character_was_new ? "draft" : demo_character.status
-)
-demo_character.ensure_defaults
-demo_character.skill_set.might = demo_character.skill_initial_value("might") + 4
-demo_character.save!
-demo_character.finalize_creation! if demo_character.draft? && demo_character.legal_for_creation?
-
 ### SPELLS ###
 seed_spell = lambda do |attributes|
   attributes = attributes.merge(
@@ -797,3 +774,28 @@ end
 ].each do |attributes|
   seed_reference_spell.call(attributes.merge(tier: -1))
 end
+
+### A canonical playable demo character keeps the happy path visible after setup.
+demo_ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1") do |ruleset|
+  ruleset.source_reference = "Nimble Core Rules, Heroes, and Gamemaster's Guide"
+  ruleset.published_at = Date.new(2026, 7, 1)
+end
+demo_character = Character.find_or_initialize_by(name: "Mira Ashfall")
+demo_character_was_new = demo_character.new_record?
+demo_character.assign_attributes(
+  level: 1,
+  description: "A bright-eyed Mage carrying a map that was never meant to be found.",
+  languages: "Common, Elvish",
+  character_class: CharacterClass.find_by!(name: "Mage"),
+  ancestry: Ancestry.find_by!(name: "Human"),
+  background: Background.find_by!(name: "Academy Dropout"),
+  stat_array: "balanced",
+  spell_choices: { "Academy Dropout" => { "1" => [ "Firebrand" ] } },
+  ruleset_version: demo_ruleset,
+  status: demo_character_was_new ? "draft" : demo_character.status
+)
+demo_character.ensure_defaults
+demo_character.skill_set.might = demo_character.skill_initial_value("might") + 4
+demo_character.save!
+demo_character.sync_granted_utility_spells!
+demo_character.finalize_creation! if demo_character.draft? && demo_character.legal_for_creation?

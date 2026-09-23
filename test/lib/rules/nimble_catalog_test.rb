@@ -72,6 +72,14 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal({ "resource_max_modifiers" => { "combat_dice" => 2 } }, effects)
   end
 
+  test "Academy Dropout's starting Utility Spell is source-backed" do
+    pool = @catalog.background_spell_choice_for("Academy Dropout")
+
+    assert_equal "Core Rules 2.0.1, p. 28", pool.fetch("source_ref")
+    assert_equal "utility_spell_any", pool.fetch("kind")
+    assert_equal 1, pool.fetch("count")
+  end
+
   test "Commander weapon mastery is a choice at six and ten, not fourteen" do
     assert_includes @catalog.choice_pools_for("Commander", 6).map { |pool| pool.fetch("name") }, "Weapon Mastery"
     assert_includes @catalog.choice_pools_for("Commander", 10).map { |pool| pool.fetch("name") }, "Weapon Mastery"

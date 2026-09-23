@@ -94,6 +94,10 @@ module Rules
         end
       end
 
+      def background_spell_choice_for(background_name)
+        data.fetch("background_spell_choices", {}).fetch(background_name.to_s, nil)
+      end
+
       def spell_auto_grants_for(class_name, level)
         data.fetch("spell_choice_auto_grants", {}).fetch(class_name.to_s, {}).each_with_object([]) do |(grant_level, grants), result|
           result.concat(Array(grants)) if grant_level.to_i <= level.to_i

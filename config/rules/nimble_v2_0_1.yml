@@ -1067,6 +1067,13 @@ spell_choice_auto_grants:
   Songweaver:
     14: [known]
 
+background_spell_choices:
+  Academy Dropout:
+    source_ref: Core Rules 2.0.1, p. 28
+    source_quote: "Learn any 1 Utility Spell."
+    kind: utility_spell_any
+    count: 1
+
 derived_effects:
   classes:
     Hunter:

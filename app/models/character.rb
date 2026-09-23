@@ -230,14 +230,20 @@ class Character < ApplicationRecord
   end
 
   def spell_choice_pools_for(level)
-    return [] if character_class.blank?
+    pools = character_class&.spell_choice_pools_for(level).to_a
+    background_pool = starting_background_spell_choice_pool
+    if level.to_i == 1 && background_pool.present?
+      pools << background_pool
+    end
 
-    character_class.spell_choice_pools_for(level).flat_map do |pool|
+    pools.flat_map do |pool|
       case pool.fetch("kind")
       when "utility_school"
         [ pool.merge("options" => Array(pool.fetch("allowed_schools", []))) ]
       when "utility_spell"
         [ pool.merge("options" => utility_spell_options(pool.fetch("allowed_schools", []))) ]
+      when "utility_spell_any"
+        [ pool ]
       when "utility_spell_each_known_school"
         known_spell_schools.map do |school|
           pool.merge(
@@ -253,11 +259,8 @@ class Character < ApplicationRecord
     end
   end
 
-  def spell_choice_pools_through(level = self.level)
-    return [] if character_class.blank?
-
+  def spell_choice_pools_through(level = self.level, ledger: spell_choice_ledger)
     level = level.presence || 1
-    ledger = spell_choice_ledger
 
     1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
       spell_choice_pools_for(choice_level).map do |pool|
@@ -295,7 +298,9 @@ class Character < ApplicationRecord
 
   def utility_spell_names(level: self.level, ledger: spell_choice_ledger)
     utility_schools = Spell.where(tier: -1).distinct.pluck(:school)
-    selections = ledger.values.flat_map(&:values).flatten.compact_blank.map(&:to_s)
+    selections = spell_choice_pools_through(level, ledger: ledger).flat_map do |pool|
+      pool.fetch("selected") & Array(pool.fetch("options"))
+    end
     auto_grants = character_class&.spell_auto_grants_for(level.to_i.positive? ? level : 1) || []
     auto_schools = auto_grants.include?("known") ? known_spell_schools : auto_grants
     schools = (selections & utility_schools) + auto_schools
@@ -550,6 +555,8 @@ class Character < ApplicationRecord
       )
     end
 
+    validate_starting_background_spell_choice(issues)
+
     if stat_set.present?
       invalid_skills = SKILL_NAMES.select { |skill| skill_value(skill).to_i < skill_initial_value(skill) }
       invalid_skills.each do |skill|
@@ -587,6 +594,7 @@ class Character < ApplicationRecord
 
     transaction do
       update!(status: "playable")
+      sync_granted_utility_spells!
       record_revision!(event_type: "finalized", summary: "Character finalized as playable", from_level: level, to_level: level)
     end
   end
@@ -939,6 +947,55 @@ class Character < ApplicationRecord
 
     def utility_spell_options(schools)
       Spell.where(tier: -1, school: Array(schools)).order(:school, :name).pluck(:name)
+    end
+
+    def utility_spell_options_from_any_school
+      Spell.where(tier: -1).order(:school, :name).pluck(:name)
+    end
+
+    def starting_background_spell_choice_pool
+      definition = Rules::NimbleCatalog.background_spell_choice_for(background&.name)
+      return if definition.blank?
+
+      definition.merge(
+        "name" => background.name,
+        "level" => 1,
+        "count" => definition.fetch("count", 1).to_i,
+        "options" => utility_spell_options_from_any_school
+      )
+    end
+
+    def validate_starting_background_spell_choice(issues)
+      pool = starting_background_spell_choice_pool
+      selections = spell_choice_selections_for("Academy Dropout", 1)
+
+      if pool.blank?
+        if selections.any?
+          issues << rule_issue(
+            "Academy Dropout's Utility Spell choice is not available for this background.",
+            "Core Rules 2.0.1, p. 28",
+            "Academy Dropout grants one Utility Spell only when it is the chosen background."
+          )
+        end
+        return
+      end
+
+      if selections.length != pool.fetch("count")
+        issues << rule_issue(
+          "Academy Dropout requires one Utility Spell choice.",
+          pool.fetch("source_ref"),
+          pool.fetch("source_quote")
+        )
+      end
+
+      invalid_selections = selections - Array(pool.fetch("options"))
+      invalid_selections.each do |selection|
+        issues << rule_issue(
+          "#{selection} is not a Utility Spell option for Academy Dropout.",
+          pool.fetch("source_ref"),
+          pool.fetch("source_quote")
+        )
+      end
     end
 
     def build_projected_stat_set

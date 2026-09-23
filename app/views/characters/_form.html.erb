@@ -95,6 +95,13 @@
             <%= form.select :spell_school_choice, %w[Fire Ice Lightning Wind Radiant Necrotic].map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: read_only, data: { character_builder_target: "spellSchoolChoice" } %>
             <span class="field-hint">Songweaver knows Wind plus one other school.</span>
           </div>
+          <% academy_choice = Rules::NimbleCatalog.background_spell_choice_for("Academy Dropout") %>
+          <% utility_spell_options = Spell.where(tier: -1).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+          <div class="field field-wide" data-character-builder-target="backgroundSpellChoiceField" <%= "hidden" unless character.background&.name == "Academy Dropout" %>>
+            <%= label_tag "character[spell_choices][Academy Dropout][1]", "Academy Dropout · Utility Spell" %>
+            <%= select_tag "character[spell_choices][Academy Dropout][1]", options_for_select([["Choose a Utility Spell", ""]] + utility_spell_options, character.spell_choice_selections_for("Academy Dropout", 1).first), disabled: read_only, data: { character_builder_target: "backgroundSpellChoice" } %>
+            <span class="field-hint"><%= academy_choice.fetch("source_ref") %> · “<%= academy_choice.fetch("source_quote") %>”</span>
+          </div>
         </div>
         <div class="rules-callout" data-character-builder-target="rulesCallout">
           <span class="callout-icon">✦</span>

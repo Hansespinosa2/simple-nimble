@@ -83,6 +83,16 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='armorPreview']", text: "2"
   end
 
+  test "choosing Academy Dropout reveals its Utility Spell picker" do
+    visit new_character_url
+
+    select "Academy Dropout", from: "Background"
+    assert_selector "[data-character-builder-target='backgroundSpellChoiceField']", visible: true
+    select "Wind · Wind Whisper", from: "Academy Dropout · Utility Spell"
+
+    assert_equal "Wind Whisper", find("select[name='character[spell_choices][Academy Dropout][1]']").value
+  end
+
   test "the sheet tracks live game state and records the update" do
     visit character_url(@character)
 

@@ -36,6 +36,11 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
     assert_select "[data-character-builder-target='savesPreview']"
+    assert_select "[data-character-builder-target='backgroundSpellChoiceField'][hidden]"
+    assert_select "select[name='character[spell_choices][Academy Dropout][1]'] option[value='Firebrand']"
+    rules_payload = JSON.parse(Nokogiri::HTML(response.body).at_css("form.builder-form")["data-character-builder-rules-value"])
+    academy_background_id = Background.find_by!(name: "Academy Dropout").id.to_s
+    assert_equal true, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice")
   end
 
   test "should embed structured origin rules in the builder payload" do
@@ -78,6 +83,37 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "balanced", created.stat_array
     assert_equal @character_class.starting_hp, created.trait_set.max_hp
     assert created.character_revisions.exists?(event_type: "finalized")
+  end
+
+  test "should save an Academy Dropout Utility Spell choice when finalizing" do
+    post characters_url, params: {
+      character: canonical_character_attributes.merge(
+        name: "Academy Spell Hero",
+        background_id: Background.find_by!(name: "Academy Dropout").id,
+        spell_choices: { "Academy Dropout" => { "1" => "Wind Whisper" } }
+      ),
+      finalize: "1"
+    }
+
+    assert_redirected_to character_url(Character.order(:id).last)
+    created = Character.order(:id).last
+    assert created.playable?
+    assert_includes created.spells.pluck(:name), "Wind Whisper"
+    assert_equal [ "Wind Whisper" ], created.recorded_spell_choices.fetch("Academy Dropout")
+  end
+
+  test "should explain the Academy Dropout Utility Spell requirement when missing" do
+    post characters_url, params: {
+      character: canonical_character_attributes.merge(
+        name: "Missing Academy Spell Hero",
+        background_id: Background.find_by!(name: "Academy Dropout").id
+      ),
+      finalize: "1"
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Academy Dropout requires one Utility Spell choice."
+    assert_includes response.body, "Core Rules 2.0.1, p. 28"
   end
 
   test "should persist the selected stat placement from the builder" do
