@@ -38,14 +38,16 @@ class CharactersController < ApplicationController
           if @character.legal_for_creation?
             @character.finalize_creation!
             format.html { redirect_to @character, notice: "Character created and ready to play." }
+            format.json { render :show, status: :created, location: @character }
           else
             add_creation_errors
             format.html { render :new, status: :unprocessable_entity }
+            format.json { render json: creation_error_payload, status: :unprocessable_entity }
           end
         else
           format.html { redirect_to @character, notice: "Draft saved. Finish the choices when you are ready." }
+          format.json { render :show, status: :created, location: @character }
         end
-        format.json { render :show, status: :created, location: @character }
       else
         format.html { render :new, status: :unprocessable_entity }
         format.json { render json: @character.errors, status: :unprocessable_entity }
@@ -62,14 +64,16 @@ class CharactersController < ApplicationController
           if @character.legal_for_creation?
             @character.finalize_creation!
             format.html { redirect_to @character, notice: "Character finalized and ready to play.", status: :see_other }
+            format.json { render :show, status: :ok, location: @character }
           else
             add_creation_errors
             format.html { render :edit, status: :unprocessable_entity }
+            format.json { render json: creation_error_payload, status: :unprocessable_entity }
           end
         else
           format.html { redirect_to @character, notice: "Character was successfully updated.", status: :see_other }
+          format.json { render :show, status: :ok, location: @character }
         end
-        format.json { render :show, status: :ok, location: @character }
       else
         format.html { render :edit, status: :unprocessable_entity }
         format.json { render json: @character.errors, status: :unprocessable_entity }
@@ -187,6 +191,13 @@ class CharactersController < ApplicationController
     def add_creation_errors
       @character.errors.add(:base, "Resolve the highlighted rules checks before finalizing.") if @character.creation_issues.empty?
       @character.creation_issues.each { |issue| @character.errors.add(:base, issue.fetch(:message)) }
+    end
+
+    def creation_error_payload
+      {
+        errors: @character.errors.full_messages,
+        explanations: @character.creation_explanations
+      }
     end
 
     def builder_rules

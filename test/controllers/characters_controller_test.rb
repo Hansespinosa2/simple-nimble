@@ -147,6 +147,31 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Berserker", payload.dig("rules", "class")
   end
 
+  test "should return JSON rule explanations when finalization is blocked" do
+    assert_difference("Character.count") do
+      post characters_url(format: :json), params: { character: { name: "Blocked JSON Hero" }, finalize: "1" }, as: :json
+    end
+
+    assert_response :unprocessable_entity
+    payload = JSON.parse(response.body)
+    created = Character.find_by!(name: "Blocked JSON Hero")
+
+    assert created.draft?
+    assert_includes payload.fetch("errors"), "Choose a class before finalizing."
+    assert_equal "Chapter 2, Class Rules", payload.fetch("explanations").first.fetch("source_ref")
+  end
+
+  test "should keep a JSON update draft when finalization is blocked" do
+    patch character_url(@character, format: :json), params: { character: { name: "Still a Draft" }, finalize: "1" }, as: :json
+
+    assert_response :unprocessable_entity
+    payload = JSON.parse(response.body)
+
+    assert_equal "Still a Draft", @character.reload.name
+    assert @character.draft?
+    assert_includes payload.fetch("errors"), "Choose a class before finalizing."
+  end
+
   test "should destroy character" do
     assert_difference("Character.count", -1) do
       delete character_url(@character)
