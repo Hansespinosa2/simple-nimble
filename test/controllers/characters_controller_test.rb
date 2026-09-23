@@ -85,6 +85,37 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, @character.description
   end
 
+  test "should return a useful character index payload" do
+    get characters_url(format: :json)
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    entry = payload.find { |row| row.fetch("id") == @character.id }
+
+    assert_equal @character.name, entry.fetch("name")
+    assert_equal "draft", entry.fetch("status")
+    assert_equal "Warrior", entry.fetch("class_name")
+    assert_equal "Human", entry.fetch("ancestry_name")
+    assert_equal @character.trait_set.current_hp, entry.fetch("current_hp")
+    assert_match %r{/characters/#{@character.id}\.json\z}, entry.fetch("url")
+  end
+
+  test "should return a complete character sheet payload" do
+    get character_url(@character, format: :json)
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+
+    assert_equal @character.id, payload.dig("character", "id")
+    assert_equal @character.name, payload.dig("character", "name")
+    assert_equal "Nimble v2.0.1", payload.dig("rules", "ruleset")
+    assert_equal @character.stat_set.strength, payload.dig("stats", "strength")
+    assert_equal @character.skill_set.might, payload.dig("skills", "might")
+    assert_equal @character.trait_set.max_hp, payload.dig("traits", "max_hp")
+    assert_equal [], payload.fetch("spells")
+    assert_equal "Draft", payload.fetch("status_label")
+  end
+
   test "should get edit" do
     get edit_character_url(@character)
     assert_response :success
@@ -100,6 +131,20 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated story", @character.legacy_background_text
     assert_equal 2, @character.level
     assert_equal "Edited", @character.character_revisions.order(:id).last.event_label
+  end
+
+  test "should create a character through the JSON endpoint" do
+    assert_difference("Character.count") do
+      post characters_url(format: :json), params: { character: canonical_character_attributes.merge(name: "JSON Hero") }, as: :json
+    end
+
+    assert_response :created
+    payload = JSON.parse(response.body)
+    created = Character.find_by!(name: "JSON Hero")
+
+    assert_equal created.id, payload.dig("character", "id")
+    assert_equal "JSON Hero", payload.dig("character", "name")
+    assert_equal "Berserker", payload.dig("rules", "class")
   end
 
   test "should destroy character" do
