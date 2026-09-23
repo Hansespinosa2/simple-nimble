@@ -71,7 +71,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "cloth" ], mage.armor_proficiencies
     assert_includes mage.weapon_proficiencies, "wands"
     assert_equal "INT * 3 + LVL", mage.resource_rules.fetch("max_formula")
-    assert_equal({ "formula" => "dexterity", "base" => 2 }, mage.armor_rules)
+    assert_equal({ "formula" => "dexterity", "base" => 2, "source_ref" => "Core Rules 2.0.1, p. 33" }, mage.armor_rules)
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
@@ -94,6 +94,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       entry = @catalog.class_for(class_name)
       assert_equal gear, entry.fetch("starting_gear"), "#{class_name} gear should match its Heroes 2.0.1 source entry"
       assert_match(/Heroes 2\.0\.1/, entry.fetch("source_ref"))
+      assert_match(/(?:Core Rules 2\.0\.1|Heroes 2\.0\.1), p\./, entry.fetch("armor").fetch("source_ref"))
     end
   end
 

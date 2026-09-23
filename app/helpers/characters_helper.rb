@@ -20,6 +20,20 @@ module CharactersHelper
     skill.to_s.humanize
   end
 
+  def armor_rule_caption(character)
+    rules = character.character_class&.armor_rules.to_h
+    source_ref = rules["source_ref"] || "Core Rules 2.0.1, p. 33"
+    basis = if rules["formula"] == "dexterity_plus_strength"
+      "Unarmored DEX + STR"
+    elsif character.starting_equipment_choice == "starting_gold"
+      "Unarmored DEX"
+    else
+      "Starting gear"
+    end
+
+    "#{basis} + origin · #{source_ref}"
+  end
+
   def revision_event_class(event_type)
     {
       "level_up" => "timeline-dot timeline-dot-gold",

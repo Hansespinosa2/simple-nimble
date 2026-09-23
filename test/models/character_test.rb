@@ -82,6 +82,39 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal class_gear_armor, mage.trait_set.armor
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "starting bucklers add Armor for Oathsworn and Shepherd but not on gold starts" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Oathsworn")
+
+    %w[Oathsworn Shepherd].each do |class_name|
+      character_class = CharacterClass.find_by!(name: class_name)
+      character = Character.new(character_class:, starting_equipment_choice: "class_gear")
+
+      assert_includes character_class.starting_gear, "Wooden Buckler"
+      assert_equal "Core Rules 2.0.1, p. 33", character_class.armor_rules.fetch("source_ref")
+      assert_equal 10, character.armor_for({ "dexterity" => 3 })
+
+      character.starting_equipment_choice = "starting_gold"
+      assert_equal 3, character.armor_for({ "dexterity" => 3 })
+    end
+
+    commander = CharacterClass.find_by!(name: "Commander")
+    assert_nil commander.armor_rules["shield_bonus"]
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "Zephyr unarmored Armor uses DEX plus STR and doubles at level 13" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Zephyr")
+    zephyr = Character.new(
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      starting_equipment_choice: "starting_gold"
+    )
+    stats = { "dexterity" => 2, "strength" => 1 }
+
+    assert_equal 3, zephyr.armor_for(stats, level: 1)
+    assert_equal 6, zephyr.armor_for(stats, level: 13)
+  end
+
   # S-04:AC-1 S-05:AC-5
   test "unfinished drafts may leave the stat array blank but reject unknown arrays" do
     draft = Character.new(name: "Work in progress", status: "draft", stat_array: "")

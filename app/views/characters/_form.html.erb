@@ -89,7 +89,7 @@
             <div class="field field-wide">
               <%= form.label :starting_equipment_choice, "Starting equipment" %>
               <%= form.select :starting_equipment_choice, [["Class's listed starting gear", "class_gear"], ["Starting gold instead (50 gp per level)", "starting_gold"]], {}, disabled: read_only, data: { character_builder_target: "startingEquipmentChoice", action: "change->character-builder#refresh" } %>
-              <span class="field-hint">Core Rules 2.0.1, p. 20 · choose listed class gear or 50 gp per starting level; higher-level starts multiply the gold by level. Gold starts use unarmored DEX (p. 33); bought armor is not auto-calculated yet.</span>
+              <span class="field-hint">Core Rules 2.0.1, pp. 20, 33; Heroes 2.0.1, p. 67 · choose listed class gear or 50 gp per starting level; higher-level starts multiply the gold by level. Gold starts use class-appropriate unarmored Armor, including Zephyr’s DEX + STR; bought armor is not auto-calculated yet.</span>
             </div>
           <% end %>
           <div class="field">

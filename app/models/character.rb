@@ -466,6 +466,7 @@ class Character < ApplicationRecord
       cap = starting_gold ? nil : rules["dexterity_cap"]
       base + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
     end
+    armor += rules.fetch("shield_bonus", 0).to_i unless starting_gold
     effects = derived_feature_effects(level:, subclass_name:)
     armor *= effects.fetch("armor_multiplier", 1).to_i
     armor += value_for_stat(values, effects["armor_stat_addition"]) if effects["armor_stat_addition"].present?

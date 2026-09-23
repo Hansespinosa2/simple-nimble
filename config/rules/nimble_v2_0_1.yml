@@ -77,7 +77,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: []
     weapon_proficiencies: [strength]
-    armor: {formula: dexterity, base: 0}
+    armor: {formula: dexterity, base: 0, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Battleaxe, "Rations (meat)", "Rope (50 ft.)"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -109,7 +109,7 @@ classes:
     save_penalty: will
     armor_proficiencies: [leather]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3}
+    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["2 Daggers", Sling, "Cheap Hides", Chalk]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -132,7 +132,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [mail, shields]
     weapon_proficiencies: [martial]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2}
+    armor: {formula: dexterity, base: 6, dexterity_cap: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Short Sword", Javelins, "Rusty Mail"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -165,7 +165,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: [leather]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3}
+    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Shortbow, "Cheap Hides", Dagger, "Hunting Trap"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -195,7 +195,7 @@ classes:
     save_penalty: strength
     armor_proficiencies: [cloth]
     weapon_proficiencies: [blades, staves, wands]
-    armor: {formula: dexterity, base: 2}
+    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Staff, Soap]
     spell_schools: [Fire, Ice, Lightning]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -226,7 +226,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [all]
     weapon_proficiencies: [strength]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2}
+    armor: {formula: dexterity, base: 6, dexterity_cap: 2, shield_bonus: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Mace, "Rusty Mail", "Wooden Buckler", Manacles]
     spell_schools: [Radiant]
     spell_tier_unlocks: {1: -1, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 13: 6, 17: 7}
@@ -269,7 +269,7 @@ classes:
     save_penalty: will
     armor_proficiencies: [cloth]
     weapon_proficiencies: [blades, wands]
-    armor: {formula: dexterity, base: 2}
+    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Sickle, Shovel]
     spell_schools: [Necrotic]
     spell_tier_unlocks: {1: 0, 2: 1, 5: 2, 7: 3, 10: 4, 13: 5, 16: 6, 19: 7}
@@ -298,7 +298,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [mail, shields]
     weapon_proficiencies: [strength, wands]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2}
+    armor: {formula: dexterity, base: 6, dexterity_cap: 2, shield_bonus: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Rusty Mail", Mace, "Wooden Buckler", Bell]
     spell_schools: [Radiant, Necrotic]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -329,7 +329,7 @@ classes:
     save_penalty: strength
     armor_proficiencies: [cloth, leather]
     weapon_proficiencies: [dexterity, wands]
-    armor: {formula: dexterity, base: 2}
+    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Instrument, Dagger, Mirror]
     spell_schools: [Wind, choice]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -365,7 +365,7 @@ classes:
     save_penalty: strength
     armor_proficiencies: [cloth]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3}
+    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Cheap Hides", Staff, "Strange Plant"]
     spell_schools: [Wind, Lightning]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -401,7 +401,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: []
     weapon_proficiencies: [melee]
-    armor: {formula: dexterity_plus_strength, base: 0}
+    armor: {formula: dexterity_plus_strength, base: 0, source_ref: "Heroes 2.0.1, p. 67"}
     starting_gear: [Staff, "Traveling Robes & Sandals"]
     spell_schools: []
     spell_tier_unlocks: {}

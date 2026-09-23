@@ -156,6 +156,7 @@ export default class extends Controller {
     if (this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold") {
       armorRules.base = 0
       delete armorRules.dexterity_cap
+      delete armorRules.shield_bonus
     }
     const armor = this.armorValue(armorRules, stats) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
     const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
@@ -241,11 +242,12 @@ export default class extends Controller {
 
   armorValue(rules, stats) {
     const base = Number(rules?.base || 0)
+    const shieldBonus = Number(rules?.shield_bonus || 0)
     const dexterity = stats.dexterity || 0
-    if (rules?.formula === "dexterity_plus_strength") return base + dexterity + (stats.strength || 0)
+    if (rules?.formula === "dexterity_plus_strength") return base + dexterity + (stats.strength || 0) + shieldBonus
 
     const cap = rules?.dexterity_cap
-    return base + (cap === undefined ? dexterity : Math.min(dexterity, Number(cap)))
+    return base + (cap === undefined ? dexterity : Math.min(dexterity, Number(cap))) + shieldBonus
   }
 
   signed(value) {

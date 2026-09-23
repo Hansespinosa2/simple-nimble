@@ -98,8 +98,8 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
     assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
-    assert_text "Core Rules 2.0.1, p. 20"
-    assert_text "unarmored DEX (p. 33)"
+    assert_text "Core Rules 2.0.1, pp. 20, 33; Heroes 2.0.1, p. 67"
+    assert_text "class-appropriate unarmored Armor, including Zephyr’s DEX + STR"
     click_on "Save draft"
 
     assert_text "Draft saved"
@@ -116,6 +116,28 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal 501, character.current_gold
     assert_equal 2, character.inventory_slots_used
     assert_text "2 / #{character.inventory_slots_capacity} slots used"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the builder previews starting shield Armor and removes it for a gold start" do
+    visit new_character_url
+
+    fill_in "Character name", with: "Buckler Preview Hero"
+    select "Oathsworn", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Fearless", from: "Background"
+    select "Balanced", from: "Stat array"
+
+    assert_selector "[data-character-builder-target='armorPreview']", text: "8"
+    select "Starting gold instead (50 gp per level)", from: "Starting equipment"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "0"
+
+    click_on "Save draft"
+
+    assert_text "Draft saved"
+    armor_card = find(".vital-card", text: "Unarmored DEX + origin")
+    assert_equal "0", armor_card.find("strong").text
+    assert_text "Core Rules 2.0.1, p. 33"
   end
 
   test "choosing Academy Dropout reveals its Utility Spell picker" do
