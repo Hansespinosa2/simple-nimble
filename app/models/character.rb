@@ -6,6 +6,7 @@ class Character < ApplicationRecord
   BASE_SPEED = 6
   DEFAULT_MAX_WOUNDS = 6
   BASE_INVENTORY_SLOTS = 10
+  STARTING_EQUIPMENT_CHOICES = %w[class_gear starting_gold].freeze
 
   # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The builder
   # recommends placing the highest values in Key Stats, but the rules allow
@@ -71,13 +72,17 @@ class Character < ApplicationRecord
 
   validates :stat_array, inclusion: { in: STAT_ARRAYS.keys }, allow_blank: true
   validates :status, inclusion: { in: STATUS_LABELS.keys }
+  validates :starting_equipment_choice, inclusion: { in: STARTING_EQUIPMENT_CHOICES }
+  validates :current_gold, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :level, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }, allow_nil: true
   validate :stat_assignments_match_array
   validate :playable_state_is_legal, if: :playable?
+  validate :starting_equipment_choice_only_changes_while_draft
 
   before_create :ensure_defaults
   before_validation :assign_default_ruleset
   before_validation :sync_derived_values, if: :should_sync_derived_values?
+  before_validation :sync_starting_equipment, if: :should_sync_starting_equipment?
   after_commit :record_initial_revision, on: :create
 
   scope :drafts, -> { where(status: "draft") }
@@ -131,11 +136,26 @@ class Character < ApplicationRecord
   end
 
   def starting_equipment_summary
+    return "#{starting_gold_for_level} gp" if starting_equipment_choice == "starting_gold"
+
     character_class&.starting_gear&.join(", ")
   end
 
+  def starting_gold_for_level(level_value = level)
+    rules = Rules::NimbleCatalog.starting_equipment_rules
+    per_level = rules.fetch("gold_per_level").to_i
+    per_level * [ level_value.to_i, 1 ].max
+  end
+
+  def gold_inventory_slots
+    gold_per_slot = Rules::NimbleCatalog.starting_equipment_rules.fetch("gold_per_inventory_slot").to_i
+    return 0 unless current_gold.to_i.positive? && gold_per_slot.positive?
+
+    (current_gold.to_i + gold_per_slot - 1) / gold_per_slot
+  end
+
   def inventory_slots_used
-    inventory_items.sum(:slots)
+    inventory_items.sum(:slots) + gold_inventory_slots
   end
 
   def inventory_slots_capacity
@@ -769,7 +789,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments", "feature_choices", "spell_choices",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots") },
@@ -847,6 +867,10 @@ class Character < ApplicationRecord
       new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed?
     end
 
+    def should_sync_starting_equipment?
+      new_record? || character_class_id_changed? || starting_equipment_choice_changed? || (draft? && level_changed?)
+    end
+
     def sync_derived_values
       if (stat_array_changed? || character_class_id_changed?) && !will_save_change_to_stat_assignments?
         self.stat_assignments = nil
@@ -864,10 +888,37 @@ class Character < ApplicationRecord
       assign_attributes_to_trait_set if trait_set.blank? || canonical_choices_changed?
 
       self.languages = derived_languages if languages.blank? || canonical_choices_changed?
-      if character_class.present?
-        self.starting_equipment = starting_equipment_summary if starting_equipment.blank?
-        self.inventory = starting_equipment_summary if inventory.blank?
+    end
+
+    def sync_starting_equipment
+      self.starting_equipment_choice = "class_gear" if starting_equipment_choice.blank?
+      return if character_class.blank?
+
+      previous_starting_equipment = starting_equipment
+      previous_inventory = inventory
+      choice_changed = new_record? || starting_equipment_choice_changed?
+      if starting_equipment_choice == "starting_gold"
+        should_grant_starting_gold = choice_changed || (draft? && level_changed?) || (draft? && current_gold.to_i.zero? && starting_equipment.blank?)
+        self.current_gold = starting_gold_for_level if should_grant_starting_gold
+        self.starting_equipment = "#{starting_gold_for_level} gp"
+      else
+        self.current_gold = 0 if choice_changed
+        self.starting_equipment = starting_equipment_summary if choice_changed || character_class_id_changed? || starting_equipment.blank?
       end
+
+      sync_legacy_inventory_note(previous_inventory, previous_starting_equipment) if new_record? || choice_changed || character_class_id_changed? || (draft? && level_changed?)
+    end
+
+    def sync_legacy_inventory_note(previous_inventory, previous_starting_equipment)
+      return unless previous_inventory.blank? || previous_inventory == previous_starting_equipment
+
+      self.inventory = starting_equipment
+    end
+
+    def starting_equipment_choice_only_changes_while_draft
+      return unless persisted? && starting_equipment_choice_changed? && !draft?
+
+      errors.add(:starting_equipment_choice, "can only be changed while the character is a draft")
     end
 
     def canonical_choices_changed?

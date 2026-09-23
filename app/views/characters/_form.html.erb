@@ -45,7 +45,7 @@
           </div>
           <div class="field">
             <%= form.label :level, "Level" %>
-            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level" } %>
+            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level", action: "change->character-builder#refresh" } %>
             <span class="field-hint">New heroes start at level 1.</span>
           </div>
           <div class="field field-wide">
@@ -85,6 +85,13 @@
             <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose a background" }, disabled: read_only, data: { character_builder_target: "background", action: "change->character-builder#refresh" } %>
             <span class="field-hint" data-character-builder-target="backgroundHint">Backgrounds can have creation prerequisites.</span>
           </div>
+          <% if character.new_record? || character.draft? %>
+            <div class="field field-wide">
+              <%= form.label :starting_equipment_choice, "Starting equipment" %>
+              <%= form.select :starting_equipment_choice, [["Class's listed starting gear", "class_gear"], ["Starting gold instead (50 gp per level)", "starting_gold"]], {}, disabled: read_only, data: { character_builder_target: "startingEquipmentChoice", action: "change->character-builder#refresh" } %>
+              <span class="field-hint">Core Rules 2.0.1, p. 20 · choose listed class gear or 50 gp per starting level; higher-level starts multiply the gold by level.</span>
+            </div>
+          <% end %>
           <div class="field">
             <%= form.label :stat_array, "Stat array" %>
             <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: read_only, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
@@ -194,6 +201,7 @@
           <div><span>Speed</span><strong data-character-builder-target="speedPreview"><%= character.trait_set&.speed || "—" %></strong></div>
           <div><span>Max wounds</span><strong data-character-builder-target="woundsPreview"><%= character.trait_set&.max_wounds || "—" %></strong></div>
           <div><span>Class resource</span><strong data-character-builder-target="resourcePreview"><%= character.trait_set&.resource_name || "—" %></strong></div>
+          <div><span>Starting equipment</span><strong data-character-builder-target="startingEquipmentPreview"><%= character.starting_equipment.presence || "Choose a class to see its gear" %></strong></div>
         </div>
         <div class="preview-note" data-character-builder-target="previewNote">Derived values update as you choose.</div>
       </section>

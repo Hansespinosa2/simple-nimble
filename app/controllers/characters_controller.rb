@@ -18,7 +18,7 @@ class CharactersController < ApplicationController
 
   # GET /characters/new
   def new
-    @character = Character.new(level: 1, status: "draft", ruleset_version: current_ruleset)
+    @character = Character.new(level: 1, status: "draft", starting_equipment_choice: "class_gear", ruleset_version: current_ruleset)
     @character.ensure_defaults
   end
 
@@ -103,7 +103,7 @@ class CharactersController < ApplicationController
 
   def tracker
     tracker_attributes = params.expect(character: [
-      :conditions, :inventory, :game_notes,
+      :conditions, :inventory, :game_notes, :current_gold,
       { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [ [ :key, :current ] ] } ] }
     ])
     normalize_resource_tracks!(tracker_attributes)
@@ -174,6 +174,7 @@ class CharactersController < ApplicationController
         :description,
         :languages,
         :spell_school_choice,
+        :starting_equipment_choice,
         :conditions,
         :inventory,
         :game_notes,
@@ -236,6 +237,7 @@ class CharactersController < ApplicationController
     def builder_rules
       {
         stat_arrays: Character::STAT_ARRAYS,
+        starting_equipment: Rules::NimbleCatalog.starting_equipment_rules,
         classes: @character_classes.index_by(&:id).transform_values do |character_class|
           {
             key_stats: character_class.key_stats,

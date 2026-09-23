@@ -32,6 +32,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
 
   test "the read-only shared sheet includes structured inventory without edit controls" do
     @character.inventory_items.create!(name: "2 potions", slots: 1)
+    @character.update!(current_gold: 150)
     sign_in(@player)
     post character_shares_url(@character), params: { campaign_id: @campaign.id }
     share = @character.character_shares.order(:id).last
@@ -41,6 +42,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Inventory"
     assert_includes response.body, "2 potions"
+    assert_includes response.body, "150 gp"
     assert_includes response.body, "Core Rules 2.0.1, p. 21"
     assert_select ".inventory-item-row form", 0
   end

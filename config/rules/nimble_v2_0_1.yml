@@ -26,6 +26,15 @@ derived_values:
   hp_level_up_formula: "roll Hit Die with advantage"
   hit_dice_formula: "current level"
 
+starting_equipment:
+  source_ref: Core Rules 2.0.1, p. 20
+  gold_per_level: 50
+  gold_per_inventory_slot: 500
+  gold_scales_with_starting_level: true
+  gold_per_level_source_quote: "50 gp to buy their starting equipment; if starting at a higher level, multiply that by the level you are starting at."
+  gold_per_inventory_slot_source_ref: Core Rules 2.0.1, p. 21
+  gold_per_inventory_slot_source_quote: "500 gp"
+
 stats:
   strength:
     abbreviation: STR

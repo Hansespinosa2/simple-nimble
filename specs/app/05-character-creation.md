@@ -103,7 +103,8 @@ All TBDs resolved.
   - **Mandatory** (character cannot reach PlayableValid without these): Choose Class, Choose Ancestry, Choose Background, Assign stat array (Standard / Balanced / Min-Max), Distribute 4 extra skill points at level 1, Record all derived values (HP, Armor, Initiative, Speed, Inventory Slots, Languages, Save DC).
   - **Optional (flavor only)**: Character name, adventuring motivation, physical description (height, weight, appearance).
   - Background stat prerequisites (e.g., INT ≤ 0) are validated at finalization.
-  - Starting equipment and mana (if applicable) are computed automatically from class; no manual input required.
+  - Starting equipment is source-backed: choose the class's listed starting gear or 50 gp per starting level; current gold is tracked and 500 gp occupies one inventory slot. Mana (if applicable) is derived from class.
+  - The parsed Core Rules text mentions class and background gear, but the structured catalog currently contains class gear only; background-specific equipment remains an explicit content gap rather than an invented grant.
 - **TBD-2** `[Resolved]` — Invalid drafts can be saved; only the PlayableValid transition requires legality checks.
 - **TBD-3** `[Resolved]` — Creation flow includes ~3 debug preset builds per level (levels 1–20) across varied classes/subclasses for testing and QA purposes.
 

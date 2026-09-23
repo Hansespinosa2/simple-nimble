@@ -14,6 +14,8 @@
     <p>The rules also let the GM waive inventory bookkeeping. This tracker warns when you exceed capacity but does not block the save.</p>
   </details>
 
+  <div class="inventory-currency-row"><strong>Gold</strong><span><%= number_with_delimiter(character.current_gold.to_i) %> gp · <%= character.gold_inventory_slots %> <%= "slot" if character.gold_inventory_slots == 1 %><%= "slots" if character.gold_inventory_slots != 1 %></span></div>
+
   <% if over_capacity %>
     <p class="inventory-over-capacity" role="status">Over capacity by <%= slots_used - character.inventory_slots_capacity %> <%= "slot" if slots_used - character.inventory_slots_capacity == 1 %><%= "slots" if slots_used - character.inventory_slots_capacity != 1 %>. Check the load with your GM.</p>
   <% end %>

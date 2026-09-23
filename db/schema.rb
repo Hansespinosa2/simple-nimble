@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_240000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_241000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -132,6 +132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_240000) do
     t.integer "character_class_id"
     t.text "conditions"
     t.datetime "created_at", null: false
+    t.integer "current_gold", default: 0, null: false
     t.text "description"
     t.text "feature_choices"
     t.text "game_notes"
@@ -146,6 +147,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_240000) do
     t.text "spell_choices"
     t.string "spell_school_choice"
     t.text "starting_equipment"
+    t.string "starting_equipment_choice", default: "class_gear", null: false
     t.string "stat_array"
     t.text "stat_assignments"
     t.string "status", default: "draft", null: false

@@ -225,6 +225,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .inventory-item-form label, .inventory-create-form label { color: var(--ink-soft); font-size: 10px; }
 .inventory-remove { flex: 0 0 auto; }
 .inventory-empty { font-size: 12px; margin: 0; }
+.inventory-currency-row { align-items: center; background: var(--surface-muted); border-radius: 9px; display: flex; font-size: 12px; justify-content: space-between; padding: 9px 11px; }
 .stat-card { background: var(--surface-muted); border-radius: 12px; padding: 15px 11px; text-align: center; }
 .stat-card span, .stat-card strong { display: block; }
 .stat-abbr { color: var(--ink-soft); font-size: 10px; font-weight: 850; letter-spacing: .1em; }

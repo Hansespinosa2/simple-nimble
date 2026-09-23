@@ -33,6 +33,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[ancestry_id]']"
     assert_select "select[name='character[background_id]']"
     assert_select "select[name='character[stat_array]']"
+    assert_select "select[name='character[starting_equipment_choice]'] option[value='starting_gold']", text: "Starting gold instead (50 gp per level)"
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
     assert_select "[data-character-builder-target='savesPreview']"
@@ -68,6 +69,48 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert created.character_revisions.exists?(event_type: "created")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "should create a higher-level character with source-defined starting gold" do
+    post characters_url, params: {
+      character: canonical_character_attributes.merge(
+        name: "Gold-funded Hero",
+        level: 3,
+        starting_equipment_choice: "starting_gold"
+      )
+    }
+
+    character = Character.order(:id).last
+    assert_redirected_to character_url(character)
+    assert_equal "starting_gold", character.starting_equipment_choice
+    assert_equal 150, character.current_gold
+    assert_equal "150 gp", character.starting_equipment
+    assert_equal 1, character.inventory_slots_used
+    assert_equal 150, character.character_revisions.order(:id).last.snapshot.dig("character", "current_gold")
+  end
+
+  test "a draft gold allowance scales when its starting level is changed" do
+    character = Character.create!(
+      name: "Level Change Draft",
+      character_class: @character_class,
+      starting_equipment_choice: "starting_gold"
+    )
+    assert_equal 50, character.current_gold
+
+    patch character_url(character), params: { character: { level: 4 } }
+
+    assert_redirected_to character_url(character)
+    assert_equal 200, character.reload.current_gold
+  end
+
+  test "the game tracker saves current gold and counts its carrying slots" do
+    patch tracker_character_url(@character), params: { character: { current_gold: 501 } }
+
+    assert_redirected_to character_url(@character)
+    assert_equal 501, @character.reload.current_gold
+    assert_equal 2, @character.inventory_slots_used
+    assert_equal 501, @character.character_revisions.order(:id).last.snapshot.dig("character", "current_gold")
+  end
+
   test "should finalize a legal character and persist derived values" do
     # The finalize flag is a top-level form control, just as the real form submits it.
     assert_difference("Character.count") do
@@ -83,6 +126,23 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "balanced", created.stat_array
     assert_equal @character_class.starting_hp, created.trait_set.max_hp
     assert created.character_revisions.exists?(event_type: "finalized")
+  end
+
+  test "a playable character cannot switch its starting equipment path afterward" do
+    post characters_url, params: {
+      character: canonical_character_attributes.merge(name: "Locked Starter")
+        .merge(character_class_id: @character_class.id, ancestry_id: @ancestry.id, background_id: @background.id),
+      finalize: "1"
+    }
+    character = Character.order(:id).last
+    assert character.playable?
+
+    patch character_url(character), params: { character: { starting_equipment_choice: "starting_gold" } }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "can only be changed while the character is a draft"
+    assert_equal "class_gear", character.reload.starting_equipment_choice
+    assert_equal 0, character.current_gold
   end
 
   test "should save an Academy Dropout Utility Spell choice when finalizing" do

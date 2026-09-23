@@ -53,6 +53,17 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
   end
 
+  test "the starting-gold alternative and coin slot size are source-backed" do
+    starting_equipment = @catalog.starting_equipment_rules
+
+    assert_equal "Core Rules 2.0.1, p. 20", starting_equipment.fetch("source_ref")
+    assert_equal 50, starting_equipment.fetch("gold_per_level")
+    assert_equal 500, starting_equipment.fetch("gold_per_inventory_slot")
+    assert_equal true, starting_equipment.fetch("gold_scales_with_starting_level")
+    assert_equal "Core Rules 2.0.1, p. 21", starting_equipment.fetch("gold_per_inventory_slot_source_ref")
+    assert_includes starting_equipment.fetch("gold_per_level_source_quote"), "multiply that by the level"
+  end
+
   test "class entries expose equipment and resource data used by the sheet" do
     mage = CharacterClass.find_by!(name: "Mage")
 

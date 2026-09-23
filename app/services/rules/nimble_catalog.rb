@@ -25,6 +25,10 @@ module Rules
         data.fetch("derived_values")
       end
 
+      def starting_equipment_rules
+        data.fetch("starting_equipment")
+      end
+
       def class_for(name)
         data.fetch("classes")[name.to_s]
       end

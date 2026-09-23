@@ -1,6 +1,62 @@
 require "test_helper"
 
 class CharacterTest < ActiveSupport::TestCase
+  # S-02:AC-1 S-05:AC-1 S-09:AC-3
+  test "starting equipment choice is limited to source-defined options and gold cannot be negative" do
+    character = Character.new(starting_equipment_choice: "free_legendary_gear", current_gold: -1)
+
+    assert_not character.valid?
+    assert_includes character.errors.attribute_names, :starting_equipment_choice
+    assert_includes character.errors.attribute_names, :current_gold
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-3
+  test "a starting-gold choice scales with level and coin weight counts toward inventory" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(
+      name: "Well-funded Mage",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+
+    assert_equal 150, mage.current_gold
+    assert_equal "150 gp", mage.starting_equipment
+    assert_equal 1, mage.gold_inventory_slots
+    assert_equal 1, mage.inventory_slots_used
+    assert_equal "starting_gold", mage.snapshot_payload.fetch("character").fetch("starting_equipment_choice")
+    assert_equal 150, mage.snapshot_payload.fetch("character").fetch("current_gold")
+
+    mage.update!(current_gold: 501)
+    assert_equal 2, mage.inventory_slots_used
+
+    mage.update!(level: 4)
+    assert_equal 200, mage.current_gold
+    mage.update!(current_gold: 75)
+    mage.update!(name: "Spent Mage")
+    assert_equal 75, mage.current_gold
+  end
+
+  # S-02:AC-1 S-05:AC-1 S-09:AC-3
+  test "class-gear starts do not grant the alternative starting-gold allowance" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(
+      name: "Equipped Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+
+    assert_equal "class_gear", mage.starting_equipment_choice
+    assert_includes mage.starting_equipment, "Staff"
+    assert_equal 0, mage.current_gold
+    assert_equal 0, mage.gold_inventory_slots
+  end
+
   # S-04:AC-1 S-05:AC-5
   test "unfinished drafts may leave the stat array blank but reject unknown arrays" do
     draft = Character.new(name: "Work in progress", status: "draft", stat_array: "")

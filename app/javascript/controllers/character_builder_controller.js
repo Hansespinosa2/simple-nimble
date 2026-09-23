@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
-    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment",
+    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment", "startingEquipmentChoice", "startingEquipmentPreview",
     "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget"
   ]
 
@@ -31,6 +31,7 @@ export default class extends Controller {
     this.updateStats(characterClass, array)
     this.updateSkills(characterClass, ancestry, background, array)
     this.updateDerived(characterClass, ancestry, background, array)
+    this.updateStartingEquipment(characterClass)
     this.updateHints(characterClass, ancestry, background)
     this.updateSpellSchoolChoice(characterClass)
     this.updateBackgroundSpellChoice(background)
@@ -53,6 +54,18 @@ export default class extends Controller {
     if (this.hasBackgroundSpellChoiceTarget) {
       if (!enabled) this.backgroundSpellChoiceTarget.value = ""
       this.backgroundSpellChoiceTarget.disabled = this.backgroundSpellChoiceInitialDisabled
+    }
+  }
+
+  updateStartingEquipment(characterClass) {
+    if (!this.hasStartingEquipmentPreviewTarget) return
+
+    if (this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold") {
+      const goldPerLevel = Number(this.rulesValue.starting_equipment?.gold_per_level || 50)
+      const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
+      this.setTargetText("startingEquipmentPreview", `${goldPerLevel * Math.max(level, 1)} gp`)
+    } else {
+      this.setTargetText("startingEquipmentPreview", characterClass?.starting_gear?.join(", ") || "Choose a class to see its gear")
     }
   }
 

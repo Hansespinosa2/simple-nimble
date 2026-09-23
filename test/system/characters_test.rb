@@ -83,6 +83,38 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='armorPreview']", text: "2"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the builder previews and saves the level-scaled starting-gold option" do
+    visit new_character_url
+
+    fill_in "Character name", with: "Gold Start Hero"
+    fill_in "Level", with: 3
+    select "Mage", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Fearless", from: "Background"
+    select "Balanced", from: "Stat array"
+    select "Starting gold instead (50 gp per level)", from: "Starting equipment"
+
+    assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
+    assert_text "Core Rules 2.0.1, p. 20"
+    click_on "Save draft"
+
+    assert_text "Draft saved"
+    assert_text "150 gp"
+    character = Character.find_by!(name: "Gold Start Hero")
+    assert_equal 150, character.current_gold
+    assert_equal 1, character.inventory_slots_used
+
+    fill_in "Gold (gp)", with: 501
+    click_on "Save game state"
+
+    assert_text "Game state saved."
+    character.reload
+    assert_equal 501, character.current_gold
+    assert_equal 2, character.inventory_slots_used
+    assert_text "2 / #{character.inventory_slots_capacity} slots used"
+  end
+
   test "choosing Academy Dropout reveals its Utility Spell picker" do
     visit new_character_url
 

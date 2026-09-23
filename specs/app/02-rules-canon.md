@@ -375,6 +375,7 @@ These must be calculable from structured data — no manual calculation required
 | Speed | 6 (default; modified by ancestry/equipment/features) |
 | Max Wounds | 6 (default; modified by ancestry/class features) |
 | Inventory Slots | 10 + STR |
+| Starting equipment | Listed class gear or 50 gp × starting level; carried currency uses 1 slot per 500 gp |
 | Languages known | 1 (Common) + max(INT, 0) extra + ancestry/background grants |
 | Save DC (for hero-caused effects) | 10 + KEY stat |
 | Mana pool max | Class-specific formula (e.g., INT×3+LVL for Mage; WIL×3+LVL for Shepherd/Stormshifter) |
