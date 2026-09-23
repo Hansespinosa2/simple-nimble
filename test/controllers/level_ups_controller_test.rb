@@ -49,6 +49,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "select[name='level_up[feature_choices][Savage Arsenal][]']"
+    assert_select "select[name='level_up[feature_choices][Savage Arsenal][]'] option:first-child[value='']", text: "Choose an option"
     assert_select ".feature-choice-field", /Heroes 2.0.1, p. 10/
     assert_select ".feature-choice-field option", text: "Death Blow"
   end
@@ -91,6 +92,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "select[name='level_up[spell_choices][Elemental Mastery][]']"
+    assert_select "select[name='level_up[spell_choices][Elemental Mastery][]'] option:first-child[value='']", text: "Choose an option"
     assert_select ".spell-choice-field", /Heroes 2.0.1, p. 33/
     assert_select ".spell-choice-field option", text: "Fire"
   end

@@ -61,7 +61,9 @@ class LevelUpPlanner
 
     feature_choices_by_name = feature_choices
     character.character_class.feature_choice_pools_for(target_level).map do |pool|
-      pool.merge("selected" => feature_choices_by_name.fetch(pool.fetch("name"), []))
+      pool_name = pool.fetch("name")
+      selected = feature_choices_by_name.fetch(pool_name, [])
+      pool.merge("options" => available_feature_options(pool, selected), "selected" => selected)
     end
   end
 
@@ -229,7 +231,12 @@ class LevelUpPlanner
       traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier, level: target_level, subclass_name: selected_subclass_name)
       traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
-      resource_values = character.derived_resource_values_for(stat_values: stats, level: target_level)
+      resource_values = character.derived_resource_values_for(
+        stat_values: stats,
+        level: target_level,
+        feature_choices: projected_feature_choices,
+        subclass_name: selected_subclass_name
+      )
       resource_tracks = character.preserved_resource_tracks(resource_values.fetch(:resource_tracks))
       legacy_resource_values = character.resource_tracker_values_for(resource_tracks)
       traits["resource_tracks"] = resource_tracks
@@ -334,24 +341,40 @@ class LevelUpPlanner
           )
         end
 
-        unless pool.fetch("allow_repeat", false)
-          if selections.uniq.length != selections.length
-            result << issue(
-              "Choose different #{pool_name} options.",
-              pool.fetch("source_ref"),
-              "A choice cannot be selected more than once unless the rules say repeats are allowed."
-            )
-          end
+        repeatable_options = Array(pool.fetch("repeatable_options", []))
+        unique_selections = pool.fetch("allow_repeat", false) ? [] : selections - repeatable_options
+        if unique_selections.uniq.length != unique_selections.length
+          result << issue(
+            "Choose different #{pool_name} options.",
+            pool.fetch("source_ref"),
+            "A choice cannot be selected more than once unless the rules say repeats are allowed."
+          )
+        end
 
-          prior_selections = character.recorded_feature_choices.fetch(pool_name, [])
-          repeated_options = selections & prior_selections
-          unless repeated_options.empty?
-            result << issue(
-              "#{repeated_options.join(', ')} has already been chosen for #{pool_name}.",
-              pool.fetch("source_ref"),
-              "Choose a new option from the list at each scheduled choice."
-            )
-          end
+        prior_selections = character.recorded_feature_choices.fetch(pool_name, [])
+        repeated_options = (selections - repeatable_options) & prior_selections
+        unless repeated_options.empty?
+          result << issue(
+            "#{repeated_options.join(', ')} has already been chosen for #{pool_name}.",
+            pool.fetch("source_ref"),
+            "Choose a new option from the list at each scheduled choice."
+          )
+        end
+
+        other_pool_names = Array(pool.fetch("unique_across_pools", [])) - [ pool_name ]
+        prior_cross_pool_choices = other_pool_names.flat_map do |other_pool_name|
+          character.recorded_feature_choices.fetch(other_pool_name, [])
+        end
+        current_cross_pool_choices = other_pool_names.flat_map do |other_pool_name|
+          feature_choices.fetch(other_pool_name, [])
+        end
+        repeated_across_pools = (selections - repeatable_options) & (prior_cross_pool_choices + current_cross_pool_choices)
+        unless repeated_across_pools.empty?
+          result << issue(
+            "#{repeated_across_pools.join(', ')} has already been selected from another Commander ability list.",
+            pool.fetch("source_ref"),
+            "Choose another ability; the Commander may not select the same Combat Ability twice."
+          )
         end
 
         requirements = pool.fetch("requires", {})
@@ -365,6 +388,39 @@ class LevelUpPlanner
             pool.fetch("source_ref"),
             "Meet the prerequisite printed beside that option before selecting it."
           )
+        end
+      end
+    end
+
+    def available_feature_options(pool, selected)
+      pool_name = pool.fetch("name")
+      repeatable_options = Array(pool.fetch("repeatable_options", []))
+      prior_selections = character.recorded_feature_choices.fetch(pool_name, [])
+      other_pool_names = Array(pool.fetch("unique_across_pools", [])) - [ pool_name ]
+      prior_cross_pool_choices = other_pool_names.flat_map do |other_pool_name|
+        character.recorded_feature_choices.fetch(other_pool_name, [])
+      end
+      current_cross_pool_choices = other_pool_names.flat_map do |other_pool_name|
+        feature_choices.fetch(other_pool_name, [])
+      end
+      prior_choices = prior_selections + prior_cross_pool_choices + current_cross_pool_choices
+      requirements = pool.fetch("requires", {})
+      eligible_choices = character.recorded_feature_choices.fetch(pool_name, []) + selected
+
+      Array(pool.fetch("options", [])).select do |option|
+        can_repeat = repeatable_options.include?(option)
+        not_previously_selected = pool.fetch("allow_repeat", false) || can_repeat || !prior_choices.include?(option)
+        prerequisites_met = (Array(requirements.fetch(option, [])) - eligible_choices).empty?
+        not_previously_selected && prerequisites_met
+      end | selected
+    end
+
+    def projected_feature_choices
+      character.recorded_feature_choices.each_with_object({}) do |(pool_name, selections), projected|
+        projected[pool_name] = selections.dup
+      end.tap do |projected|
+        feature_choices.each do |pool_name, selections|
+          projected[pool_name] = Array(projected[pool_name]) + selections
         end
       end
     end

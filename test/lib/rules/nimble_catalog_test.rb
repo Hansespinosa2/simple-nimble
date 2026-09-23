@@ -63,6 +63,21 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal({ "formula" => "dexterity", "base" => 2 }, mage.armor_rules)
   end
 
+  test "feature choice effects add together for repeated source options" do
+    effects = @catalog.feature_choice_effects_for(
+      "Commander",
+      "Combat Ability" => [ "+1 max Combat Dice", "+1 max Combat Dice" ]
+    )
+
+    assert_equal({ "resource_max_modifiers" => { "combat_dice" => 2 } }, effects)
+  end
+
+  test "Commander weapon mastery is a choice at six and ten, not fourteen" do
+    assert_includes @catalog.choice_pools_for("Commander", 6).map { |pool| pool.fetch("name") }, "Weapon Mastery"
+    assert_includes @catalog.choice_pools_for("Commander", 10).map { |pool| pool.fetch("name") }, "Weapon Mastery"
+    assert_not_includes @catalog.choice_pools_for("Commander", 14).map { |pool| pool.fetch("name") }, "Weapon Mastery"
+  end
+
   test "every published class exposes its level-three subclass choices" do
     expected = {
       "Berserker" => [ "Path of the Mountainheart", "Path of the Red Mist" ],

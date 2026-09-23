@@ -429,6 +429,100 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal [ "Fleet Feet", "Wild Instinct" ], level_up.reload.preview.fetch("feature_choices").fetch("Thrill of the Hunt")
   end
 
+  test "Commander combat abilities cannot repeat earlier orders or tactics" do
+    character = commander_at_level_five
+    options_planner = LevelUpPlanner.new(
+      character,
+      character.level_ups.build(from_level: 5, to_level: 6, skill_name: "lore", hit_die_roll_one: 4, hit_die_roll_two: 2)
+    )
+    pool = options_planner.feature_choice_pools.find { |choice_pool| choice_pool.fetch("name") == "Combat Ability" }
+
+    assert_not_includes pool.fetch("options"), "Face Me!"
+    assert_not_includes pool.fetch("options"), "Heavy Strike"
+    assert_includes pool.fetch("options"), "+1 max Combat Dice"
+
+    level_up = character.level_ups.build(
+      from_level: 5,
+      to_level: 6,
+      skill_name: "lore",
+      feature_choices: { "Combat Ability" => [ "Face Me!" ] },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_not planner.valid?
+    issue = planner.issues.find { |item| item[:message].include?("already been selected from another Commander ability list") }
+    assert_equal "Heroes 2.0.1, pp. 20, 22", issue.fetch(:source_ref)
+  end
+
+  test "repeated Commander Combat Dice upgrades increase and preserve the resource maximum" do
+    character = commander_at_level_five
+    original_max = character.trait_set.resource_tracks.find { |track| track.fetch("key") == "combat_dice" }.fetch("max")
+    level_six = character.level_ups.create!(
+      from_level: 5,
+      to_level: 6,
+      skill_name: "lore",
+      feature_choices: {
+        "Combat Ability" => [ "+1 max Combat Dice" ],
+        "Weapon Mastery" => [ "Slashing" ]
+      },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    assert_equal original_max + 1, LevelUpPlanner.new(character, level_six).preview.fetch("traits").fetch("max_resource")
+    LevelUpService.finalize!(level_six)
+    character.reload
+    assert_equal original_max + 1, character.trait_set.resource_tracks.find { |track| track.fetch("key") == "combat_dice" }.fetch("max")
+
+    level_seven = character.level_ups.create!(from_level: 6, to_level: 7, skill_name: "lore", hit_die_roll_one: 4, hit_die_roll_two: 2)
+    LevelUpService.finalize!(level_seven)
+    character.reload
+
+    level_eight = character.level_ups.create!(
+      from_level: 7,
+      to_level: 8,
+      skill_name: "lore",
+      stat_name: "intelligence",
+      feature_choices: { "Combat Ability" => [ "+1 max Combat Dice" ] },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_eight)
+
+    assert planner.valid?, planner.explanations.map { |explanation| explanation[:message] }.join(" | ")
+    assert_equal original_max + 2, planner.preview.fetch("traits").fetch("max_resource")
+    LevelUpService.finalize!(level_eight)
+
+    character.reload
+    combat_dice = character.trait_set.resource_tracks.find { |track| track.fetch("key") == "combat_dice" }
+    assert_equal original_max + 2, combat_dice.fetch("max")
+    assert_equal [ "+1 max Combat Dice", "+1 max Combat Dice" ], character.recorded_feature_choices.fetch("Combat Ability")
+  end
+
+  test "Vanguard level-eleven feature raises the Commander Combat Dice maximum" do
+    character = commander_at_level_five
+    stats = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
+
+    bulwark_max = character.derived_resource_tracks_for(
+      stat_values: stats,
+      level: 11,
+      subclass_name: "Champion of the Bulwark"
+    ).find { |track| track.fetch("key") == "combat_dice" }.fetch("max")
+    vanguard_max = character.derived_resource_tracks_for(
+      stat_values: stats,
+      level: 11,
+      subclass_name: "Champion of the Vanguard"
+    ).find { |track| track.fetch("key") == "combat_dice" }.fetch("max")
+
+    assert_equal bulwark_max + 1, vanguard_max
+    assert_equal "Heroes 2.0.1, p. 23", character.derived_feature_effects(
+      level: 11,
+      subclass_name: "Champion of the Vanguard"
+    ).fetch("source_ref")
+  end
+
   test "illegal feature options and prerequisites are blocked with source explanations" do
     Rails.application.load_seed
     character = Character.create!(
@@ -521,4 +615,37 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 33", issue.fetch(:source_ref)
     assert_includes issue.fetch(:message), "Choose 1 Elemental Mastery option"
   end
+
+  private
+    def commander_at_level_five
+      Rails.application.load_seed unless CharacterClass.exists?(name: "Commander")
+      character = Character.create!(
+        name: "Commander Dice Hero",
+        level: 1,
+        character_class: CharacterClass.find_by!(name: "Commander"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        skill_set_attributes: { might: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(level: 5, status: "playable", subclass_name: "Champion of the Bulwark")
+      character.skill_set.update!(might: character.skill_initial_value("might") + 8)
+      character.update!(feature_choices: {
+        "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] },
+        "Combat Tactics" => { "4" => [ "Heavy Strike" ] }
+      })
+      stat_values = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
+      resources = character.derived_resource_values_for(stat_values: stat_values, level: 5)
+      legacy_values = character.resource_tracker_values_for(resources.fetch(:resource_tracks))
+      character.trait_set.update!(
+        resource_name: resources.fetch(:name),
+        resource_formula: resources.fetch(:formula),
+        resource_die: resources.fetch(:die),
+        max_resource: legacy_values.fetch(:max_resource),
+        current_resource: legacy_values.fetch(:current_resource),
+        resource_tracks: resources.fetch(:resource_tracks)
+      )
+      character
+    end
 end

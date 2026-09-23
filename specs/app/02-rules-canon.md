@@ -235,9 +235,11 @@ Each class has one or more pools of abilities from which the player picks at des
 |---|---|---|---|
 | Berserker | Savage Arsenal | 12 abilities | L4; additional at L6, L8, L10, L12, L14, L16 |
 | The Cheat | Underhanded Abilities | ~10 abilities | L4; additional at L6, L8, L10, L12, L14, L16, L18 |
-| Commander | Commander's Orders | ~6 orders | L1 (Coordinated Strike!) + 2 more at L2 |
-| Commander | Combat Tactics | ~5 tactic types | L4 |
-| Commander | Weapon Mastery | 3 types (Slashing/Bludgeoning/Piercing) | L6, L10, L14 |
+| Commander | Coordinated Strike! | Granted automatically | L1; not a selectable Commander’s Order |
+| Commander | Commander's Orders | 5 selectable orders | Choose 2 at L2 |
+| Commander | Combat Tactics | 5 tactic types | Choose 1 at L4 |
+| Commander | Combat Ability | Commander’s Orders or Combat Tactics not already chosen, or +1 max Combat Dice (repeatable) | Choose 1 at L6, L8, L10, L12, and L16 |
+| Commander | Weapon Mastery | 3 types (Slashing/Bludgeoning/Piercing) | Choose at L6 and L10; complete mastery is granted at L14 |
 | Hunter | Thrill of the Hunt | ~15 abilities | L2 (2 choices); additional at L4, L6, L8, L12, L14 |
 | Mage | Spellshaper | 8 abilities | L4 (2 choices); +1 at L9, L13 |
 | Oathsworn | Sacred Decrees | ~10 decrees | L3; additional at L6, L9, L12, L14, L16 |

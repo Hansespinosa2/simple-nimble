@@ -847,8 +847,14 @@ choice_pools:
         - Lunging Strike
         - Sweeping Strike
     "Combat Ability":
-      source_ref: Heroes 2.0.1, p. 20
+      source_ref: Heroes 2.0.1, pp. 20, 22
       choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
+      unique_across_pools: ["Commander's Orders", "Combat Tactics", "Combat Ability"]
+      repeatable_options: ["+1 max Combat Dice"]
+      option_effects:
+        "+1 max Combat Dice":
+          resource_max_modifiers:
+            combat_dice: 1
       options:
         - "Face Me!"
         - "Hold the Line!"
@@ -1075,6 +1081,12 @@ derived_effects:
       13:
         armor_multiplier: 2
   subclasses:
+    Commander:
+      "Champion of the Vanguard":
+        11:
+          source_ref: Heroes 2.0.1, p. 23
+          resource_max_modifiers:
+            combat_dice: 1
     Hunter:
       "Wild Heart":
         3:

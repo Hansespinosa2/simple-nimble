@@ -71,6 +71,20 @@ module Rules
         choice_pools_for_class(class_name).fetch(pool_name.to_s, nil)
       end
 
+      def feature_choice_effects_for(class_name, selections_by_pool)
+        selections_by_pool.to_h.each_with_object({}) do |(pool_name, selections), effects|
+          option_effects = choice_pool_for(class_name, pool_name).to_h.fetch("option_effects", {})
+          Array(selections).each do |selection|
+            option_effects.fetch(selection.to_s, {}).to_h.each do |effect_name, values|
+              effects[effect_name] ||= {}
+              values.to_h.each do |key, value|
+                effects[effect_name][key] = effects[effect_name].fetch(key, 0).to_i + value.to_i
+              end
+            end
+          end
+        end
+      end
+
       def spell_choice_pools_for(class_name, level)
         data.fetch("spell_choice_pools", {}).fetch(class_name.to_s, {}).filter_map do |pool_name, definition|
           count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
@@ -100,6 +114,10 @@ module Rules
             effects.merge!(effect_values) do |key, previous, current|
               if %w[speed_modifier max_hp_modifier max_wounds_modifier].include?(key.to_s)
                 previous.to_i + current.to_i
+              elsif key.to_s == "resource_max_modifiers"
+                (previous.to_h.keys | current.to_h.keys).index_with do |resource_key|
+                  previous.to_h.fetch(resource_key, 0).to_i + current.to_h.fetch(resource_key, 0).to_i
+                end
               else
                 current
               end

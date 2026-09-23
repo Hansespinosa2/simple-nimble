@@ -376,14 +376,22 @@ class Character < ApplicationRecord
     (value_for_stat(stat_values || current_stat_values, stat) * multiplier) + level.to_i
   end
 
-  def derived_resource_tracks_for(stat_values:, level: self.level)
+  def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     pools = Array(character_class&.resource_rules.to_h["pools"])
+    choice_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices)
+    derived_resource_modifiers = derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
+    choice_resource_modifiers = choice_effects.fetch("resource_max_modifiers", {})
+    resource_keys = derived_resource_modifiers.keys | choice_resource_modifiers.keys
+    resource_max_modifiers = resource_keys.index_with do |key|
+      derived_resource_modifiers.fetch(key, 0).to_i + choice_resource_modifiers.fetch(key, 0).to_i
+    end
 
     pools.filter_map do |pool|
       pool = pool.to_h
       next if level.to_i < pool.fetch("start_level", 1).to_i
 
       maximum = resource_track_max_from(pool, stat_values, level)
+      maximum += resource_max_modifiers.fetch(pool.fetch("key"), 0).to_i if maximum.present?
       die = resource_die_for(pool["die_by_level"], level)
       initial_current = pool.key?("initial_current") ? pool["initial_current"].to_i : maximum.to_i
 
@@ -399,10 +407,15 @@ class Character < ApplicationRecord
     end
   end
 
-  def derived_resource_values_for(stat_values:, level: self.level)
+  def derived_resource_values_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     rules = character_class&.resource_rules.to_h
     formula = rules["max_formula"].presence || rules["formula"].presence
-    tracks = derived_resource_tracks_for(stat_values: stat_values, level: level)
+    tracks = derived_resource_tracks_for(
+      stat_values: stat_values,
+      level: level,
+      feature_choices: feature_choices,
+      subclass_name: subclass_name
+    )
     legacy_values = resource_tracker_values_for(tracks)
     die = tracks.find { |track| track["die"].present? }&.fetch("die")
 
@@ -788,7 +801,7 @@ class Character < ApplicationRecord
       max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
-      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
+      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value, subclass_name: subclass_for_effects)
       resource_tracks = resource_values.fetch(:resource_tracks)
       resource_tracks = preserved_resource_tracks(resource_tracks, preserved_tracker_state) if preserved_tracker_state
       legacy_resource_values = resource_tracker_values_for(resource_tracks)
@@ -993,7 +1006,7 @@ class Character < ApplicationRecord
       max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
       armor = armor_for(stat_values, level: level_value, subclass_name: subclass_for_effects).to_i + derived_modifier_for(:armor_modifier, level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
-      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
+      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value, subclass_name: subclass_for_effects)
 
       build_trait_set initiative:        initiative,
                       speed:             speed,
