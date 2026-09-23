@@ -31,6 +31,18 @@ class LevelUpPlanner
     target_level == 3 && character.subclass_name.blank? && subclass_options.present?
   end
 
+  def progression_preview
+    klass = character.character_class
+    subclass_name = level_up.subclass_name.presence || character.subclass_name
+
+    {
+      "features" => klass&.features_for(target_level).to_a,
+      "subclass_features" => subclass_name.present? ? klass&.subclass_features_for(subclass_name, target_level).to_a : [],
+      "subclass_name" => subclass_name,
+      "source_ref" => klass&.source_reference
+    }
+  end
+
   def hit_die_size
     hit_die = character.trait_set&.hit_die.presence || character.character_class&.hit_die
     hit_die.to_s.split("d").last.to_i.nonzero? || 6
@@ -196,6 +208,7 @@ class LevelUpPlanner
       "stat_increase_type" => stat_increase_type,
       "subclass" => level_up.subclass_name.presence || character.subclass_name,
       "spell_tier" => spell_tier_for(target_level),
+      "progression" => progression_preview,
       "explanations" => applied_explanations(stats, hp_gain)
     }
   end

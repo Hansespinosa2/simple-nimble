@@ -78,6 +78,18 @@ class CharacterClass < ApplicationRecord
     Array(rules_entry.to_h.fetch("subclasses", []))
   end
 
+  def progression_rules
+    Rules::NimbleCatalog.progression_for(name)
+  end
+
+  def features_for(level)
+    Rules::NimbleCatalog.features_for(name, level)
+  end
+
+  def subclass_features_for(subclass_name, level)
+    Rules::NimbleCatalog.subclass_features_for(name, subclass_name, level)
+  end
+
   private
     def fallback_stat_increase_type_for(level)
       FALLBACK_STAT_INCREASES.each do |type, levels|

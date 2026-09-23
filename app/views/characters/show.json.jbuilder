@@ -2,6 +2,7 @@ payload = @character.snapshot_payload
 
 json.character payload.fetch("character").merge("id" => @character.id)
 json.rules payload.fetch("rules")
+json.progression payload.fetch("progression")
 json.stats payload.fetch("stats")
 json.skills payload.fetch("skills")
 json.traits payload.fetch("traits")

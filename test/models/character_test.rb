@@ -288,6 +288,35 @@ class CharacterTest < ActiveSupport::TestCase
     assert_includes character.errors[:stat_array], "is not included in the list"
   end
 
+  test "class progression and subclass milestones come from the source catalog" do
+    Rails.application.load_seed
+    berserker = CharacterClass.find_by!(name: "Berserker")
+
+    assert_equal [ "Intensifying Fury", "One with the Ancients" ], berserker.features_for(2)
+    assert_equal [ "Stone's Resilience", "Mountainous Tenacity" ], berserker.subclass_features_for("Path of the Mountainheart", 3)
+    assert_equal [ "Titan's Fury" ], berserker.subclass_features_for("Path of the Mountainheart", 11)
+
+    character = Character.new(
+      name: "Progression Hero",
+      level: 11,
+      character_class: berserker,
+      subclass_name: "Path of the Mountainheart"
+    )
+    class_features = character.progression_features_through.map { |feature| feature.values_at(:level, :name) }
+    subclass_features = character.subclass_progression_features_through.map { |feature| feature.values_at(:level, :name) }
+
+    assert_includes class_features, [ 2, "Intensifying Fury" ]
+    assert_includes subclass_features, [ 11, "Titan's Fury" ]
+
+    Rules::NimbleCatalog.classes.each_key do |class_name|
+      character_class = CharacterClass.find_by!(name: class_name)
+      assert character_class.features_for(1).any?, "#{character_class.name} is missing its level-one progression"
+      character_class.subclass_options.each do |subclass|
+        assert character_class.subclass_features_for(subclass, 3).any?, "#{character_class.name} / #{subclass} is missing its level-three progression"
+      end
+    end
+  end
+
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

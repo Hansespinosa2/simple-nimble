@@ -45,6 +45,28 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, shared_character_path(share.share_token)
   end
 
+  test "a shared rules-backed sheet includes unlocked class progression" do
+    Rails.application.load_seed
+    progression_character = Character.create!(
+      name: "Progression Share",
+      account: @player,
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard"
+    )
+    sign_in(@player)
+    post character_shares_url(progression_character), params: { campaign_id: @campaign.id }
+    share = progression_character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_includes response.body, "Features unlocked"
+    assert_includes response.body, "Rage"
+    assert_includes response.body, "Heroes 2.0.1"
+  end
+
   test "a non-member cannot open a campaign workspace" do
     outsider = Account.create!(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
     sign_in(outsider)

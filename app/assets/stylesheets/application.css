@@ -301,6 +301,19 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .sharing-empty p { margin: 0; }
 .share-list { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 11px; }
 .share-list > div { align-items: center; border-bottom: 1px solid var(--line); display: flex; font-size: 12px; justify-content: space-between; padding: 9px 0; }
+.progression-panel { margin-bottom: 18px; }
+.progression-history { display: grid; gap: 7px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.progression-entry { align-items: center; background: var(--surface-muted); border-radius: 9px; display: grid; gap: 8px; grid-template-columns: 54px 1fr auto; padding: 9px 11px; }
+.progression-entry span, .progression-entry em { color: var(--ink-soft); font-size: 10px; font-style: normal; }
+.progression-entry strong { font-size: 12px; }
+.progression-entry-subclass { background: var(--accent-pale); }
+.progression-preview { border-top: 1px solid rgba(255,255,255,.12); margin-top: 16px; padding-top: 14px; }
+.progression-preview h3 { color: #fff; font-family: Macondo, serif; font-size: 25px; font-weight: 400; margin: 0 0 9px; }
+.feature-list { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.feature-list li { align-items: baseline; color: #f7f4ed; display: flex; font-size: 12px; gap: 7px; line-height: 1.35; }
+.feature-list li > span { color: #b5d8b8; }
+.feature-list small { color: #a9b0b7; font-size: 10px; }
+.source-note { color: #a9b0b7; display: block; font-size: 10px; line-height: 1.4; margin-top: 10px; }
 .level-up-choice-grid { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); }
 .level-up-form .field + .field { margin-top: 18px; }
 .level-up-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 18px; }
@@ -384,6 +397,9 @@ h3 { font-size: 18px; margin-bottom: 4px; }
     .vitals-grid { gap: 8px; grid-template-columns: repeat(2, 1fr); }
     .vital-card:first-child { grid-column: span 2; }
     .sheet-stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .progression-history { grid-template-columns: 1fr; }
+    .progression-entry { grid-template-columns: 54px 1fr; }
+    .progression-entry em { grid-column: 2; }
     .share-form, .sharing-empty { align-items: stretch; flex-direction: column; }
     .share-form select { max-width: none; }
     .campaign-invite { align-items: stretch; flex-direction: column; gap: 15px; }

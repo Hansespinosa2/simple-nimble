@@ -223,6 +223,8 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 3, character.reload.level
     assert_equal "Path of the Red Mist", character.subclass_name
     assert_equal "Path of the Red Mist", level_up.reload.preview.fetch("subclass")
+    assert_includes level_up.reload.preview.fetch("progression").fetch("features"), "Bloodlust"
+    assert_includes level_up.reload.preview.fetch("progression").fetch("subclass_features"), "Blood Frenzy"
   end
 
   test "level three blocks a missing or unknown subclass choice" do
@@ -309,5 +311,26 @@ class LevelUpTest < ActiveSupport::TestCase
     tracks = character.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
     assert_equal 8, tracks.fetch("mana").fetch("max")
     assert_equal 8, tracks.fetch("mana").fetch("current")
+  end
+
+  test "level-up preview names the class features unlocked at the next level" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Feature Preview Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 1, status: "playable")
+    level_up = character.level_ups.build(from_level: 1, to_level: 2, skill_name: "arcana", hit_die_roll_one: 3, hit_die_roll_two: 2)
+
+    progression = LevelUpPlanner.new(character, level_up).preview.fetch("progression")
+
+    assert_includes progression.fetch("features"), "Mana and Unlock Tier 1 Spells"
+    assert_includes progression.fetch("features"), "Talented Researcher"
+    assert_empty progression.fetch("subclass_features")
   end
 end

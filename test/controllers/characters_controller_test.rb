@@ -137,6 +137,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal @character.id, payload.dig("character", "id")
     assert_equal @character.name, payload.dig("character", "name")
     assert_equal "Nimble v2.0.1", payload.dig("rules", "ruleset")
+    assert_equal [], payload.dig("progression", "class_features")
     assert_equal @character.stat_set.strength, payload.dig("stats", "strength")
     assert_equal @character.skill_set.might, payload.dig("skills", "might")
     assert_equal @character.trait_set.max_hp, payload.dig("traits", "max_hp")

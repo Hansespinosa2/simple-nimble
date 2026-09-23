@@ -131,6 +131,30 @@ class Character < ApplicationRecord
     character_class&.starting_gear&.join(", ")
   end
 
+  def progression_features_through(level = self.level)
+    return [] if character_class.blank?
+
+    level = level.presence || 1
+
+    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+      character_class.features_for(feature_level).map do |name|
+        { level: feature_level, name: name }
+      end
+    end
+  end
+
+  def subclass_progression_features_through(level = self.level)
+    return [] if character_class.blank? || subclass_name.blank?
+
+    level = level.presence || 1
+
+    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+      character_class.subclass_features_for(subclass_name, feature_level).map do |name|
+        { level: feature_level, name: name }
+      end
+    end
+  end
+
   def save_dc_for(stat_values = nil)
     return nil if character_class.blank?
 
@@ -446,6 +470,10 @@ class Character < ApplicationRecord
         "ancestry" => ancestry&.name,
         "background" => background&.name,
         "ruleset" => rules_context_label
+      },
+      "progression" => {
+        "class_features" => progression_features_through,
+        "subclass_features" => subclass_progression_features_through
       },
       "stats" => stat_set&.attributes&.slice("strength", "dexterity", "intelligence", "will"),
       "skills" => skill_set&.attributes&.slice(*SKILL_NAMES),

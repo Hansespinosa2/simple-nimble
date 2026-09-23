@@ -1,0 +1,18 @@
+<% class_features = character.progression_features_through %>
+<% subclass_features = character.subclass_progression_features_through %>
+<% if class_features.any? || subclass_features.any? %>
+  <section class="panel progression-panel">
+    <div class="panel-heading compact">
+      <div><p class="eyebrow">Class progression</p><h2>Features unlocked</h2></div>
+      <span class="mini-label"><%= character.character_class&.source_reference || character.rules_source_reference %></span>
+    </div>
+    <div class="progression-history">
+      <% class_features.each do |feature| %>
+        <div class="progression-entry"><span>Level <%= feature.fetch(:level) %></span><strong><%= feature.fetch(:name) %></strong><em>Class</em></div>
+      <% end %>
+      <% subclass_features.each do |feature| %>
+        <div class="progression-entry progression-entry-subclass"><span>Level <%= feature.fetch(:level) %></span><strong><%= feature.fetch(:name) %></strong><em><%= character.subclass_name %></em></div>
+      <% end %>
+    </div>
+  </section>
+<% end %>

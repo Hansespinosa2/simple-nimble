@@ -43,6 +43,21 @@ module Rules
         nil
       end
 
+      def progression_for(class_name)
+        data.fetch("progression", {}).fetch(class_name.to_s, {})
+      end
+
+      def features_for(class_name, level)
+        progression_for(class_name).fetch("features", {}).fetch(level.to_i, [])
+      end
+
+      def subclass_features_for(class_name, subclass_name, level)
+        progression_for(class_name)
+          .fetch("subclass_features", {})
+          .fetch(subclass_name.to_s, {})
+          .fetch(level.to_i, [])
+      end
+
       def classes
         data.fetch("classes")
       end

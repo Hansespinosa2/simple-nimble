@@ -89,6 +89,18 @@
         <div><span>Spell tier</span><strong><%= preview.fetch("spell_tier").positive? ? "Tier #{preview.fetch('spell_tier')}" : "None" %></strong></div>
         <% if preview.fetch("subclass").present? %><div><span>Subclass</span><strong><%= preview.fetch("subclass") %></strong></div><% end %>
       </div>
+      <% progression = preview.fetch("progression") %>
+      <% if progression.fetch("features").any? || progression.fetch("subclass_features").any? %>
+        <div class="progression-preview">
+          <p class="eyebrow">New at level <%= @planner.target_level %></p>
+          <h3>Class progression</h3>
+          <ul class="feature-list">
+            <% progression.fetch("features").each do |feature| %><li><span>✦</span><%= feature %></li><% end %>
+            <% progression.fetch("subclass_features").each do |feature| %><li><span>✦</span><%= feature %> <small>(<%= progression.fetch("subclass_name") %>)</small></li><% end %>
+          </ul>
+          <small class="source-note"><%= progression.fetch("source_ref") %> · progression table</small>
+        </div>
+      <% end %>
       <div class="explanation-stack">
         <% preview.fetch("explanations").each do |explanation| %>
           <div class="explanation explanation-<%= explanation.fetch(:type) %>">

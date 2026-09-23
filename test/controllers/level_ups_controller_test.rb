@@ -24,6 +24,8 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", /Level up to 2/
     assert_select "select[name='level_up[skill_name]']"
+    assert_select ".progression-preview", /Intensifying Fury/
+    assert_select ".progression-preview .source-note", /Heroes 2.0.1/
   end
 
   test "level-three page exposes the class subclass choice" do
