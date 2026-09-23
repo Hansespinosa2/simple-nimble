@@ -448,6 +448,7 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal "fury_dice", fury.fetch("key")
     assert_equal 2, fury.fetch("max")
     assert_equal 0, fury.fetch("current")
+    assert_equal 0, fury.fetch("initial_current")
     assert_equal "d4", fury.fetch("die")
 
     oathsworn = Character.create!(level: 1, character_class: CharacterClass.find_by!(name: "Oathsworn"), ancestry:, background:, stat_array: "standard")
@@ -504,6 +505,83 @@ class CharacterTest < ActiveSupport::TestCase
       assert_equal source_ref, track.fetch("source_ref"), ancestry_name
       assert track.fetch("source_quote").present?, ancestry_name
     end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Safe Rest applies recovery and source-defined resource resets" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Resting Dragonborn",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Dragonborn"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    spent_tracks = character.trait_set.resource_tracks.map { |track| track.merge("current" => 0) }
+    character.trait_set.update!(
+      current_hp: 2,
+      current_hit_dice: 0,
+      current_wounds: 2,
+      temp_hp: 5,
+      current_mana: 0,
+      current_resource: 0,
+      resource_tracks: spent_tracks
+    )
+
+    character.take_safe_rest!
+    character.reload
+    tracks = character.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+
+    assert_equal character.trait_set.max_hp, character.trait_set.current_hp
+    assert_equal character.trait_set.max_hit_dice, character.trait_set.current_hit_dice
+    assert_equal 1, character.trait_set.current_wounds
+    assert_equal 0, character.trait_set.temp_hp
+    assert_equal character.trait_set.max_mana, tracks.fetch("mana").fetch("current")
+    assert_equal tracks.fetch("lay_on_hands").fetch("max"), tracks.fetch("lay_on_hands").fetch("current")
+    assert_equal 1, tracks.fetch("ancestry_dragonborn_draconic_heritage").fetch("current")
+    assert character.character_revisions.exists?(event_type: "safe_rest", summary: "Safe Rest completed")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Safe Rest resets encounter and healed-to-full resources but not daily uses" do
+    Rails.application.load_seed
+    hunter = Character.create!(
+      name: "Resting Gnome",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Gnome"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    spent_tracks = hunter.trait_set.resource_tracks.map do |track|
+      current = track.fetch("key") == "thrill_of_the_hunt" ? 3 : 0
+      track.merge("current" => current)
+    end
+    hunter.trait_set.update!(current_hp: 1, resource_tracks: spent_tracks)
+
+    hunter.take_safe_rest!
+
+    tracks = hunter.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 0, tracks.fetch("thrill_of_the_hunt").fetch("current")
+    assert_equal 1, tracks.fetch("ancestry_gnome_optimistic").fetch("current")
+
+    changeling = Character.create!(
+      name: "Resting Changeling",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Changeling"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    changeling_tracks = changeling.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "ancestry_changeling_new_place_new_face" ? track.merge("current" => 0) : track
+    end
+    changeling.trait_set.update!(resource_tracks: changeling_tracks)
+
+    changeling.take_safe_rest!
+
+    assert_equal 0, changeling.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_changeling_new_place_new_face" }.fetch("current")
   end
 
   test "canonical class and subclass features alter derived movement, defenses, and hit dice" do

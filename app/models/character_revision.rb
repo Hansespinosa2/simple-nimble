@@ -9,6 +9,7 @@ class CharacterRevision < ApplicationRecord
     "created" => "Created",
     "finalized" => "Finalized as playable",
     "level_up" => "Leveled up",
+    "safe_rest" => "Safe Rest",
     "game_update" => "Game update",
     "edited" => "Edited"
   }.freeze

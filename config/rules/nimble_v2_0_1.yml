@@ -87,6 +87,7 @@ classes:
           die_by_level: {1: d4, 6: d6, 9: d8, 13: d10, 17: d12}
           initial_current: 0
           reset: Rage ends / encounter
+          reset_events: [rage_end, encounter_end]
     subclasses: [Path of the Mountainheart, Path of the Red Mist]
 
   The Cheat:
@@ -142,6 +143,7 @@ classes:
           die_by_level: {4: d6, 5: d8, 9: d10, 13: d12, 17: d20}
           initial_current: 0
           reset: Encounter ends
+          reset_events: [encounter_end]
     subclasses: [Champion of the Bulwark, Champion of the Vanguard, Spellblade]
 
   Hunter:
@@ -171,6 +173,7 @@ classes:
           start_level: 2
           initial_current: 0
           reset: Encounter ends
+          reset_events: [encounter_end]
     subclasses: [Shadowpath, Wild Heart, Beastmaster]
 
   Mage:
@@ -201,6 +204,7 @@ classes:
           max_formula: "INT * 3 + LVL"
           start_level: 2
           reset: Safe Rest
+          reset_events: [safe_rest]
     subclasses: [Chaos, Control]
 
   Oathsworn:
@@ -232,10 +236,12 @@ classes:
           max_formula: "WIL + LVL"
           start_level: 2
           reset: Safe Rest
+          reset_events: [safe_rest]
         - key: lay_on_hands
           name: Lay on Hands
           max_formula: "5 * LVL"
           reset: Safe Rest
+          reset_events: [safe_rest]
         - key: judgment_dice
           name: Judgment Dice
           max_by_level: {1: 2, 14: 3}
@@ -270,6 +276,7 @@ classes:
           name: Pilfered Power
           max_formula: DEX
           reset: Safe Rest
+          reset_events: [safe_rest]
     subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths, Reaver]
 
   Shepherd:
@@ -300,6 +307,7 @@ classes:
           max_formula: "WIL * 3 + LVL"
           start_level: 2
           reset: Safe Rest
+          reset_events: [safe_rest]
     subclasses: [Luminary of Mercy, Luminary of Malice]
 
   Songweaver:
@@ -330,10 +338,12 @@ classes:
           max_formula: "INT * 3 + LVL"
           start_level: 2
           reset: Safe Rest
+          reset_events: [safe_rest]
         - key: inspiration
           name: Inspiration
           max_formula: "2 * WIL"
           reset: Safe Rest
+          reset_events: [safe_rest]
     subclasses: [Herald of Snark, Herald of Courage]
 
   Stormshifter:
@@ -364,10 +374,12 @@ classes:
           max_formula: "WIL * 3 + LVL"
           start_level: 2
           reset: Safe Rest
+          reset_events: [safe_rest]
         - key: beastshift
           name: Beastshift
           max_formula: DEX
           reset: Safe Rest
+          reset_events: [safe_rest]
     subclasses: [Circle of Fang & Claw, Circle of Sky & Storm]
 
   Zephyr:
@@ -397,6 +409,7 @@ classes:
           max_formula: DEX
           initial_current: 0
           reset: Encounter ends
+          reset_events: [encounter_end]
     subclasses: [Way of Flame, Way of Pain]
 
 progression:
@@ -1081,6 +1094,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Safe Rest
+      reset_events: [safe_rest]
       source_ref: Core Rules 2.0.1, p. 23
       source_quote: "If you fail a save, you can succeed instead, 1/Safe Rest."
   Gnome:
@@ -1089,6 +1103,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Healed to max HP
+      reset_events: [healed_to_max_hp]
       source_ref: Core Rules 2.0.1, p. 23
       source_quote: "Allow an ally within Reach 6 to reroll any single die, resets when healed to your max HP."
   Bunbun:
@@ -1097,6 +1112,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Encounter ends
+      reset_events: [encounter_end]
       source_ref: Core Rules 2.0.1, p. 24
       source_quote: "Before Interposing or after Defending (after damage), hop up to your Speed in any direction for free, 1/encounter."
   Dragonborn:
@@ -1105,6 +1121,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Safe Rest or gain a Wound
+      reset_events: [safe_rest, wound_gained]
       source_ref: Core Rules 2.0.1, p. 24
       source_quote: "When you attack: deal an additional LVL+KEY damage (ignoring armor) divided as you choose among any of your targets; recharges whenever you Safe Rest or gain a Wound."
   Kobold:
@@ -1113,6 +1130,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Encounter ends
+      reset_events: [encounter_end]
       source_ref: Core Rules 2.0.1, p. 24
       source_quote: "Force an enemy to reroll a non-critical attack against you, 1/encounter."
   Orc:
@@ -1121,6 +1139,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Safe Rest
+      reset_events: [safe_rest]
       source_ref: Core Rules 2.0.1, p. 24
       source_quote: "When you would drop to 0 HP, you may set your HP to LVL instead, 1/Safe Rest."
   Changeling:
@@ -1129,6 +1148,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: New day
+      reset_events: [day_start]
       source_ref: Core Rules 2.0.1, p. 26
       source_quote: "You may take on the appearance of any ancestry. When you do, you may place your 2 shifting skill points into any 1 skill. 1/day."
   Crystalborn:
@@ -1137,6 +1157,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Encounter ends
+      reset_events: [encounter_end]
       source_ref: Core Rules 2.0.1, p. 26
       source_quote: "When you Defend, gain KEY armor and deal KEY damage back to the attacker. 1/encounter."
   Half-Giant:
@@ -1145,6 +1166,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Encounter ends
+      reset_events: [encounter_end]
       source_ref: Core Rules 2.0.1, p. 26
       source_quote: "Force an enemy to reroll a crit against you, 1/encounter."
   Wyrdling:
@@ -1153,6 +1175,7 @@ ancestry_resource_pools:
       max_formula: "1"
       initial_current: 1
       reset: Encounter ends
+      reset_events: [encounter_end]
       source_ref: Core Rules 2.0.1, p. 27
       source_quote: "Whenever you or a willing ally within Reach 6 casts a tiered spell, you may allow them to roll on the Chaos Table. 1/encounter."
 

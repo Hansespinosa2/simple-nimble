@@ -141,6 +141,40 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal 0, character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_halfling_elusive" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet completes a source-backed Safe Rest" do
+    character = Character.create!(
+      name: "Resting Sheet Hero",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Dragonborn"),
+      background: @background,
+      stat_array: "balanced"
+    )
+    character.trait_set.update!(
+      current_hp: 1,
+      current_hit_dice: 0,
+      current_wounds: 2,
+      temp_hp: 4,
+      resource_tracks: character.trait_set.resource_tracks.map { |track| track.merge("current" => 0) }
+    )
+
+    visit character_url(character)
+
+    assert_text "At a GM-designated safe location"
+    assert_text "Core Rules 2.0.1, pp. 9, 16"
+    click_on "Complete Safe Rest"
+
+    assert_text "Safe Rest completed. HP, Hit Dice, and tracked resources were refreshed."
+    assert_text "Safe Rest"
+    character.reload
+    assert_equal character.trait_set.max_hp, character.trait_set.current_hp
+    assert_equal character.trait_set.max_hit_dice, character.trait_set.current_hit_dice
+    assert_equal 1, character.trait_set.current_wounds
+    assert_equal 0, character.trait_set.temp_hp
+    assert_equal 1, character.trait_set.resource_tracks.find { |track| track.fetch("key") == "ancestry_dragonborn_draconic_heritage" }.fetch("current")
+  end
+
   test "should update Character" do
     visit character_url(@character)
     click_on "Edit sheet", match: :first

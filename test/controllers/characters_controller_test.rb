@@ -401,6 +401,37 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, halfling.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == track_key }.fetch("current")
   end
 
+  test "gaining a Wound refreshes Dragonborn's source-defined bonus damage use" do
+    Rails.application.load_seed
+    dragonborn = Character.create!(
+      name: "Wounded Dragonborn",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Dragonborn"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    key = "ancestry_dragonborn_draconic_heritage"
+    tracks = dragonborn.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == key ? track.merge("current" => 0) : track
+    end
+    dragonborn.trait_set.update!(resource_tracks: tracks)
+
+    patch tracker_character_url(dragonborn), params: {
+      character: {
+        trait_set_attributes: {
+          id: dragonborn.trait_set.id,
+          current_wounds: 1
+        }
+      }
+    }
+
+    assert_redirected_to character_url(dragonborn)
+    assert_equal 1, dragonborn.reload.trait_set.current_wounds
+    assert_equal 1, dragonborn.trait_set.resource_tracks.find { |track| track.fetch("key") == key }.fetch("current")
+    assert_equal 1, dragonborn.trait_set.current_resource
+  end
+
   test "should reject impossible tracker state without changing derived limits" do
     original_hp = @character.trait_set.current_hp
     original_max_hp = @character.trait_set.max_hp

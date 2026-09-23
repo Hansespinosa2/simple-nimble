@@ -137,6 +137,12 @@
           <div class="field"><%= tracker_form.label :game_notes, "Session notes" %><%= tracker_form.text_area :game_notes, rows: 3, placeholder: "Remember this for next time…" %></div>
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
+        <div class="safe-rest-action">
+          <p class="eyebrow">Safe Rest</p>
+          <p>At a GM-designated safe location: recover all HP and Hit Dice, heal 1 Wound, clear Temp HP, and refresh tracked rest resources.</p>
+          <span class="field-hint">Core Rules 2.0.1, pp. 9, 16 · encounter-reset resources return to their starting state.</span>
+          <%= button_to "Complete Safe Rest", safe_rest_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
+        </div>
       </section>
 
       <section class="panel timeline-panel">

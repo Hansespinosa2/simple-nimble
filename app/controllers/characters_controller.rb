@@ -1,6 +1,6 @@
 class CharactersController < ApplicationController
-  before_action :set_character, only: %i[ show edit update destroy finalize tracker history ]
-  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker history ]
+  before_action :set_character, only: %i[ show edit update destroy finalize tracker safe_rest history ]
+  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker safe_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -116,6 +116,11 @@ class CharactersController < ApplicationController
     end
   end
 
+  def safe_rest
+    @character.take_safe_rest!
+    redirect_to @character, notice: "Safe Rest completed. HP, Hit Dice, and tracked resources were refreshed."
+  end
+
   def history
     @revisions = @character.character_revisions.order(created_at: :desc)
   end
@@ -195,9 +200,16 @@ class CharactersController < ApplicationController
 
     def normalize_resource_tracks!(tracker_attributes)
       trait_attributes = tracker_attributes[:trait_set_attributes]
-      return if trait_attributes.blank? || trait_attributes[:resource_tracks].blank?
+      return if trait_attributes.blank?
 
-      trait_attributes[:resource_tracks] = @character.normalized_resource_tracks(trait_attributes[:resource_tracks])
+      resource_tracks = @character.normalized_resource_tracks(
+        trait_attributes[:resource_tracks],
+        current_wounds: trait_attributes[:current_wounds]
+      )
+      trait_attributes[:resource_tracks] = resource_tracks
+      legacy_values = @character.resource_tracker_values_for(resource_tracks)
+      trait_attributes[:current_mana] = legacy_values[:current_mana] unless legacy_values[:current_mana].nil?
+      trait_attributes[:current_resource] = legacy_values[:current_resource] unless legacy_values[:current_resource].nil?
     end
 
     def creation_error_payload

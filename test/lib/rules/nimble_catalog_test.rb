@@ -93,6 +93,8 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       assert pool.fetch("source_quote").present?
     end
     assert_empty @catalog.ancestry_resource_pools_for("Human")
+    assert_equal %w[safe_rest wound_gained], @catalog.ancestry_resource_pools_for("Dragonborn").first.fetch("reset_events")
+    assert_equal [ "day_start" ], @catalog.ancestry_resource_pools_for("Changeling").first.fetch("reset_events")
   end
 
   test "Commander weapon mastery is a choice at six and ten, not fourteen" do

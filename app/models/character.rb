@@ -317,6 +317,23 @@ class Character < ApplicationRecord
     self.spells = (spells.to_a + granted_utility_spells(level:, ledger:).to_a).uniq
   end
 
+  def take_safe_rest!
+    transaction do
+      tracks = resource_tracks_after_safe_rest
+      resource_values = resource_tracker_values_for(tracks)
+      trait_set.update!(
+        current_hp: trait_set.max_hp,
+        current_hit_dice: trait_set.max_hit_dice,
+        current_wounds: [ trait_set.current_wounds.to_i - 1, 0 ].max,
+        temp_hp: 0,
+        current_mana: resource_values.fetch(:current_mana) || trait_set.max_mana,
+        current_resource: resource_values.fetch(:current_resource) || trait_set.max_resource,
+        resource_tracks: tracks
+      )
+      record_revision!(event_type: "safe_rest", summary: "Safe Rest completed", from_level: level, to_level: level)
+    end
+  end
+
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)
     return {} if character_class.blank?
 
@@ -408,8 +425,10 @@ class Character < ApplicationRecord
         "formula" => pool["max_formula"],
         "max" => maximum,
         "current" => initial_current,
+        "initial_current" => initial_current,
         "die" => die,
         "reset" => pool["reset"],
+        "reset_events" => Array(pool["reset_events"]),
         "source_ref" => pool["source_ref"],
         "source_quote" => pool["source_quote"]
       }.compact
@@ -484,13 +503,25 @@ class Character < ApplicationRecord
     end
   end
 
-  def normalized_resource_tracks(submitted_tracks)
+  def normalized_resource_tracks(submitted_tracks, current_wounds: nil)
     submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
+    gained_wound = current_wounds.present? && current_wounds.to_i > (trait_set&.current_wounds || 0).to_i
+    baseline = if gained_wound
+      derived_resource_tracks_for(stat_values: current_stat_values).index_by { |track| track.fetch("key") }
+    else
+      {}
+    end
 
     Array(trait_set&.resource_tracks).map do |track|
       track = track.to_h.stringify_keys
       input = submitted[track["key"]]
-      input.present? ? track.merge("current" => input["current"].to_i) : track
+      current = input.present? ? input["current"].to_i : track["current"]
+      reset_events = Array(track["reset_events"].presence || baseline.dig(track["key"], "reset_events"))
+      if gained_wound && reset_events.include?("wound_gained")
+        current = track["max"]
+      end
+
+      track.merge("current" => current, "reset_events" => reset_events)
     end
   end
 
@@ -955,6 +986,23 @@ class Character < ApplicationRecord
 
     def utility_spell_options_from_any_school
       Spell.where(tier: -1).order(:school, :name).pluck(:name)
+    end
+
+    def resource_tracks_after_safe_rest
+      baseline = derived_resource_tracks_for(stat_values: current_stat_values).index_by { |track| track.fetch("key") }
+
+      Array(trait_set.resource_tracks).map do |track|
+        track = track.to_h.stringify_keys
+        reset_events = Array(track["reset_events"].presence || baseline.dig(track.fetch("key"), "reset_events"))
+        refreshed_value = if (reset_events & %w[safe_rest healed_to_max_hp]).any?
+          track["max"]
+        elsif reset_events.include?("encounter_end")
+          track["initial_current"] || baseline.dig(track.fetch("key"), "initial_current") || baseline.dig(track.fetch("key"), "current")
+        end
+
+        track = track.merge("reset_events" => reset_events) if reset_events.present?
+        refreshed_value.nil? ? track : track.merge("current" => refreshed_value.to_i)
+      end
     end
 
     def starting_background_spell_choice_pool
