@@ -20,6 +20,14 @@
         <span class="field-hint">Choose any skill below +12. The governing stat is already included in the preview.</span>
       </div>
 
+      <% if @planner.subclass_selection_required? %>
+        <div class="field">
+          <%= form.label :subclass_name, "Subclass" %>
+          <%= form.select :subclass_name, @planner.subclass_options.map { |subclass| [ subclass, subclass ] }, { include_blank: "Choose a subclass" }, class: "choice-select" %>
+          <span class="field-hint"><%= @character.character_class.source_reference %> · Subclass features begin at level 3.</span>
+        </div>
+      <% end %>
+
       <div class="field">
         <%= form.label :skill_from, "Optional moved point" %>
         <%= form.select :skill_from, Character::SKILL_NAMES.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Do not move a point" }, class: "choice-select" %>
@@ -79,6 +87,7 @@
         <div><span>Armor</span><strong><%= preview.fetch("traits").fetch("armor") %></strong></div>
         <div><span>Initiative</span><strong><%= signed_value(preview.fetch("traits").fetch("initiative")) %></strong></div>
         <div><span>Spell tier</span><strong><%= preview.fetch("spell_tier").positive? ? "Tier #{preview.fetch('spell_tier')}" : "None" %></strong></div>
+        <% if preview.fetch("subclass").present? %><div><span>Subclass</span><strong><%= preview.fetch("subclass") %></strong></div><% end %>
       </div>
       <div class="explanation-stack">
         <% preview.fetch("explanations").each do |explanation| %>

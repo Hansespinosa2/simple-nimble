@@ -54,4 +54,24 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_includes mage.weapon_proficiencies, "wands"
     assert_equal "INT * 3 + LVL", mage.resource_rules.fetch("max_formula")
   end
+
+  test "every published class exposes its level-three subclass choices" do
+    expected = {
+      "Berserker" => [ "Path of the Mountainheart", "Path of the Red Mist" ],
+      "The Cheat" => [ "Tools of the Silent Blade", "Tools of the Scoundrel" ],
+      "Commander" => [ "Champion of the Bulwark", "Champion of the Vanguard", "Spellblade" ],
+      "Hunter" => [ "Shadowpath", "Wild Heart", "Beastmaster" ],
+      "Mage" => [ "Chaos", "Control" ],
+      "Oathsworn" => [ "Oath of Vengeance", "Oath of Refuge", "Oathbreaker" ],
+      "Shadowmancer" => [ "Pact of the Red Dragon", "Pact of the Abyssal Depths", "Reaver" ],
+      "Shepherd" => [ "Luminary of Mercy", "Luminary of Malice" ],
+      "Songweaver" => [ "Herald of Snark", "Herald of Courage" ],
+      "Stormshifter" => [ "Circle of Fang & Claw", "Circle of Sky & Storm" ],
+      "Zephyr" => [ "Way of Flame", "Way of Pain" ]
+    }
+
+    expected.each do |class_name, subclasses|
+      assert_equal subclasses, CharacterClass.find_by!(name: class_name).subclass_options
+    end
+  end
 end

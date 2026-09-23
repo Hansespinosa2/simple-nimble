@@ -33,6 +33,7 @@ class LevelUpService
       "current_wounds", "max_wounds",
       "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource"
     )
+    character.update!(subclass_name: preview.fetch("subclass")) if preview.fetch("subclass").present?
     character.trait_set.update!(trait_updates)
   end
   private_class_method :apply_preview!

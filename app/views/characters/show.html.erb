@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">Nimble character sheet</p>
           <h1><%= @character.name.presence || "Untitled hero" %></h1>
-          <p class="sheet-subtitle"><%= [ @character.character_class&.name || @character.nimble_class, @character.ancestry&.name || @character.race, "Level #{@character.level || '—'}" ].compact.join(" · ") %></p>
+          <p class="sheet-subtitle"><%= [ @character.character_class&.name || @character.nimble_class, @character.subclass_name, @character.ancestry&.name || @character.race, "Level #{@character.level || '—'}" ].compact.join(" · ") %></p>
           <% if @character.description.present? %><p class="sheet-description"><%= @character.description %></p><% end %>
         </div>
       </div>
@@ -64,7 +64,7 @@
       <section class="panel sheet-panel">
         <div class="panel-heading compact"><div><p class="eyebrow">Origin</p><h2>Rules context</h2></div><span class="rules-context"><span class="context-dot"></span><%= @character.rules_context_label %></span></div>
         <div class="origin-grid">
-          <div class="origin-card"><span class="origin-label">Class</span><strong><%= @character.character_class&.name || @character.nimble_class || "Not chosen" %></strong><p><%= @character.character_class ? "#{@character.character_class.key_stats.map { |stat| stat_display_name(stat) }.join(' + ')} Key Stats · #{@character.character_class.hit_die}" : "Choose a rules class to unlock derived values." %></p></div>
+          <div class="origin-card"><span class="origin-label">Class</span><strong><%= [ @character.character_class&.name || @character.nimble_class || "Not chosen", @character.subclass_name ].compact.join(" · ") %></strong><p><%= @character.character_class ? "#{@character.character_class.key_stats.map { |stat| stat_display_name(stat) }.join(' + ')} Key Stats · #{@character.character_class.hit_die}" : "Choose a rules class to unlock derived values." %></p></div>
           <div class="origin-card"><span class="origin-label">Ancestry</span><strong><%= @character.ancestry&.name || @character.race || "Not chosen" %></strong><p><%= @character.ancestry&.trait_summary || "Ancestry traits will appear here." %></p></div>
           <div class="origin-card"><span class="origin-label">Background</span><strong><%= @character.background&.name || @character.legacy_background_text || "Not chosen" %></strong><p><%= @character.background&.description || "Background story notes are kept with the sheet." %></p></div>
           <div class="origin-card"><span class="origin-label">Starting gear</span><strong><%= @character.starting_equipment.presence || "Not recorded" %></strong><p>Class starting equipment; inventory can be edited during play.</p></div>

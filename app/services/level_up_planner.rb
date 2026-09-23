@@ -23,6 +23,14 @@ class LevelUpPlanner
     Character::SKILL_NAMES.select { |skill| character.skill_value(skill).to_i < 12 }
   end
 
+  def subclass_options
+    character.subclass_options
+  end
+
+  def subclass_selection_required?
+    target_level == 3 && character.subclass_name.blank? && subclass_options.present?
+  end
+
   def hit_die_size
     hit_die = character.trait_set&.hit_die.presence || character.character_class&.hit_die
     hit_die.to_s.split("d").last.to_i.nonzero? || 6
@@ -36,6 +44,16 @@ class LevelUpPlanner
     result << issue("This level-up has already been finalized.", "Chapter 4, Character Lifecycle", "A finalized transition cannot be applied twice.") if level_up.finalized?
     result << issue("Level-up must start from the character's current level.", "Chapter 4, Character Lifecycle", "A transition records the exact level it advances from.") unless level_up.from_level.to_i == character.level.to_i
     result << issue("Level-up must advance exactly one level.", "Chapter 3, Character Progression", "Level-up is an explicit one-level transition.") unless target_level == character.level.to_i + 1
+
+    if subclass_selection_required? && level_up.subclass_name.blank?
+      result << issue("Choose a subclass for #{character.character_class.name}.", character.character_class.source_reference, "At level 3, choose a subclass for your class.")
+    elsif level_up.subclass_name.present?
+      if target_level != 3 || character.subclass_name.present?
+        result << issue("A subclass can only be chosen once at level 3.", character.character_class&.source_reference || "Heroes 2.0.1, Subclasses", "Subclass selection is a level-3 class feature.")
+      elsif !subclass_options.include?(level_up.subclass_name)
+        result << issue("#{level_up.subclass_name} is not a legal subclass for #{character.character_class.name}.", character.character_class.source_reference, "Choose one of the subclasses listed for the class.")
+      end
+    end
 
     if level_up.skill_name.blank?
       result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants 1 skill point.")
@@ -172,6 +190,7 @@ class LevelUpPlanner
       "hp_gain" => hp_gain,
       "hit_die_rolls" => [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ],
       "stat_increase_type" => stat_increase_type,
+      "subclass" => level_up.subclass_name.presence || character.subclass_name,
       "spell_tier" => spell_tier_for(target_level),
       "explanations" => applied_explanations(stats, hp_gain)
     }

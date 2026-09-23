@@ -113,6 +113,10 @@ class Character < ApplicationRecord
     schools.uniq
   end
 
+  def subclass_options
+    character_class&.subclass_options || []
+  end
+
   def available_spells
     spells = Spell.order(:tier, :name)
     return Spell.none if character_class.blank?
@@ -180,6 +184,20 @@ class Character < ApplicationRecord
         "#{spell_school_choice} is not a legal additional spell school for #{character_class.name}.",
         "Heroes 2.0.1, p. 55",
         "Songweaver chooses one additional school alongside Wind."
+      )
+    end
+
+    if subclass_name.present? && !subclass_options.include?(subclass_name)
+      issues << rule_issue(
+        "#{subclass_name} is not a legal subclass for #{character_class&.name || 'this class'}.",
+        character_class&.source_reference || "Heroes 2.0.1, Subclasses",
+        "Choose a subclass listed for the character's class at level 3."
+      )
+    elsif level.to_i >= 3 && character_class.present? && subclass_options.present? && subclass_name.blank?
+      issues << rule_issue(
+        "Choose a #{character_class.name} subclass before playing at level #{level}.",
+        character_class.source_reference,
+        "At level 3, choose a subclass for your class."
       )
     end
 
@@ -289,7 +307,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {

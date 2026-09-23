@@ -193,6 +193,59 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Choose two different stats to increase."
   end
 
+  test "level three requires and persists a legal subclass choice" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Subclass Hero",
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { might: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 2, status: "playable")
+    character.skill_set.update!(might: 8)
+    level_up = character.level_ups.create!(
+      from_level: 2,
+      to_level: 3,
+      skill_name: "might",
+      subclass_name: "Path of the Red Mist",
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    assert_empty character.creation_issues, character.creation_issues.map { |issue| issue[:message] }.join(" | ")
+    planner = LevelUpPlanner.new(character, level_up)
+    assert planner.valid?, planner.explanations.map { |explanation| explanation[:message] }.join(" | ")
+    LevelUpService.finalize!(level_up)
+
+    assert_equal 3, character.reload.level
+    assert_equal "Path of the Red Mist", character.subclass_name
+    assert_equal "Path of the Red Mist", level_up.reload.preview.fetch("subclass")
+  end
+
+  test "level three blocks a missing or unknown subclass choice" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Subclass Choice Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { arcana: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 2, status: "playable")
+    character.skill_set.update!(arcana: 8)
+
+    missing = character.level_ups.build(from_level: 2, to_level: 3, skill_name: "arcana", hit_die_roll_one: 3, hit_die_roll_two: 2)
+    invalid = character.level_ups.build(from_level: 2, to_level: 3, skill_name: "arcana", subclass_name: "Berserker", hit_die_roll_one: 3, hit_die_roll_two: 2)
+
+    assert_includes LevelUpPlanner.new(character, missing).explanations.map { |explanation| explanation[:message] }, "Choose a subclass for Mage."
+    assert_includes LevelUpPlanner.new(character, invalid).explanations.map { |explanation| explanation[:message] }, "Berserker is not a legal subclass for Mage."
+  end
+
   test "a hit die roll outside the character die is blocked with a source explanation" do
     level_up = @character.level_ups.build(
       from_level: 3,

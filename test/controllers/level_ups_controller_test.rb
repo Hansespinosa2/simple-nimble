@@ -26,6 +26,19 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='level_up[skill_name]']"
   end
 
+  test "level-three page exposes the class subclass choice" do
+    @character.update_columns(level: 2, status: "playable")
+    @character.skill_set.update!(might: 8)
+
+    assert @character.reload.level_up_eligible?, @character.reload.creation_issues.map { |issue| issue[:message] }.join(" | ")
+
+    get new_character_level_up_url(@character)
+
+    assert_response :success
+    assert_select "select[name='level_up[subclass_name]']"
+    assert_select "select[name='level_up[subclass_name]'] option", text: "Path of the Mountainheart"
+  end
+
   test "saving a draft enters the explicit level-up state without changing the sheet" do
     assert_difference("LevelUp.count") do
       post character_level_ups_url(@character), params: {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_200000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -146,6 +146,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_190000) do
     t.text "starting_equipment"
     t.string "stat_array"
     t.string "status", default: "draft", null: false
+    t.string "subclass_name"
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_characters_on_account_id"
     t.index ["ancestry_id"], name: "index_characters_on_ancestry_id"
@@ -169,6 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_190000) do
     t.string "skill_name"
     t.string "stat_name"
     t.string "status", default: "draft", null: false
+    t.string "subclass_name"
     t.integer "to_level", null: false
     t.datetime "updated_at", null: false
     t.index ["character_id", "status"], name: "index_level_ups_on_character_id_and_status"

@@ -79,6 +79,7 @@ classes:
       name: Fury Dice
       max_formula: KEY
       die_by_level: {1: d4, 6: d6, 9: d8, 13: d10, 17: d12}
+    subclasses: [Path of the Mountainheart, Path of the Red Mist]
 
   The Cheat:
     source_ref: Heroes 2.0.1, pp. 13-17
@@ -100,6 +101,7 @@ classes:
     resource:
       name: Ability counters
       formula: "per ability: 1/turn, 1/day, or 1/Safe Rest"
+    subclasses: [Tools of the Silent Blade, Tools of the Scoundrel]
 
   Commander:
     source_ref: Heroes 2.0.1, pp. 19-23
@@ -122,6 +124,7 @@ classes:
       name: Combat Dice
       max_formula: "STR + upgrades"
       die_by_level: {4: d6, 5: d8, 9: d10, 13: d12, 17: d20}
+    subclasses: [Champion of the Bulwark, Champion of the Vanguard, Spellblade]
 
   Hunter:
     source_ref: Heroes 2.0.1, pp. 25-29
@@ -143,6 +146,7 @@ classes:
     resource:
       name: Thrill of the Hunt charges
       formula: "gained from quarry triggers; lost when combat ends"
+    subclasses: [Shadowpath, Wild Heart, Beastmaster]
 
   Mage:
     source_ref: Heroes 2.0.1, pp. 31-35
@@ -164,6 +168,7 @@ classes:
     resource:
       name: Mana
       max_formula: "INT * 3 + LVL"
+    subclasses: [Chaos, Control]
 
   Oathsworn:
     source_ref: Heroes 2.0.1, pp. 37-41
@@ -186,6 +191,7 @@ classes:
       name: Mana and Judgment Dice
       max_formula: "mana WIL + LVL; Lay on Hands 5 * LVL"
       die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
+    subclasses: [Oath of Vengeance, Oath of Refuge, Oathbreaker]
 
   Shadowmancer:
     source_ref: Heroes 2.0.1, pp. 43-47
@@ -207,6 +213,7 @@ classes:
     resource:
       name: Pilfered Power uses
       max_formula: "DEX uses before patron retaliation; resets on Safe Rest"
+    subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths, Reaver]
 
   Shepherd:
     source_ref: Heroes 2.0.1, pp. 49-53
@@ -228,6 +235,7 @@ classes:
     resource:
       name: Mana
       max_formula: "WIL * 3 + LVL"
+    subclasses: [Luminary of Mercy, Luminary of Malice]
 
   Songweaver:
     source_ref: Heroes 2.0.1, pp. 55-59
@@ -249,6 +257,7 @@ classes:
     resource:
       name: Mana and Inspiration
       max_formula: "mana INT * 3 + LVL; Inspiration 2 * WIL per Safe Rest"
+    subclasses: [Herald of Snark, Herald of Courage]
 
   Stormshifter:
     source_ref: Heroes 2.0.1, pp. 61-65
@@ -270,6 +279,7 @@ classes:
     resource:
       name: Mana and Beastshift charges
       max_formula: "mana WIL * 3 + LVL; Beastshift DEX charges per Safe Rest"
+    subclasses: [Circle of Fang & Claw, Circle of Sky & Storm]
 
   Zephyr:
     source_ref: Heroes 2.0.1, pp. 67-71
@@ -291,3 +301,4 @@ classes:
     resource:
       name: Bursts of Speed
       max_formula: DEX
+    subclasses: [Way of Flame, Way of Pain]

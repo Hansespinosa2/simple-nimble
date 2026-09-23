@@ -70,6 +70,10 @@ class CharacterClass < ApplicationRecord
     rules_entry.to_h.fetch("resource", {})
   end
 
+  def subclass_options
+    Array(rules_entry.to_h.fetch("subclasses", []))
+  end
+
   private
     def fallback_stat_increase_type_for(level)
       FALLBACK_STAT_INCREASES.each do |type, levels|
