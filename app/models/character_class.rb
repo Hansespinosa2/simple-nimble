@@ -37,6 +37,18 @@ class CharacterClass < ApplicationRecord
     rules_entry.to_h.fetch("spell_schools", [])
   end
 
+  def starting_gear
+    Array(rules_entry.to_h.fetch("starting_gear", []))
+  end
+
+  def armor_proficiencies
+    Array(rules_entry.to_h.fetch("armor_proficiencies", []))
+  end
+
+  def weapon_proficiencies
+    Array(rules_entry.to_h.fetch("weapon_proficiencies", []))
+  end
+
   def spell_tier_for(level)
     Rules::NimbleCatalog.spell_tier_for(name, level)
   end

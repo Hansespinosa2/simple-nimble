@@ -120,6 +120,44 @@ class Character < ApplicationRecord
     spells.select { |spell| spell.available_to?(self) }
   end
 
+  def starting_equipment_summary
+    character_class&.starting_gear&.join(", ")
+  end
+
+  def save_dc_for(stat_values = nil)
+    return nil if character_class.blank?
+
+    values = stat_values || current_stat_values
+    10 + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
+  end
+
+  def mana_max_for(stat_values: nil, level: self.level)
+    return nil if character_class.blank?
+
+    formula = character_class.resource_rules.to_h.fetch("max_formula", "").to_s.split(";").first.to_s
+    match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
+    return nil unless match
+
+    stat = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }.fetch(match[1].upcase)
+    multiplier = match[2].to_i.nonzero? || 1
+    (value_for_stat(stat_values || current_stat_values, stat) * multiplier) + level.to_i
+  end
+
+  def derived_resource_values_for(stat_values:, level: self.level)
+    rules = character_class&.resource_rules.to_h
+    formula = rules["max_formula"].presence || rules["formula"].presence
+    mana_max = mana_max_for(stat_values: stat_values, level: level)
+    resource_max = mana_max.present? ? nil : resource_max_from_formula(formula, stat_values)
+
+    {
+      name: rules["name"],
+      formula: formula,
+      die: resource_die_for(rules["die_by_level"], level),
+      max_mana: mana_max,
+      max_resource: resource_max
+    }
+  end
+
   def creation_issues
     issues = []
     issues << rule_issue("Choose a class before finalizing.", "Chapter 2, Class Rules", "Every hero has one class.") if character_class.blank?
@@ -251,7 +289,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "legacy_background_text", "description", "languages", "spell_school_choice",
+        "name", "race", "nimble_class", "level", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {
@@ -264,7 +302,8 @@ class Character < ApplicationRecord
       "skills" => skill_set&.attributes&.slice(*SKILL_NAMES),
       "traits" => trait_set&.attributes&.slice(
         "initiative", "speed", "hit_die", "current_hit_dice", "max_hit_dice", "current_actions", "max_actions",
-        "armor", "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds", "inventory_slots"
+        "armor", "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource",
+        "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds", "inventory_slots"
       ),
       "spells" => spells.order(:name).pluck(:name)
     }
@@ -319,6 +358,10 @@ class Character < ApplicationRecord
       assign_attributes_to_trait_set if trait_set.blank? || canonical_choices_changed?
 
       self.languages = derived_languages if languages.blank? || canonical_choices_changed?
+      if character_class.present?
+        self.starting_equipment = starting_equipment_summary if starting_equipment.blank?
+        self.inventory = starting_equipment_summary if inventory.blank?
+      end
     end
 
     def canonical_choices_changed?
@@ -351,6 +394,10 @@ class Character < ApplicationRecord
           previous_max_hit_dice: target.max_hit_dice,
           current_actions: target.current_actions,
           previous_max_actions: target.max_actions,
+          current_mana: target.current_mana,
+          previous_max_mana: target.max_mana,
+          current_resource: target.current_resource,
+          previous_max_resource: target.max_resource,
           temp_hp: target.temp_hp
         }
       end
@@ -359,6 +406,8 @@ class Character < ApplicationRecord
       starting_hp = character_class&.starting_hp || 10
       max_hit_dice = level_value + ancestry_modifier(:max_hit_dice_modifier)
       max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
+      stat_values = current_stat_values
+      resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value)
       target.assign_attributes(
         initiative: dexterity + ancestry_modifier(:initiative_modifier),
         speed: BASE_SPEED + ancestry_modifier(:speed_modifier),
@@ -368,6 +417,14 @@ class Character < ApplicationRecord
         current_actions: 3,
         max_actions: 3,
         armor: dexterity + ancestry_modifier(:armor_modifier),
+        save_dc: save_dc_for(stat_values),
+        max_mana: resource_values.fetch(:max_mana),
+        current_mana: resource_values.fetch(:max_mana),
+        resource_name: resource_values.fetch(:name),
+        resource_formula: resource_values.fetch(:formula),
+        resource_die: resource_values.fetch(:die),
+        max_resource: resource_values.fetch(:max_resource),
+        current_resource: resource_values.fetch(:max_resource),
         inventory_slots: BASE_INVENTORY_SLOTS + stat_set&.strength.to_i,
         temp_hp: 0,
         current_hp: starting_hp,
@@ -388,6 +445,12 @@ class Character < ApplicationRecord
         )
         target.current_actions = preserved_or_clamped_value(
           preserved_tracker_state[:current_actions], preserved_tracker_state[:previous_max_actions], target.max_actions
+        )
+        target.current_mana = preserved_or_clamped_value(
+          preserved_tracker_state[:current_mana], preserved_tracker_state[:previous_max_mana], target.max_mana
+        )
+        target.current_resource = preserved_or_clamped_value(
+          preserved_tracker_state[:current_resource], preserved_tracker_state[:previous_max_resource], target.max_resource
         )
         target.temp_hp = preserved_tracker_state[:temp_hp]
       end
@@ -416,6 +479,36 @@ class Character < ApplicationRecord
   private
     def ancestry_modifier(attribute)
       ancestry&.public_send(attribute) || 0
+    end
+
+    def current_stat_values
+      {
+        "strength" => stat_set&.strength.to_i,
+        "dexterity" => stat_set&.dexterity.to_i,
+        "intelligence" => stat_set&.intelligence.to_i,
+        "will" => stat_set&.will.to_i
+      }
+    end
+
+    def value_for_stat(stat_values, stat)
+      stat_values[stat.to_s] || stat_values[stat.to_sym] || 0
+    end
+
+    def resource_max_from_formula(formula, stat_values)
+      return nil if formula.blank?
+
+      return character_class.key_stats.map { |stat| value_for_stat(stat_values, stat) }.max.to_i if formula.match?(/\bKEY\b/i)
+
+      match = formula.match(/\b(STR|DEX|INT|WIL)\b/i)
+      return nil unless match
+
+      stat = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }.fetch(match[1].upcase)
+      value_for_stat(stat_values, stat)
+    end
+
+    def resource_die_for(die_by_level, level)
+      entries = die_by_level.to_h.select { |unlock_level, _die| level.to_i >= unlock_level.to_i }
+      entries.max_by { |unlock_level, _die| unlock_level.to_i }&.last
     end
 
     def projected_or_current_stat_set
@@ -475,6 +568,8 @@ class Character < ApplicationRecord
       max_hit_dice = 1 + ancestry_modifier(:max_hit_dice_modifier)
       armor = ancestry_modifier(:armor_modifier)
       max_wounds = DEFAULT_MAX_WOUNDS + ancestry_modifier(:max_wounds_modifier)
+      stat_values = current_stat_values
+      resource_values = derived_resource_values_for(stat_values: stat_values, level: 1)
 
       build_trait_set initiative:        initiative,
                       speed:             speed,
@@ -484,7 +579,15 @@ class Character < ApplicationRecord
                       current_actions:   3,
                       max_actions:       3,
                       armor:             armor,
-                      inventory_slots:  BASE_INVENTORY_SLOTS,
+                      save_dc:           save_dc_for(stat_values),
+                      max_mana:          resource_values.fetch(:max_mana),
+                      current_mana:      resource_values.fetch(:max_mana),
+                      resource_name:     resource_values.fetch(:name),
+                      resource_formula:  resource_values.fetch(:formula),
+                      resource_die:      resource_values.fetch(:die),
+                      max_resource:      resource_values.fetch(:max_resource),
+                      current_resource:  resource_values.fetch(:max_resource),
+                      inventory_slots:   BASE_INVENTORY_SLOTS + stat_values.fetch("strength"),
                       temp_hp:           0,
                       current_hp:        starting_hp,
                       max_hp:            starting_hp,

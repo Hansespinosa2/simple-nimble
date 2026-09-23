@@ -125,6 +125,8 @@
           <div class="derived-item"><span>Armor</span><strong data-character-builder-target="armorPreview"><%= character.trait_set&.armor || "—" %></strong></div>
           <div class="derived-item"><span>Initiative</span><strong data-character-builder-target="initiativePreview"><%= signed_value(character.trait_set&.initiative) if character.trait_set %></strong></div>
           <div class="derived-item"><span>Hit Die</span><strong data-character-builder-target="hitDiePreview"><%= character.trait_set&.hit_die || "—" %></strong></div>
+          <div class="derived-item"><span>Save DC</span><strong data-character-builder-target="saveDcPreview"><%= character.trait_set&.save_dc || "—" %></strong></div>
+          <div class="derived-item"><span>Mana</span><strong data-character-builder-target="manaPreview"><%= character.trait_set&.max_mana || "—" %></strong></div>
         </div>
       </section>
 
@@ -166,6 +168,7 @@
           <div><span>Languages</span><strong data-character-builder-target="languagesPreview"><%= character.languages.presence || "Common" %></strong></div>
           <div><span>Speed</span><strong data-character-builder-target="speedPreview"><%= character.trait_set&.speed || "—" %></strong></div>
           <div><span>Max wounds</span><strong data-character-builder-target="woundsPreview"><%= character.trait_set&.max_wounds || "—" %></strong></div>
+          <div><span>Class resource</span><strong data-character-builder-target="resourcePreview"><%= character.trait_set&.resource_name || "—" %></strong></div>
         </div>
         <div class="preview-note" data-character-builder-target="previewNote">Derived values update as you choose.</div>
       </section>

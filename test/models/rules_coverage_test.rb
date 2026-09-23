@@ -23,6 +23,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
         ancestry: @ancestry,
         background: @background,
         stat_array: "standard",
+        spell_school_choice: character_class.spell_schools.include?("choice") ? "Fire" : nil,
         ruleset_version: @ruleset
       )
       skill = Character::SKILL_TO_STAT.find { |_name, stat| character_class.key_stats.include?(stat) }.first

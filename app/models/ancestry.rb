@@ -1,6 +1,6 @@
 class Ancestry < ApplicationRecord
-  # Structured rules-canon slice (spec 02): seeded with 2 of the 19 Nimble
-  # ancestries for a minimal-but-real vertical slice.
+  # Structured rules-canon record (spec 02): the seed catalog enumerates the
+  # published ancestries and stores the flat modifiers this sheet can derive.
   # Flat numeric modifiers:
   # speed_modifier, initiative_modifier, all_skills_bonus,
   # max_hit_dice_modifier, max_wounds_modifier, and armor_modifier.

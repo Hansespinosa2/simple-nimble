@@ -1,7 +1,6 @@
 class Background < ApplicationRecord
-  # Structured rules-canon slice (spec 02): seeded with 2 of the ~24 Nimble
-  # backgrounds, one of them deliberately prerequisite-gated so the
-  # creation-flow legality check (spec 05 TBD-1) has a real case to enforce.
+  # Structured rules-canon record (spec 02): the seed catalog enumerates the
+  # published backgrounds and stores creation-time prerequisites where known.
   has_many :characters, dependent: :nullify
 
   validates :name, presence: true, uniqueness: true

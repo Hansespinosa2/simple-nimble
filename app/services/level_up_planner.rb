@@ -111,7 +111,15 @@ class LevelUpPlanner
       "current_hit_dice" => character.trait_set&.current_hit_dice.to_i,
       "initiative" => character.trait_set&.initiative.to_i,
       "armor" => character.trait_set&.armor.to_i,
-      "inventory_slots" => character.trait_set&.inventory_slots.to_i
+      "inventory_slots" => character.trait_set&.inventory_slots.to_i,
+      "save_dc" => character.trait_set&.save_dc,
+      "max_mana" => character.trait_set&.max_mana,
+      "current_mana" => character.trait_set&.current_mana,
+      "resource_name" => character.trait_set&.resource_name,
+      "resource_formula" => character.trait_set&.resource_formula,
+      "resource_die" => character.trait_set&.resource_die,
+      "max_resource" => character.trait_set&.max_resource,
+      "current_resource" => character.trait_set&.current_resource
     }
 
     selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
@@ -139,6 +147,15 @@ class LevelUpPlanner
       traits["initiative"] = stats.fetch("dexterity") + (character.ancestry&.initiative_modifier || 0)
       traits["armor"] = stats.fetch("dexterity") + (character.ancestry&.armor_modifier || 0)
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
+      resource_values = character.derived_resource_values_for(stat_values: stats, level: target_level)
+      traits["save_dc"] = character.save_dc_for(stats)
+      traits["max_mana"] = resource_values.fetch(:max_mana)
+      traits["resource_name"] = resource_values.fetch(:name)
+      traits["resource_formula"] = resource_values.fetch(:formula)
+      traits["resource_die"] = resource_values.fetch(:die)
+      traits["max_resource"] = resource_values.fetch(:max_resource)
+      traits["current_mana"] = preserved_tracker_value(character.trait_set.current_mana, character.trait_set.max_mana, traits["max_mana"])
+      traits["current_resource"] = preserved_tracker_value(character.trait_set.current_resource, character.trait_set.max_resource, traits["max_resource"])
     end
 
     {
@@ -181,6 +198,13 @@ class LevelUpPlanner
         skills[level_up.skill_name] += 1 if skills.key?(level_up.skill_name)
       end
       skills
+    end
+
+    def preserved_tracker_value(current, previous_max, new_max)
+      return nil if current.nil?
+      return new_max if previous_max.present? && current >= previous_max
+
+      [ current, new_max ].compact.min
     end
 
     def stat_increase_quote

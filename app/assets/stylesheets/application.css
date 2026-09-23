@@ -191,7 +191,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .stat-abbr { color: var(--ink-soft); font-size: 10px; font-weight: 850; letter-spacing: .1em; }
 .stat-card strong { font-family: Macondo, serif; font-size: 30px; font-weight: 400; margin: 3px 0 0; }
 .stat-caption { color: var(--accent); font-size: 10px; }
-.derived-strip { border-top: 1px solid var(--line); display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr); margin-top: 18px; padding-top: 17px; }
+.derived-strip { border-top: 1px solid var(--line); display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); margin-top: 18px; padding-top: 17px; }
 .derived-item span, .derived-item strong { display: block; }
 .derived-item span { color: var(--ink-soft); font-size: 10px; text-transform: uppercase; }
 .derived-item strong { font-size: 17px; margin-top: 4px; }
@@ -240,7 +240,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .explanation-marker { align-items: center; border-radius: 50%; display: flex; flex: 0 0 20px; font-size: 11px; font-weight: 850; height: 20px; justify-content: center; }
 .explanation-blocked { background: rgba(255,255,255,.6); color: #795d23; }
 .explanation-blocked .explanation-marker { background: #c18a2a; color: white; }
-.vitals-grid { display: grid; gap: 10px; grid-template-columns: 1.3fr repeat(4, 1fr); margin-bottom: 18px; }
+.vitals-grid { display: grid; gap: 10px; grid-template-columns: 1.3fr repeat(6, minmax(0, 1fr)); margin-bottom: 18px; }
 .vital-card { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; min-height: 104px; padding: 15px; }
 .vital-card-hp { background: var(--accent); border-color: var(--accent); color: white; }
 .vital-label, .vital-foot { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }

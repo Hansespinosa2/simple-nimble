@@ -45,4 +45,13 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 10, derived.fetch("base_inventory_slots")
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
   end
+
+  test "class entries expose equipment and resource data used by the sheet" do
+    mage = CharacterClass.find_by!(name: "Mage")
+
+    assert_includes mage.starting_gear, "Staff"
+    assert_equal [ "cloth" ], mage.armor_proficiencies
+    assert_includes mage.weapon_proficiencies, "wands"
+    assert_equal "INT * 3 + LVL", mage.resource_rules.fetch("max_formula")
+  end
 end

@@ -1,7 +1,7 @@
 class TraitSet < ApplicationRecord
   belongs_to :character
 
-  validates :current_hp, :temp_hp, :current_wounds, :current_actions, :current_hit_dice,
+  validates :current_hp, :temp_hp, :current_wounds, :current_actions, :current_hit_dice, :current_mana, :current_resource,
     numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :current_values_do_not_exceed_maxima
 
@@ -11,7 +11,9 @@ class TraitSet < ApplicationRecord
         current_hp: :max_hp,
         current_wounds: :max_wounds,
         current_actions: :max_actions,
-        current_hit_dice: :max_hit_dice
+        current_hit_dice: :max_hit_dice,
+        current_mana: :max_mana,
+        current_resource: :max_resource
       }.each do |current_field, maximum_field|
         current_value = public_send(current_field)
         maximum_value = public_send(maximum_field)

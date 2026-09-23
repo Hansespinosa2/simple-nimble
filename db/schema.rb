@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_160000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -135,6 +135,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_150000) do
     t.string "race"
     t.integer "ruleset_version_id"
     t.string "spell_school_choice"
+    t.text "starting_equipment"
     t.string "stat_array"
     t.string "status", default: "draft", null: false
     t.datetime "updated_at", null: false
@@ -236,6 +237,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_150000) do
     t.integer "current_actions"
     t.integer "current_hit_dice"
     t.integer "current_hp"
+    t.integer "current_mana"
+    t.integer "current_resource"
     t.integer "current_wounds"
     t.string "hit_die"
     t.integer "initiative"
@@ -243,7 +246,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_150000) do
     t.integer "max_actions"
     t.integer "max_hit_dice"
     t.integer "max_hp"
+    t.integer "max_mana"
+    t.integer "max_resource"
     t.integer "max_wounds"
+    t.string "resource_die"
+    t.string "resource_formula"
+    t.string "resource_name"
+    t.integer "save_dc"
     t.integer "speed"
     t.integer "temp_hp"
     t.datetime "updated_at", null: false

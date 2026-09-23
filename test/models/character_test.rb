@@ -145,4 +145,30 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 3, character.trait_set.temp_hp
     assert_equal 8, character.trait_set.speed
   end
+
+  test "catalog-backed casters derive save DC, mana, and starting gear" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    character = Character.create!(
+      name: "Catalog Mage",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+
+    assert_equal 12, character.trait_set.save_dc
+    assert_equal 7, character.trait_set.max_mana
+    assert_equal 7, character.trait_set.current_mana
+    assert_equal "Mana", character.trait_set.resource_name
+    assert_includes character.starting_equipment, "Staff"
+    assert_includes character.inventory, "Adventurer's Garb"
+    assert_includes character.character_class.armor_proficiencies, "cloth"
+
+    character.trait_set.update!(current_mana: 3)
+    character.update!(stat_array: "min_max")
+
+    assert_equal 10, character.trait_set.max_mana
+    assert_equal 3, character.trait_set.current_mana
+  end
 end

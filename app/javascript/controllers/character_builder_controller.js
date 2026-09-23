@@ -3,8 +3,8 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "classHint", "ancestryHint", "backgroundHint",
-    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "languagesPreview",
-    "speedPreview", "woundsPreview", "previewNote", "skillBudget"
+    "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview",
+    "speedPreview", "woundsPreview", "resourcePreview", "previewNote", "skillBudget"
   ]
 
   static values = { rules: Object }
@@ -84,10 +84,14 @@ export default class extends Controller {
     const stats = this.statValues || {}
     const dexterity = stats.dexterity || 0
     const intelligence = stats.intelligence || 0
+    const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
     const initiative = dexterity + (ancestry?.initiative_modifier || 0)
     const armor = dexterity + (ancestry?.armor_modifier || 0)
     const speed = 6 + (ancestry?.speed_modifier || 0)
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0)
+    const keyStats = characterClass?.key_stats || []
+    const saveDc = array && keyStats.length ? 10 + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
+    const mana = array ? this.manaMax(characterClass?.resource, stats, level) : "—"
     const languages = [ "Common" ]
 
     for (let index = 0; index < Math.max(intelligence, 0); index += 1) languages.push("+ language")
@@ -96,13 +100,17 @@ export default class extends Controller {
     this.setTargetText("armorPreview", array ? armor : "—")
     this.setTargetText("initiativePreview", array ? this.signed(initiative) : "—")
     this.setTargetText("hitDiePreview", characterClass?.hit_die || "—")
+    this.setTargetText("saveDcPreview", saveDc)
+    this.setTargetText("manaPreview", mana)
     this.setTargetText("languagesPreview", array ? languages.join(", ") : "Common")
     this.setTargetText("speedPreview", array ? speed : "—")
     this.setTargetText("woundsPreview", array ? wounds : "—")
+    this.setTargetText("resourcePreview", characterClass?.resource?.name || "—")
   }
 
   updateHints(characterClass, ancestry, background) {
-    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map(this.abbreviate).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP` : "Two Key Stats shape your build.")
+    const resourceHint = characterClass?.resource?.name ? ` · ${characterClass.resource.name}` : ""
+    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map(this.abbreviate).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${resourceHint}` : "Two Key Stats shape your build.")
     this.setTargetText("ancestryHint", ancestry?.summary || "Ancestry traits apply automatically.")
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
@@ -138,6 +146,16 @@ export default class extends Controller {
 
   setTargetText(target, text) {
     if (this[`has${this.capitalize(target)}Target`]) this[`${target}Target`].textContent = text
+  }
+
+  manaMax(resource, stats, level) {
+    const formula = resource?.max_formula?.split(";")[0] || ""
+    const match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
+    if (!match) return "—"
+
+    const stat = { STR: "strength", DEX: "dexterity", INT: "intelligence", WIL: "will" }[match[1].toUpperCase()]
+    const multiplier = Number(match[2] || 1)
+    return (stats[stat] || 0) * multiplier + level
   }
 
   signed(value) {

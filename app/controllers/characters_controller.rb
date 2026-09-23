@@ -104,7 +104,7 @@ class CharactersController < ApplicationController
   def tracker
     tracker_attributes = params.expect(character: [
       :conditions, :inventory, :game_notes,
-      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :temp_hp ] }
+      { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp ] }
     ])
 
     if @character.update(tracker_attributes)
@@ -207,7 +207,11 @@ class CharactersController < ApplicationController
             hit_die: character_class.hit_die,
             starting_hp: character_class.starting_hp,
             spell_schools: character_class.spell_schools,
-            source_reference: character_class.source_reference
+            source_reference: character_class.source_reference,
+            starting_gear: character_class.starting_gear,
+            armor_proficiencies: character_class.armor_proficiencies,
+            weapon_proficiencies: character_class.weapon_proficiencies,
+            resource: character_class.resource_rules
           }
         end,
         ancestries: @ancestries.index_by(&:id).transform_values do |ancestry|
