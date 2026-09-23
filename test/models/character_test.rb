@@ -203,7 +203,7 @@ class CharacterTest < ActiveSupport::TestCase
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
     character = Character.create!(
       name: "Catalog Mage",
-      level: 1,
+      level: 2,
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
@@ -211,8 +211,8 @@ class CharacterTest < ActiveSupport::TestCase
     )
 
     assert_equal 12, character.trait_set.save_dc
-    assert_equal 7, character.trait_set.max_mana
-    assert_equal 7, character.trait_set.current_mana
+    assert_equal 8, character.trait_set.max_mana
+    assert_equal 8, character.trait_set.current_mana
     assert_equal "Mana", character.trait_set.resource_name
     assert_equal 2, character.trait_set.initiative
     assert_equal(-1, character.trait_set.armor)
@@ -223,7 +223,7 @@ class CharacterTest < ActiveSupport::TestCase
     character.trait_set.update!(current_mana: 3)
     character.update!(stat_array: "min_max")
 
-    assert_equal 10, character.trait_set.max_mana
+    assert_equal 11, character.trait_set.max_mana
     assert_equal 3, character.trait_set.current_mana
   end
 end

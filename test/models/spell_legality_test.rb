@@ -59,4 +59,23 @@ class SpellLegalityTest < ActiveSupport::TestCase
       assert_equal spell.tier, spell.mana_cost
     end
   end
+
+  test "Oathsworn does not access Radiant spells until level two" do
+    oathsworn = Character.create!(
+      name: "Oath Rules Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    radiant_cantrip = Spell.find_by!(name: "Rebuke")
+
+    assert_equal(-1, oathsworn.character_class.spell_tier_for(1))
+    assert_not radiant_cantrip.available_to?(oathsworn)
+
+    oathsworn.update_columns(level: 2)
+
+    assert radiant_cantrip.available_to?(oathsworn)
+  end
 end

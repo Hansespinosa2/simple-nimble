@@ -153,6 +153,8 @@ export default class extends Controller {
   }
 
   manaMax(resource, stats, level) {
+    if (level < Number(resource?.max_start_level || 1)) return "—"
+
     const formula = resource?.max_formula?.split(";")[0] || ""
     const match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
     if (!match) return "—"

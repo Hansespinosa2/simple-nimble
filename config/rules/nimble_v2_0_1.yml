@@ -168,6 +168,7 @@ classes:
     resource:
       name: Mana
       max_formula: "INT * 3 + LVL"
+      max_start_level: 2
     subclasses: [Chaos, Control]
 
   Oathsworn:
@@ -182,7 +183,7 @@ classes:
     weapon_proficiencies: [strength]
     starting_gear: [Mace, "Rusty Mail", "Wooden Buckler", Manacles]
     spell_schools: [Radiant]
-    spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 13: 6, 17: 7}
+    spell_tier_unlocks: {1: -1, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 13: 6, 17: 7}
     stat_increases:
       key: [4, 8, 12, 16]
       secondary: [5, 9, 13, 17]
@@ -190,6 +191,7 @@ classes:
     resource:
       name: Mana and Judgment Dice
       max_formula: "mana WIL + LVL; Lay on Hands 5 * LVL"
+      max_start_level: 2
       die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
     subclasses: [Oath of Vengeance, Oath of Refuge, Oathbreaker]
 
@@ -235,6 +237,7 @@ classes:
     resource:
       name: Mana
       max_formula: "WIL * 3 + LVL"
+      max_start_level: 2
     subclasses: [Luminary of Mercy, Luminary of Malice]
 
   Songweaver:
@@ -257,6 +260,7 @@ classes:
     resource:
       name: Mana and Inspiration
       max_formula: "mana INT * 3 + LVL; Inspiration 2 * WIL per Safe Rest"
+      max_start_level: 2
     subclasses: [Herald of Snark, Herald of Courage]
 
   Stormshifter:
@@ -279,6 +283,7 @@ classes:
     resource:
       name: Mana and Beastshift charges
       max_formula: "mana WIL * 3 + LVL; Beastshift DEX charges per Safe Rest"
+      max_start_level: 2
     subclasses: [Circle of Fang & Claw, Circle of Sky & Storm]
 
   Zephyr:

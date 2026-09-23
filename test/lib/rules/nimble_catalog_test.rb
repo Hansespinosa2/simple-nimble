@@ -28,6 +28,13 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 9, @catalog.spell_tier_for("Mage", 18)
     assert_equal 2, @catalog.spell_tier_for("Shadowmancer", 5)
     assert_equal 0, @catalog.spell_tier_for("Berserker", 20)
+    assert_equal(-1, @catalog.spell_tier_for("Oathsworn", 1))
+    assert_equal 1, @catalog.spell_tier_for("Oathsworn", 2)
+  end
+
+  test "mana unlocks at the source-defined class level" do
+    assert_equal 2, CharacterClass.find_by!(name: "Mage").resource_rules.fetch("max_start_level")
+    assert_equal 2, CharacterClass.find_by!(name: "Oathsworn").resource_rules.fetch("max_start_level")
   end
 
   test "class-specific stat schedules include the level twenty any-two rule" do

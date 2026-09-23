@@ -131,7 +131,7 @@ Maximum stat value: +5.
 
 ---
 
-#### 2. Skills (9)
+#### 2. Skills (10)
 
 Each skill is derived from a stat. Initial value = stat bonus. +4 extra skill points at level 1 distributed freely. +1 skill point per level; can also move 1 existing point per level. Maximum skill value: +12.
 
@@ -197,7 +197,7 @@ Spellcasting classes unlock higher spell tiers at specific levels. Non-casters h
 | Class | Cantrips | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Mage | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 |
-| Oathsworn | L1 | L2 | L4 | L6 | L8 | L10 | L13 | L17 | — | — |
+| Oathsworn | L2 | L2 | L4 | L6 | L8 | L10 | L13 | L17 | — | — |
 | Shadowmancer | L1 | L2 | L5 | L7 | L10 | L13 | L16 | L19 | — | — |
 | Shepherd | L1 | L2 | L4 | L6 | L8 | L9 | L11 | L14 | L16 | L18 |
 | Stormshifter | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 |

@@ -138,7 +138,10 @@ class Character < ApplicationRecord
   def mana_max_for(stat_values: nil, level: self.level)
     return nil if character_class.blank?
 
-    formula = character_class.resource_rules.to_h.fetch("max_formula", "").to_s.split(";").first.to_s
+    resource_rules = character_class.resource_rules.to_h
+    return nil if level.to_i < resource_rules.fetch("max_start_level", 1).to_i
+
+    formula = resource_rules.fetch("max_formula", "").to_s.split(";").first.to_s
     match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
     return nil unless match
 
@@ -151,7 +154,8 @@ class Character < ApplicationRecord
     rules = character_class&.resource_rules.to_h
     formula = rules["max_formula"].presence || rules["formula"].presence
     mana_max = mana_max_for(stat_values: stat_values, level: level)
-    resource_max = mana_max.present? ? nil : resource_max_from_formula(formula, stat_values)
+    resource_active = level.to_i >= rules.fetch("max_start_level", 1).to_i
+    resource_max = mana_max.present? || !resource_active ? nil : resource_max_from_formula(formula, stat_values)
 
     {
       name: rules["name"],
