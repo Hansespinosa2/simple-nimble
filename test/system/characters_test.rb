@@ -64,6 +64,31 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal @background, created.background
   end
 
+  test "the sheet tracks live game state and records the update" do
+    visit character_url(@character)
+
+    fill_in "character_trait_set_attributes_current_hp", with: 7
+    fill_in "character_trait_set_attributes_temp_hp", with: 2
+    fill_in "character_trait_set_attributes_current_wounds", with: 4
+    fill_in "character_trait_set_attributes_current_actions", with: 1
+    fill_in "character_trait_set_attributes_current_hit_dice", with: 0
+    fill_in "character_conditions", with: "Smoldering"
+    fill_in "character_inventory", with: "Torch, rope"
+    fill_in "character_game_notes", with: "Met the ferryman."
+    click_on "Save game state"
+
+    assert_text "Game state saved"
+    assert_text "Game update"
+    assert_equal 7, @character.reload.trait_set.current_hp
+    assert_equal 2, @character.trait_set.temp_hp
+    assert_equal 4, @character.trait_set.current_wounds
+    assert_equal 1, @character.trait_set.current_actions
+    assert_equal 0, @character.trait_set.current_hit_dice
+    assert_equal "Smoldering", @character.conditions
+    assert_equal "Torch, rope", @character.inventory
+    assert_equal "Met the ferryman.", @character.game_notes
+  end
+
   test "should update Character" do
     visit character_url(@character)
     click_on "Edit sheet", match: :first
