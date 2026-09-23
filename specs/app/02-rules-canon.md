@@ -376,7 +376,7 @@ These must be calculable from structured data — no manual calculation required
 | Languages known | 1 (Common) + max(INT, 0) extra + ancestry/background grants |
 | Save DC (for hero-caused effects) | 10 + KEY stat |
 | Mana pool max | Class-specific formula (e.g., INT×3+LVL for Mage; WIL×3+LVL for Shepherd/Stormshifter) |
-| HP on level-up | Roll Hit Die with advantage + STR (add result to max HP) |
+| HP on level-up | Roll Hit Die with advantage (add the higher result to max HP) |
 | Hit Dice amount | Equal to current level (default) |
 | Skill initial value | Governing stat bonus (e.g., Stealth starts at DEX) |
 

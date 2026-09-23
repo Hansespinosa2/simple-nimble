@@ -4,6 +4,7 @@ class LevelUpPlanner
   def initialize(character, level_up)
     @character = character
     @level_up = level_up
+    ensure_hit_die_rolls
   end
 
   def target_level
@@ -20,6 +21,11 @@ class LevelUpPlanner
 
   def skill_options
     Character::SKILL_NAMES.select { |skill| character.skill_value(skill).to_i < 12 }
+  end
+
+  def hit_die_size
+    hit_die = character.trait_set&.hit_die.presence || character.character_class&.hit_die
+    hit_die.to_s.split("d").last.to_i.nonzero? || 6
   end
 
   def issues
@@ -39,16 +45,49 @@ class LevelUpPlanner
       result << issue("#{level_up.skill_name.to_s.humanize} is already at the +12 skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +12.")
     end
 
-    if stat_increase_type.present?
-      if level_up.stat_name.blank?
-        result << issue("Choose a #{stat_increase_type} stat to increase.", "Chapter 3, Stat Increases", stat_increase_quote)
-      elsif !stat_options.include?(level_up.stat_name)
-        result << issue("#{level_up.stat_name.to_s.humanize} is not eligible for this level's stat increase.", "Chapter 3, Stat Increases", stat_increase_quote)
-      elsif character.stat_value(level_up.stat_name) >= 5
-        result << issue("#{level_up.stat_name.to_s.humanize} is already at the +5 stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +5.")
+    if level_up.skill_from.present?
+      if !Character::SKILL_NAMES.include?(level_up.skill_from)
+        result << issue("#{level_up.skill_from.to_s.humanize} is not a recognized skill to move.", "Chapter 3, Skills", "Choose one of the ten skills listed in the character rules.")
+      elsif level_up.skill_from == level_up.skill_name
+        result << issue("Choose a different skill to move from.", "Chapter 3, Skills", "The optional moved point must come from another skill.")
       end
-    elsif level_up.stat_name.present?
+    end
+
+    if stat_increase_type.present?
+      selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
+      if stat_increase_type == "any_two"
+        if selected_stats.length != 2 || selected_stats.uniq.length != 2
+          result << issue("Choose two different stats to increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+        end
+      elsif level_up.second_stat_name.present?
+        result << issue("Only one stat can increase at this level.", "Chapter 3, Stat Increases", stat_increase_quote)
+      elsif level_up.stat_name.blank?
+        result << issue("Choose a #{stat_increase_type} stat to increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+      end
+
+      selected_stats.each do |stat_name|
+        if !stat_options.include?(stat_name)
+          result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+        elsif character.stat_value(stat_name) >= 5
+          result << issue("#{stat_name.to_s.humanize} is already at the +5 stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +5.")
+        end
+      end
+    elsif level_up.stat_name.present? || level_up.second_stat_name.present?
       result << issue("No stat increase is scheduled at level #{target_level}.", "Chapter 3, Stat Increases", "Stat increases occur at scheduled class progression levels.")
+    end
+
+    if level_up.hit_die_roll_one.blank? || level_up.hit_die_roll_two.blank?
+      result << issue("Roll both Hit Dice before applying this level-up.", "Chapter 3, Derived Values", "Roll your Hit Die with advantage and increase max HP by the higher result.")
+    elsif [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ].any? { |roll| roll.to_i > hit_die_size }
+      result << issue("Each Hit Die roll must be between 1 and #{hit_die_size}.", "Chapter 3, Derived Values", "Roll two results using the character's Hit Die.")
+    end
+
+    projected_skills = projected_skill_values
+    if level_up.skill_from.present? && Character::SKILL_NAMES.include?(level_up.skill_from) && projected_skills.fetch(level_up.skill_from) < 0
+      result << issue("#{level_up.skill_from.to_s.humanize} cannot become negative when moving a skill point.", "Chapter 3, Skills", "You may move 1 point only as long as the source skill does not become negative.")
+    end
+    if level_up.skill_name.present? && Character::SKILL_NAMES.include?(level_up.skill_name) && projected_skills.fetch(level_up.skill_name) > 12
+      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +12 skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +12.")
     end
 
     result
@@ -75,16 +114,23 @@ class LevelUpPlanner
       "inventory_slots" => character.trait_set&.inventory_slots.to_i
     }
 
-    if level_up.stat_name.present? && stat_options.include?(level_up.stat_name)
-      stats[level_up.stat_name] += 1
+    selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
+    selected_stats.each do |stat_name|
+      next unless stat_options.include?(stat_name)
+
+      stats[stat_name] += 1
       Character::SKILL_NAMES.each do |skill|
-        skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == level_up.stat_name
+        skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == stat_name
       end
     end
 
     skills[level_up.skill_name] += 1 if level_up.skill_name.present? && skills.key?(level_up.skill_name)
+    if level_up.skill_from.present? && skills.key?(level_up.skill_from) && level_up.skill_from != level_up.skill_name
+      skills[level_up.skill_from] -= 1
+      skills[level_up.skill_name] += 1 if skills.key?(level_up.skill_name)
+    end
 
-    hp_gain = hit_die_size + [ stats.fetch("strength"), 0 ].max
+    hp_gain = [ level_up.hit_die_roll_one.to_i, level_up.hit_die_roll_two.to_i ].max
     if character.trait_set
       traits["max_hp"] += hp_gain
       traits["current_hp"] = traits["max_hp"] if character.trait_set.current_hp.to_i >= character.trait_set.max_hp.to_i
@@ -101,6 +147,7 @@ class LevelUpPlanner
       "skills" => skills,
       "traits" => traits,
       "hp_gain" => hp_gain,
+      "hit_die_rolls" => [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ],
       "stat_increase_type" => stat_increase_type,
       "spell_tier" => spell_tier_for(target_level),
       "explanations" => applied_explanations(stats, hp_gain)
@@ -108,13 +155,32 @@ class LevelUpPlanner
   end
 
   private
-    def hit_die_size
-      hit_die = character.trait_set&.hit_die.presence || character.character_class&.hit_die
-      hit_die.to_s.split("d").last.to_i.nonzero? || 6
-    end
-
     def spell_tier_for(level)
       character.character_class&.spell_tier_for(level).to_i
+    end
+
+    def ensure_hit_die_rolls
+      return if level_up.hit_die_roll_one.present? && level_up.hit_die_roll_two.present?
+
+      level_up.roll_hit_die!(hit_die_size)
+    end
+
+    def projected_skill_values
+      skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
+      selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
+      selected_stats.each do |stat_name|
+        next unless stat_options.include?(stat_name)
+
+        Character::SKILL_NAMES.each do |skill|
+          skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == stat_name
+        end
+      end
+      skills[level_up.skill_name] += 1 if level_up.skill_name.present? && skills.key?(level_up.skill_name)
+      if level_up.skill_from.present? && skills.key?(level_up.skill_from) && level_up.skill_from != level_up.skill_name
+        skills[level_up.skill_from] -= 1
+        skills[level_up.skill_name] += 1 if skills.key?(level_up.skill_name)
+      end
+      skills
     end
 
     def stat_increase_quote
@@ -137,17 +203,25 @@ class LevelUpPlanner
         },
         {
           type: "auto_applied",
-          message: "Max HP increases by #{hp_gain} (#{character.trait_set&.hit_die || '1d6'} preview plus STR).",
+          message: "Max HP increases by #{hp_gain} (higher of #{level_up.hit_die_roll_one} and #{level_up.hit_die_roll_two} on #{character.trait_set&.hit_die || '1d6'}).",
           source_ref: "Chapter 3, Derived Values",
-          quote: "HP on level-up: roll Hit Die with advantage + STR."
+          quote: "HP Increase. Roll your Hit Die with advantage and increase your max HP by that much."
         }
       ]
-      if level_up.stat_name.present?
+      [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
         explanations << {
           type: "applied",
-          message: "#{level_up.stat_name.humanize} increases to #{stats.fetch(level_up.stat_name)}.",
+          message: "#{stat_name.humanize} increases to #{stats.fetch(stat_name)}.",
           source_ref: "Chapter 3, Stat Increases",
           quote: stat_increase_quote
+        }
+      end
+      if level_up.skill_from.present? && level_up.skill_from != level_up.skill_name
+        explanations << {
+          type: "applied",
+          message: "1 point moves from #{level_up.skill_from.humanize} to #{level_up.skill_name.to_s.humanize}.",
+          source_ref: "Chapter 3, Skills",
+          quote: "You may move 1 point from one skill to another as long as the skill does not become negative."
         }
       end
       if preview_spell_tier = spell_tier_for(target_level)

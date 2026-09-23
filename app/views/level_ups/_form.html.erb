@@ -20,12 +20,35 @@
         <span class="field-hint">Choose any skill below +12. The governing stat is already included in the preview.</span>
       </div>
 
+      <div class="field">
+        <%= form.label :skill_from, "Optional moved point" %>
+        <%= form.select :skill_from, Character::SKILL_NAMES.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Do not move a point" }, class: "choice-select" %>
+        <span class="field-hint">Move 1 point from this skill to the skill above; it cannot become negative.</span>
+      </div>
+
+      <div class="field">
+        <%= form.label :hit_die_roll_one, "Hit Die roll 1 (d#{@planner.hit_die_size})" %>
+        <%= form.number_field :hit_die_roll_one, min: 1, max: @planner.hit_die_size, class: "choice-input" %>
+      </div>
+      <div class="field">
+        <%= form.label :hit_die_roll_two, "Hit Die roll 2 (d#{@planner.hit_die_size})" %>
+        <%= form.number_field :hit_die_roll_two, min: 1, max: @planner.hit_die_size, class: "choice-input" %>
+        <span class="field-hint">The higher result increases max HP. The app rolls both for a convenient starting preview; replace them with your table rolls if needed.</span>
+      </div>
+
       <% if @planner.stat_increase_type.present? %>
         <div class="field">
           <%= form.label :stat_name, "Stat increase · #{@planner.stat_increase_type.capitalize} Stat" %>
           <%= form.select :stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a stat" }, class: "choice-select" %>
-          <span class="field-hint">Chapter 3: <%= @planner.stat_increase_type == "key" ? "Key" : "Secondary" %> Stat schedule applies at level <%= @planner.target_level %>.</span>
+          <span class="field-hint">Chapter 3: <%= @planner.stat_increase_type == "any_two" ? "Choose two different stats" : @planner.stat_increase_type.capitalize %> applies at level <%= @planner.target_level %>.</span>
         </div>
+        <% if @planner.stat_increase_type == "any_two" %>
+          <div class="field">
+            <%= form.label :second_stat_name, "Second stat increase" %>
+            <%= form.select :second_stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a second stat" }, class: "choice-select" %>
+            <span class="field-hint">The two level-20 increases must be different.</span>
+          </div>
+        <% end %>
       <% else %>
         <div class="rules-callout"><span class="callout-icon">i</span><span>No stat increase is scheduled at level <%= @planner.target_level %>. Save that choice for the next milestone.</span></div>
       <% end %>
@@ -51,7 +74,7 @@
         <% end %>
       </div>
       <div class="preview-list">
-        <div><span>Max HP</span><strong><%= preview.fetch("traits").fetch("max_hp") %> <small>+<%= preview.fetch("hp_gain") %></small></strong></div>
+        <div><span>Max HP</span><strong><%= preview.fetch("traits").fetch("max_hp") %> <small>+<%= preview.fetch("hp_gain") %> (rolls <%= preview.fetch("hit_die_rolls").join(" / ") %>)</small></strong></div>
         <div><span>Max Hit Dice</span><strong><%= preview.fetch("traits").fetch("max_hit_dice") %></strong></div>
         <div><span>Armor</span><strong><%= preview.fetch("traits").fetch("armor") %></strong></div>
         <div><span>Initiative</span><strong><%= signed_value(preview.fetch("traits").fetch("initiative")) %></strong></div>

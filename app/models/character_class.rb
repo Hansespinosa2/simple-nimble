@@ -5,10 +5,9 @@ class CharacterClass < ApplicationRecord
     "any_two" => [ 20 ]
   }.freeze
 
-  # Structured rules-canon slice (spec 02): only the fields needed to derive
-  # a legal starting character (spec 05). Intentionally seeded with 2 of the
-  # 11 Nimble classes for a minimal-but-real vertical slice, not the full
-  # class corpus.
+  # Structured rules-canon record (spec 02): the catalog supplies progression,
+  # spell access, and class-resource metadata while this table stores the
+  # relational identity used by characters.
   has_many :characters, dependent: :nullify
 
   validates :name, presence: true, uniqueness: true

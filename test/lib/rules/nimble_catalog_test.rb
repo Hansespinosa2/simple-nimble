@@ -43,6 +43,6 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 6, derived.fetch("base_speed")
     assert_equal 6, derived.fetch("default_max_wounds")
     assert_equal 10, derived.fetch("base_inventory_slots")
-    assert_equal "roll Hit Die with advantage + STR", derived.fetch("hp_level_up_formula")
+    assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
   end
 end

@@ -23,7 +23,7 @@ derived_values:
   initiative_formula: "DEX"
   max_stat: 5
   max_skill: 12
-  hp_level_up_formula: "roll Hit Die with advantage + STR"
+  hp_level_up_formula: "roll Hit Die with advantage"
   hit_dice_formula: "current level"
 
 stats:
@@ -291,4 +291,3 @@ classes:
     resource:
       name: Bursts of Speed
       max_formula: DEX
-

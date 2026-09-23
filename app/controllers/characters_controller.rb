@@ -205,7 +205,9 @@ class CharactersController < ApplicationController
             key_stats: character_class.key_stats,
             secondary_stats: character_class.secondary_stats,
             hit_die: character_class.hit_die,
-            starting_hp: character_class.starting_hp
+            starting_hp: character_class.starting_hp,
+            spell_schools: character_class.spell_schools,
+            source_reference: character_class.source_reference
           }
         end,
         ancestries: @ancestries.index_by(&:id).transform_values do |ancestry|
