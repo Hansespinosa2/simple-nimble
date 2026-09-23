@@ -405,7 +405,7 @@ progression:
       1: ["Rage"]
       2: ["Intensifying Fury", "One with the Ancients"]
       3: ["Subclass choice", "Bloodlust"]
-      4: ["Enduring Rage"]
+      4: ["Enduring Rage", "Savage Arsenal"]
       5: ["Rage (2)"]
       6: ["Savage Arsenal (2)", "Intensifying Fury (2)"]
       7: ["Subclass feature"]
@@ -789,6 +789,228 @@ progression:
         7: ["Blazing Speed"]
         11: ["Chain Reaction"]
         15: ["Burning Soul"]
+
+choice_pools:
+  Berserker:
+    "Savage Arsenal":
+      source_ref: Heroes 2.0.1, p. 10
+      choices: {4: 1, 6: 1, 8: 1, 10: 1, 12: 1, 14: 1, 16: 1}
+      options:
+        - Death Blow
+        - Deathless Rage
+        - Eager for Battle
+        - Into the Fray
+        - Mighty Endurance
+        - "MORE BLOOD!"
+        - Rampage
+        - Swift Fury
+        - Thunderous Steps
+        - Unstoppable Force
+        - Whirlwind
+        - "You're Next!"
+
+  "The Cheat":
+    "Underhanded Ability":
+      source_ref: Heroes 2.0.1, p. 16
+      choices: {4: 1, 6: 1, 8: 1, 10: 1, 12: 1, 14: 1, 16: 1, 18: 1}
+      options:
+        - Creative Accounting
+        - Exploit Weakness
+        - Feinting Attack
+        - "How'd YOU get here?!"
+        - "I'm Outta Here!"
+        - Misdirection
+        - Steal Tempo
+        - Sunder Armor (Medium)
+        - Sunder Armor (Heavy)
+        - Trickshot
+      requires:
+        "Sunder Armor (Heavy)": ["Sunder Armor (Medium)"]
+
+  Commander:
+    "Commander's Orders":
+      source_ref: Heroes 2.0.1, p. 19
+      choices: {2: 2}
+      options:
+        - "Face Me!"
+        - "Hold the Line!"
+        - "I Can Do This ALL DAY!"
+        - "Move it! Move it!"
+        - Reposition!
+    "Combat Tactics":
+      source_ref: Heroes 2.0.1, p. 22
+      choices: {4: 1}
+      options:
+        - "Commanding Presence"
+        - Heavy Strike
+        - Inerrant Strike
+        - Lunging Strike
+        - Sweeping Strike
+    "Combat Ability":
+      source_ref: Heroes 2.0.1, p. 20
+      choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
+      options:
+        - "Face Me!"
+        - "Hold the Line!"
+        - "I Can Do This ALL DAY!"
+        - "Move it! Move it!"
+        - Reposition!
+        - "Commanding Presence"
+        - Heavy Strike
+        - Inerrant Strike
+        - Lunging Strike
+        - Sweeping Strike
+        - "+1 max Combat Dice"
+    "Weapon Mastery":
+      source_ref: Heroes 2.0.1, p. 22
+      choices: {6: 1, 10: 1}
+      options: [Slashing, Bludgeoning, Piercing]
+
+  Hunter:
+    "Thrill of the Hunt":
+      source_ref: Heroes 2.0.1, p. 28
+      choices: {2: 2, 4: 1, 6: 1, 8: 1, 12: 1, 14: 1}
+      options:
+        - Addling Arrow
+        - "Come Get Some!"
+        - Decoy
+        - Fleet Feet
+        - Grease Trap
+        - Hail of Arrows
+        - Heavy Shot
+        - Incendiary Shot
+        - Multishot
+        - Pinning Shot
+        - Snare Trap
+        - Sharpshooter
+        - Vital Shot
+        - Wild Instinct
+
+  Mage:
+    Spellshaper:
+      source_ref: Heroes 2.0.1, p. 34
+      choices: {4: 2, 9: 1, 13: 1}
+      options:
+        - Dimensional Compression
+        - Echo Casting
+        - Elemental Destruction
+        - Elemental Transmutation
+        - Extra-Dimensional Vision
+        - Methodical Spellweaver
+        - Precise Casting
+        - Stretch Time
+
+  Oathsworn:
+    "Sacred Decree":
+      source_ref: Heroes 2.0.1, p. 40
+      choices: {3: 1, 6: 1, 9: 1, 12: 1, 14: 1, 16: 1}
+      options:
+        - Blinding Aura
+        - "Courage!"
+        - Explosive Judgment
+        - Improved Aura
+        - Radiant Aura
+        - Reliable Justice
+        - "Shining Mandate"
+        - "Stand Fast, Friends!"
+        - "Unstoppable Protector"
+        - Well Armored
+
+  Shadowmancer:
+    "Lesser Shadow Invocation":
+      source_ref: Heroes 2.0.1, p. 46
+      choices: {3: 1, 8: 1, 11: 1}
+      options:
+        - Abhorrent Speech
+        - Beguiling Influence
+        - Blood Sight
+        - Devoted Acolyte
+        - Eldritch Sense
+        - Gaze of Two Minds
+        - Knowledge from Beyond
+        - My Favored Pet
+        - Voice of the Dark
+        - Whispers of the Grave
+    "Greater Shadow Invocation":
+      source_ref: Heroes 2.0.1, p. 46
+      choices: {4: 1, 6: 1, 9: 1, 14: 1, 18: 1}
+      options:
+        - Armor of Shadows
+        - Fiendish Boon
+        - Hungering Shadows
+        - One with Shadows
+        - Repelling Blast
+        - Shadow Magus
+        - Shadow Spear
+        - Shadow Rush
+        - Shadow Warp
+        - Swarming Shadows
+        - Vengeful Blast
+
+  Shepherd:
+    "Sacred Grace":
+      source_ref: Heroes 2.0.1, p. 52
+      choices: {5: 2, 9: 1, 13: 1}
+      options:
+        - "Assist Me, My Friend!"
+        - "Empowered Companion"
+        - Guiding Spirit
+        - "Hasty Companion"
+        - "Illuminate Soul"
+        - "Light Bearer"
+        - "Not Beyond MY Reach"
+        - "Vengeful Spirit"
+
+  Songweaver:
+    "A People Person":
+      source_ref: Heroes 2.0.1, p. 58
+      choices: {5: 2}
+      options:
+        - Stompy
+        - "Gran Gran (NOT a hag)"
+        - "Mal, the Malevolent Imp"
+        - "Linos, the Everfriendly"
+    "Lyrical Weaponry":
+      source_ref: Heroes 2.0.1, p. 58
+      choices: {4: 1, 9: 1, 13: 1, 17: 1}
+      options:
+        - Heroic Ballad
+        - Inspiring Anthem
+        - "Not My Beautiful Faaace!"
+        - "Rhapsody of the Normal"
+        - "Song of Domination"
+
+  Stormshifter:
+    "Chimeric Boon":
+      source_ref: Heroes 2.0.1, p. 64
+      choices: {6: 2, 9: 1, 12: 1, 17: 1}
+      options:
+        - "Beast of the Sea"
+        - Climber
+        - "Fleet Footed"
+        - Earthwalker
+        - "Keen Senses"
+        - "Leader of the Pack"
+        - Phasebeast
+        - "Prehensile Tail"
+        - Winged
+
+  Zephyr:
+    "Martial Arts":
+      source_ref: Heroes 2.0.1, p. 70
+      choices: {4: 1, 6: 1, 8: 1, 10: 1, 12: 1, 14: 1, 16: 1, 18: 1}
+      options:
+        - Airshift
+        - Blur
+        - "Bodily Discipline"
+        - "Enduring Soul"
+        - "I Jump On His Back!"
+        - "Kinetic Barrage"
+        - "Mighty Soul"
+        - Quickstrike
+        - "Use Momentum"
+        - "Vital Rejuvenation"
+        - Windstrider
 
 derived_effects:
   classes:

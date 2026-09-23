@@ -148,6 +148,25 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Draft", payload.fetch("status_label")
   end
 
+  test "JSON sheet payload includes recorded feature choices" do
+    @character.update!(
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      level: 4,
+      feature_choices: { "Savage Arsenal" => [ "Death Blow" ] }
+    )
+
+    get character_url(@character, format: :json)
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    choice = payload.fetch("progression").fetch("feature_choices").first
+    assert_equal "Savage Arsenal", choice.fetch("name")
+    assert_equal [ "Death Blow" ], choice.fetch("selected")
+  end
+
   test "should get edit" do
     get edit_character_url(@character)
     assert_response :success

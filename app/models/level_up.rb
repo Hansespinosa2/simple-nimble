@@ -4,6 +4,7 @@ class LevelUp < ApplicationRecord
   belongs_to :character
 
   serialize :preview, coder: JSON
+  serialize :feature_choices, coder: JSON
 
   STAT_NAMES = %w[strength dexterity intelligence will].freeze
   SKILL_NAMES = %w[arcana examination finesse influence insight lore might naturecraft perception stealth].freeze

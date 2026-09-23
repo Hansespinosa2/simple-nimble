@@ -29,7 +29,10 @@ class RulesCoverageTest < ActiveSupport::TestCase
       skill = Character::SKILL_TO_STAT.find { |_name, stat| character_class.key_stats.include?(stat) }.first
       character.skill_set.public_send("#{skill}=", character.skill_initial_value(skill) + 4)
       character.finalize_creation!
-      level_up = character.level_ups.create!(from_level: 1, to_level: 2, skill_name: skill)
+      feature_choices = character_class.feature_choice_pools_for(2).to_h do |pool|
+        [ pool.fetch("name"), pool.fetch("options").first(pool.fetch("count")) ]
+      end
+      level_up = character.level_ups.create!(from_level: 1, to_level: 2, skill_name: skill, feature_choices: feature_choices)
       LevelUpService.finalize!(level_up)
 
       assert_equal 2, character.reload.level, "#{class_name} should level up through the golden path"

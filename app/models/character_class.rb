@@ -90,6 +90,14 @@ class CharacterClass < ApplicationRecord
     Rules::NimbleCatalog.subclass_features_for(name, subclass_name, level)
   end
 
+  def feature_choice_pools_for(level)
+    Rules::NimbleCatalog.choice_pools_for(name, level)
+  end
+
+  def feature_choice_pool_for(pool_name)
+    Rules::NimbleCatalog.choice_pool_for(name, pool_name)
+  end
+
   private
     def fallback_stat_increase_type_for(level)
       FALLBACK_STAT_INCREASES.each do |type, levels|

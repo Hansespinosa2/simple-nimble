@@ -293,6 +293,7 @@ class CharacterTest < ActiveSupport::TestCase
     berserker = CharacterClass.find_by!(name: "Berserker")
 
     assert_equal [ "Intensifying Fury", "One with the Ancients" ], berserker.features_for(2)
+    assert_includes berserker.features_for(4), "Savage Arsenal"
     assert_equal [ "Stone's Resilience", "Mountainous Tenacity" ], berserker.subclass_features_for("Path of the Mountainheart", 3)
     assert_equal [ "Titan's Fury" ], berserker.subclass_features_for("Path of the Mountainheart", 11)
 
@@ -316,6 +317,55 @@ class CharacterTest < ActiveSupport::TestCase
         assert character_class.subclass_features_for(subclass, 3).any?, "#{character_class.name} / #{subclass} is missing its level-three progression"
       end
     end
+  end
+
+  test "feature-choice pools preserve source counts, options, and prerequisites" do
+    Rails.application.load_seed
+
+    hunter = CharacterClass.find_by!(name: "Hunter")
+    hunter_pool = hunter.feature_choice_pools_for(2).first
+    assert_equal "Thrill of the Hunt", hunter_pool.fetch("name")
+    assert_equal 2, hunter_pool.fetch("count")
+    assert_includes hunter_pool.fetch("options"), "Wild Instinct"
+    assert_equal 1, hunter.feature_choice_pools_for(4).first.fetch("count")
+
+    mage = CharacterClass.find_by!(name: "Mage")
+    assert_equal 2, mage.feature_choice_pools_for(4).first.fetch("count")
+    assert_includes mage.feature_choice_pools_for(4).first.fetch("options"), "Stretch Time"
+
+    songweaver = CharacterClass.find_by!(name: "Songweaver")
+    people_pool = songweaver.feature_choice_pools_for(5).first
+    assert_equal "A People Person", people_pool.fetch("name")
+    assert_equal 2, people_pool.fetch("count")
+    assert_includes people_pool.fetch("options"), "Stompy"
+
+    cheat = CharacterClass.find_by!(name: "The Cheat")
+    requirements = cheat.feature_choice_pools_for(4).first.fetch("requires")
+    assert_equal [ "Sunder Armor (Medium)" ], requirements.fetch("Sunder Armor (Heavy)")
+
+    commander = CharacterClass.find_by!(name: "Commander")
+    assert_equal 5, commander.feature_choice_pools_for(2).first.fetch("options").length
+    assert_not_includes commander.feature_choice_pools_for(2).first.fetch("options"), "Commanding Presence"
+    assert_includes commander.feature_choice_pools_for(4).first.fetch("options"), "Commanding Presence"
+
+    berserker = CharacterClass.find_by!(name: "Berserker")
+    assert_equal 1, berserker.feature_choice_pools_for(4).first.fetch("count")
+    assert_includes berserker.feature_choice_pools_for(4).first.fetch("options"), "Deathless Rage"
+  end
+
+  test "recorded feature choices appear in the progression snapshot" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Choice Snapshot Hero",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      feature_choices: { "Savage Arsenal" => [ "Death Blow" ] }
+    )
+
+    entry = character.feature_choice_entries_through.first
+    assert_equal 4, entry.fetch(:level)
+    assert_equal [ "Death Blow" ], entry.fetch(:selected)
+    assert_equal [ "Death Blow" ], character.snapshot_payload.fetch("progression").fetch("feature_choices").first.fetch(:selected)
   end
 
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do

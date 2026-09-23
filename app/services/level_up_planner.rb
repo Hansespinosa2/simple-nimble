@@ -42,9 +42,26 @@ class LevelUpPlanner
     {
       "features" => klass&.features_for(target_level).to_a,
       "subclass_features" => subclass_name.present? ? klass&.subclass_features_for(subclass_name, target_level).to_a : [],
+      "feature_choices" => feature_choice_pools,
       "subclass_name" => subclass_name,
       "source_ref" => klass&.source_reference
     }
+  end
+
+  def feature_choices
+    raw_choices = level_up.feature_choices.respond_to?(:to_h) ? level_up.feature_choices.to_h : {}
+    raw_choices.stringify_keys.transform_values do |selections|
+      Array(selections).compact_blank.map(&:to_s)
+    end
+  end
+
+  def feature_choice_pools
+    return [] if character.character_class.blank?
+
+    feature_choices_by_name = feature_choices
+    character.character_class.feature_choice_pools_for(target_level).map do |pool|
+      pool.merge("selected" => feature_choices_by_name.fetch(pool.fetch("name"), []))
+    end
   end
 
   def hit_die_size
@@ -70,6 +87,8 @@ class LevelUpPlanner
         result << issue("#{level_up.subclass_name} is not a legal subclass for #{character.character_class.name}.", character.character_class.source_reference, "Choose one of the subclasses listed for the class.")
       end
     end
+
+    validate_feature_choices(result)
 
     if level_up.skill_name.blank?
       result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants 1 skill point.")
@@ -217,6 +236,7 @@ class LevelUpPlanner
       "hit_die_rolls" => [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ],
       "stat_increase_type" => stat_increase_type,
       "subclass" => selected_subclass_name,
+      "feature_choices" => feature_choices,
       "spell_tier" => spell_tier_for(target_level),
       "progression" => progression_preview,
       "explanations" => applied_explanations(stats, hp_gain)
@@ -257,6 +277,79 @@ class LevelUpPlanner
       return new_max if previous_max.present? && current >= previous_max
 
       [ current, new_max ].compact.min
+    end
+
+    def validate_feature_choices(result)
+      pools = character.character_class&.feature_choice_pools_for(target_level).to_a
+      known_pool_names = pools.map { |pool| pool.fetch("name") }
+
+      feature_choices.each_key do |pool_name|
+        next if known_pool_names.include?(pool_name)
+
+        result << issue(
+          "#{pool_name} is not a feature-choice pool unlocked at level #{target_level}.",
+          character.character_class&.source_reference || "Heroes 2.0.1, Class Progression",
+          "Only choices granted by the current level's class progression may be selected."
+        )
+      end
+
+      pools.each do |pool|
+        pool_name = pool.fetch("name")
+        selections = feature_choices.fetch(pool_name, [])
+        expected_count = pool.fetch("count").to_i
+        option_names = Array(pool.fetch("options", []))
+
+        if selections.length != expected_count
+          plural = expected_count == 1 ? "option" : "options"
+          result << issue(
+            "Choose #{expected_count} #{pool_name} #{plural} at level #{target_level}.",
+            pool.fetch("source_ref"),
+            "Choose #{expected_count} option#{expected_count == 1 ? '' : 's'} from the #{pool_name} list."
+          )
+        end
+
+        invalid_options = selections - option_names
+        unless invalid_options.empty?
+          result << issue(
+            "#{invalid_options.join(', ')} is not a legal #{pool_name} option.",
+            pool.fetch("source_ref"),
+            "Choose only options printed in the #{pool_name} list."
+          )
+        end
+
+        unless pool.fetch("allow_repeat", false)
+          if selections.uniq.length != selections.length
+            result << issue(
+              "Choose different #{pool_name} options.",
+              pool.fetch("source_ref"),
+              "A choice cannot be selected more than once unless the rules say repeats are allowed."
+            )
+          end
+
+          prior_selections = character.recorded_feature_choices.fetch(pool_name, [])
+          repeated_options = selections & prior_selections
+          unless repeated_options.empty?
+            result << issue(
+              "#{repeated_options.join(', ')} has already been chosen for #{pool_name}.",
+              pool.fetch("source_ref"),
+              "Choose a new option from the list at each scheduled choice."
+            )
+          end
+        end
+
+        requirements = pool.fetch("requires", {})
+        selections.each do |selection|
+          required_options = Array(requirements.fetch(selection, []))
+          available_options = character.recorded_feature_choices.fetch(pool_name, []) + selections
+          next if (required_options - available_options).empty?
+
+          result << issue(
+            "#{selection} requires #{required_options.join(', ')} first.",
+            pool.fetch("source_ref"),
+            "Meet the prerequisite printed beside that option before selecting it."
+          )
+        end
+      end
     end
 
     def stat_increase_quote

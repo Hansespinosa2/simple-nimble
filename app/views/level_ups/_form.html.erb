@@ -28,6 +28,20 @@
         </div>
       <% end %>
 
+      <% @planner.feature_choice_pools.each do |pool| %>
+        <% field_name = "level_up[feature_choices][#{pool.fetch('name')}][]" %>
+        <% selected_options = pool.fetch("selected") %>
+        <% already_chosen = @character.recorded_feature_choices.fetch(pool.fetch("name"), []) %>
+        <div class="field feature-choice-field">
+          <%= label_tag field_name, "#{pool.fetch('name')} · choose #{pool.fetch('count')}" %>
+          <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, selected_options), multiple: pool.fetch("count").to_i > 1, class: "choice-select" %>
+          <span class="field-hint"><%= pool.fetch("source_ref") %> · choose <%= pool.fetch("count") %> option<%= pool.fetch("count").to_i == 1 ? "" : "s" %> from the printed list.</span>
+          <% if already_chosen.any? %>
+            <span class="field-hint">Already recorded: <%= already_chosen.join(", ") %>. Choose a different option.</span>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="field">
         <%= form.label :skill_from, "Optional moved point" %>
         <%= form.select :skill_from, Character::SKILL_NAMES.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Do not move a point" }, class: "choice-select" %>
@@ -97,6 +111,9 @@
           <ul class="feature-list">
             <% progression.fetch("features").each do |feature| %><li><span>✦</span><%= feature %></li><% end %>
             <% progression.fetch("subclass_features").each do |feature| %><li><span>✦</span><%= feature %> <small>(<%= progression.fetch("subclass_name") %>)</small></li><% end %>
+            <% progression.fetch("feature_choices").each do |pool| %>
+              <li><span>✦</span><%= pool.fetch("name") %>: <small><%= pool.fetch("selected").any? ? pool.fetch("selected").join(", ") : "choice required" %></small></li>
+            <% end %>
           </ul>
           <small class="source-note"><%= progression.fetch("source_ref") %> · progression table</small>
         </div>

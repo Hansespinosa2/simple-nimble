@@ -53,7 +53,9 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       character_class: CharacterClass.find_by!(name: "Berserker"),
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
-      stat_array: "standard"
+      stat_array: "standard",
+      level: 4,
+      feature_choices: { "Savage Arsenal" => [ "Death Blow" ] }
     )
     sign_in(@player)
     post character_shares_url(progression_character), params: { campaign_id: @campaign.id }
@@ -64,6 +66,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Features unlocked"
     assert_includes response.body, "Rage"
+    assert_includes response.body, "Death Blow"
     assert_includes response.body, "Heroes 2.0.1"
   end
 

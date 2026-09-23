@@ -307,6 +307,8 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .progression-entry span, .progression-entry em { color: var(--ink-soft); font-size: 10px; font-style: normal; }
 .progression-entry strong { font-size: 12px; }
 .progression-entry-subclass { background: var(--accent-pale); }
+.progression-entry-choice { background: #fff6dc; }
+.progression-entry-choice em { color: var(--accent-deep); }
 .class-saves-panel { margin-bottom: 18px; }
 .saves-summary { color: var(--ink-soft); font-size: 13px; margin: 0; }
 .saves-summary strong { color: var(--accent-deep); }
@@ -319,6 +321,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .source-note { color: #a9b0b7; display: block; font-size: 10px; line-height: 1.4; margin-top: 10px; }
 .level-up-choice-grid { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); }
 .level-up-form .field + .field { margin-top: 18px; }
+.feature-choice-field { border-left: 3px solid var(--accent); padding-left: 12px; }
 .level-up-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 18px; }
 .level-preview-stats { display: grid; gap: 7px; grid-template-columns: repeat(4, 1fr); margin-bottom: 17px; }
 .level-preview-stats div { background: rgba(255,255,255,.08); border-radius: 8px; padding: 9px 4px; text-align: center; }

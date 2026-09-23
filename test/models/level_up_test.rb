@@ -368,4 +368,94 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_includes progression.fetch("features"), "Talented Researcher"
     assert_empty progression.fetch("subclass_features")
   end
+
+  test "level-up requires the source-defined number of feature choices" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Choice Count Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { finesse: 7 }
+    )
+    character.finalize_creation!
+
+    level_up = character.level_ups.build(
+      from_level: 1,
+      to_level: 2,
+      skill_name: "finesse",
+      feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet" ] },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_not planner.valid?
+    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Choose 2 Thrill of the Hunt options at level 2."
+    assert_equal 2, planner.feature_choice_pools.first.fetch("count")
+    assert_equal [ "Fleet Feet" ], planner.preview.fetch("feature_choices").fetch("Thrill of the Hunt")
+  end
+
+  test "legal feature choices persist on the character and revision" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Choice Ledger Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { finesse: 7 }
+    )
+    character.finalize_creation!
+    level_up = character.level_ups.create!(
+      from_level: 1,
+      to_level: 2,
+      skill_name: "finesse",
+      feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet", "Wild Instinct" ] },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    LevelUpService.finalize!(level_up)
+    character.reload
+
+    assert_equal [ "Fleet Feet", "Wild Instinct" ], character.recorded_feature_choices.fetch("Thrill of the Hunt")
+    assert_equal [ "Fleet Feet", "Wild Instinct" ], character.snapshot_payload.fetch("progression").fetch("feature_choices").first.fetch(:selected)
+    assert_equal [ "Fleet Feet", "Wild Instinct" ], level_up.reload.preview.fetch("feature_choices").fetch("Thrill of the Hunt")
+  end
+
+  test "illegal feature options and prerequisites are blocked with source explanations" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Choice Rules Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "The Cheat"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      skill_set_attributes: { finesse: 7 }
+    )
+    character.finalize_creation!
+    character.update_columns(level: 3, status: "playable")
+
+    level_up = character.level_ups.build(
+      from_level: 3,
+      to_level: 4,
+      skill_name: "finesse",
+      feature_choices: { "Underhanded Ability" => [ "Sunder Armor (Heavy)" ] },
+      hit_die_roll_one: 3,
+      hit_die_roll_two: 2
+    )
+
+    planner = LevelUpPlanner.new(character, level_up)
+    messages = planner.explanations.map { |explanation| explanation[:message] }
+
+    assert_not planner.valid?
+    assert_includes messages, "Sunder Armor (Heavy) requires Sunder Armor (Medium) first."
+    assert_equal "Heroes 2.0.1, p. 16", planner.issues.find { |issue| issue[:message].include?("requires") }.fetch(:source_ref)
+  end
 end

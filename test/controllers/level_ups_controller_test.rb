@@ -41,6 +41,37 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='level_up[subclass_name]'] option", text: "Path of the Mountainheart"
   end
 
+  test "level-four page exposes the source-backed feature choice" do
+    @character.update_columns(level: 3, status: "playable", subclass_name: "Path of the Mountainheart")
+    @character.skill_set.update!(might: 9)
+
+    get new_character_level_up_url(@character)
+
+    assert_response :success
+    assert_select "select[name='level_up[feature_choices][Savage Arsenal][]']"
+    assert_select ".feature-choice-field", /Heroes 2.0.1, p. 10/
+    assert_select ".feature-choice-field option", text: "Death Blow"
+  end
+
+  test "applying a feature choice from the form persists it" do
+    @character.update_columns(level: 3, status: "playable", subclass_name: "Path of the Mountainheart")
+    @character.skill_set.update!(might: 9)
+
+    post character_level_ups_url(@character), params: {
+      level_up: {
+        from_level: 3,
+        to_level: 4,
+        skill_name: "might",
+        stat_name: "strength",
+        feature_choices: { "Savage Arsenal" => [ "Death Blow" ] }
+      },
+      finalize: "1"
+    }
+
+    assert_redirected_to character_url(@character)
+    assert_equal [ "Death Blow" ], @character.reload.recorded_feature_choices.fetch("Savage Arsenal")
+  end
+
   test "saving a draft enters the explicit level-up state without changing the sheet" do
     assert_difference("LevelUp.count") do
       post character_level_ups_url(@character), params: {

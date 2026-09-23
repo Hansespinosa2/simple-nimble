@@ -1,5 +1,6 @@
 class Character < ApplicationRecord
   serialize :stat_assignments, coder: JSON
+  serialize :feature_choices, coder: JSON
 
   BASE_SPEED = 6
   DEFAULT_MAX_WOUNDS = 6
@@ -152,6 +153,41 @@ class Character < ApplicationRecord
       character_class.subclass_features_for(subclass_name, feature_level).map do |name|
         { level: feature_level, name: name }
       end
+    end
+  end
+
+  def recorded_feature_choices
+    feature_choices.to_h.stringify_keys.transform_values do |selections|
+      Array(selections).compact_blank.map(&:to_s)
+    end
+  end
+
+  def feature_choice_pools_through(level = self.level)
+    return [] if character_class.blank?
+
+    level = level.presence || 1
+    choices = recorded_feature_choices
+
+    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+      character_class.feature_choice_pools_for(feature_level).map do |pool|
+        pool.merge(
+          "level" => feature_level,
+          "selected" => choices.fetch(pool.fetch("name"), [])
+        )
+      end
+    end
+  end
+
+  def feature_choice_entries_through(level = self.level)
+    feature_choice_pools_through(level).filter_map do |pool|
+      next if pool.fetch("selected").empty?
+
+      {
+        level: pool.fetch("level"),
+        name: pool.fetch("name"),
+        selected: pool.fetch("selected"),
+        source_ref: pool.fetch("source_ref")
+      }
     end
   end
 
@@ -487,7 +523,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "stat_assignments", "feature_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "rules" => {
@@ -503,6 +539,7 @@ class Character < ApplicationRecord
       "progression" => {
         "class_features" => progression_features_through,
         "subclass_features" => subclass_progression_features_through,
+        "feature_choices" => feature_choice_entries_through,
         "derived_effects" => derived_feature_effects
       },
       "stats" => stat_set&.attributes&.slice("strength", "dexterity", "intelligence", "will"),

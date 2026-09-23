@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_230000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -133,6 +133,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_220000) do
     t.text "conditions"
     t.datetime "created_at", null: false
     t.text "description"
+    t.text "feature_choices"
     t.text "game_notes"
     t.text "inventory"
     t.string "languages"
@@ -160,6 +161,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_220000) do
   create_table "level_ups", force: :cascade do |t|
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
+    t.text "feature_choices"
     t.datetime "finalized_at"
     t.integer "from_level", null: false
     t.integer "hit_die_roll_one"
