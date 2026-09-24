@@ -24,7 +24,7 @@
 /tmp/pids/*
 !/tmp/pids/.keep
 
-# Ignore storage (uploaded files in development and any SQLite databases).
+# Ignore local Active Storage uploads and other runtime files.
 /storage/*
 !/storage/.keep
 /tmp/storage/*
