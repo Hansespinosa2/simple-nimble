@@ -1,24 +1,29 @@
-# README
+# Simple Nimble
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Local development
 
-Things you may want to cover:
+The app uses PostgreSQL in development, test, and production. To start a local database with Docker Compose:
 
-* Ruby version
+```sh
+export POSTGRES_PASSWORD=local-dev-only-password
+docker compose up -d db
+bundle install
+bin/rails db:prepare
+bin/dev
+```
 
-* System dependencies
+The database listens only on `127.0.0.1`. The test suite uses a separate `simple_nimble_test` database and can be run with:
 
-* Configuration
+```sh
+bin/rails db:test:prepare test test:system
+```
 
-* Database creation
+Connection settings can be overridden with `DB_HOST`, `DB_PORT`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`. `POSTGRES_USER` defaults to `postgres` and `DB_HOST` defaults to `localhost`.
 
-* Database initialization
+## Internal Kamal deployment
 
-* How to run the test suite
+`config/deploy.yml` defines a PostgreSQL 17 accessory named `db`. It keeps its data in a persistent Docker volume on the configured server and does not publish a database port. The app connects over Kamal's internal Docker network.
 
-* Services (job queues, cache servers, search engines, etc.)
+Set a strong `POSTGRES_PASSWORD` in the deployment environment before running Kamal. Update the example server IP, public host, and image registry in `config/deploy.yml` for the team server.
 
-* Deployment instructions
-
-* ...
+An existing SQLite database is not imported automatically. Export and import any records that need to be retained before switching a server that already contains data.
