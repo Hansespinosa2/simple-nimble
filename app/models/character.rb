@@ -7,6 +7,7 @@ class Character < ApplicationRecord
   serialize :feature_language_choices, coder: JSON
 
   BASE_SPEED = Rules::NimbleCatalog.derived_values.fetch("base_speed").to_i
+  DEFAULT_MAX_ACTIONS = Rules::NimbleCatalog.derived_values.fetch("default_max_actions").to_i
   DEFAULT_MAX_WOUNDS = Rules::NimbleCatalog.derived_values.fetch("default_max_wounds").to_i
   BASE_INVENTORY_SLOTS = Rules::NimbleCatalog.derived_values.fetch("base_inventory_slots").to_i
   MAX_LEVEL = Rules::NimbleCatalog.derived_values.fetch("max_level").to_i
@@ -992,6 +993,10 @@ class Character < ApplicationRecord
     level_based_maximum + derived_modifier_for(:max_hit_dice_modifier, level:, subclass_name:)
   end
 
+  def max_actions_for(level: self.level, subclass_name: self.subclass_name)
+    DEFAULT_MAX_ACTIONS + derived_modifier_for(:max_actions_modifier, level:, subclass_name:)
+  end
+
   def hit_die_sides
     trait_set&.hit_die.to_s[/d(\d+)/i, 1]&.to_i
   end
@@ -1793,6 +1798,7 @@ class Character < ApplicationRecord
       level_value = level.to_i.positive? ? level.to_i : 1
       subclass_for_effects = self.subclass_name
       starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_actions = max_actions_for(level: level_value, subclass_name: subclass_for_effects)
       max_hit_dice = max_hit_dice_for(level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
@@ -1806,8 +1812,8 @@ class Character < ApplicationRecord
         hit_die: hit_die_for(level: level_value, subclass_name: subclass_for_effects),
         current_hit_dice: max_hit_dice,
         max_hit_dice: max_hit_dice,
-        current_actions: 3,
-        max_actions: 3,
+        current_actions: max_actions,
+        max_actions: max_actions,
         armor: armor_for(stat_values, level: level_value, subclass_name: subclass_for_effects).to_i + derived_modifier_for(:armor_modifier, level: level_value, subclass_name: subclass_for_effects),
         save_dc: save_dc_for(stat_values),
         max_mana: legacy_resource_values.fetch(:max_mana),
@@ -2164,6 +2170,7 @@ class Character < ApplicationRecord
       subclass_for_effects = self.subclass_name
       hit_die = hit_die_for(level: level_value, subclass_name: subclass_for_effects)
       starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_actions = max_actions_for(level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
       initiative = initiative_for(stat_values, level: level_value, subclass_name: subclass_for_effects)
       speed = speed_for(level: level_value, subclass_name: subclass_for_effects)
@@ -2177,8 +2184,8 @@ class Character < ApplicationRecord
                       hit_die:           hit_die,
                       current_hit_dice:  max_hit_dice,
                       max_hit_dice:      max_hit_dice,
-                      current_actions:   3,
-                      max_actions:       3,
+                      current_actions:   max_actions,
+                      max_actions:       max_actions,
                       armor:             armor,
                       save_dc:           save_dc_for(stat_values),
                       max_mana:          resource_values.fetch(:max_mana),

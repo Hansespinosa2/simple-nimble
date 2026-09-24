@@ -417,7 +417,7 @@ module Rules
             next if effect_level.to_i > level.to_i
 
             effects.merge!(effect_values) do |key, previous, current|
-              if %w[speed_modifier max_hp_modifier max_wounds_modifier].include?(key.to_s)
+              if %w[speed_modifier max_hp_modifier max_wounds_modifier max_actions_modifier].include?(key.to_s)
                 previous.to_i + current.to_i
               elsif key.to_s == "resource_max_modifiers"
                 (previous.to_h.keys | current.to_h.keys).index_with do |resource_key|

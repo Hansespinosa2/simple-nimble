@@ -352,6 +352,7 @@ class LevelUpPlanner
       "max_hit_dice" => character.trait_set&.max_hit_dice.to_i,
       "current_hit_dice" => character.trait_set&.current_hit_dice.to_i,
       "initiative" => character.trait_set&.initiative.to_i,
+      "max_actions" => character.trait_set&.max_actions.to_i,
       "speed" => character.trait_set&.speed.to_i,
       "armor" => character.trait_set&.armor.to_i,
       "inventory_slots" => character.trait_set&.inventory_slots.to_i,
@@ -379,6 +380,7 @@ class LevelUpPlanner
       traits["max_hit_dice"] = character.max_hit_dice_for(level: target_level, subclass_name: selected_subclass_name)
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + hit_dice_gain, traits["max_hit_dice"] ].min
       traits["initiative"] = character.initiative_for(stats, level: target_level, subclass_name: selected_subclass_name)
+      traits["max_actions"] = character.max_actions_for(level: target_level, subclass_name: selected_subclass_name)
       traits["speed"] = character.speed_for(level: target_level, subclass_name: selected_subclass_name)
       traits["hit_die"] = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
       traits["armor"] = character.armor_for(stats, level: target_level, subclass_name: selected_subclass_name).to_i + character.derived_modifier_for(:armor_modifier, level: target_level, subclass_name: selected_subclass_name)
@@ -816,6 +818,16 @@ class LevelUpPlanner
           quote: hit_dice_progression.fetch("increase_source_quote")
         }
       ]
+      max_actions = character.max_actions_for(level: target_level, subclass_name: selected_subclass_name)
+      if max_actions > character.trait_set.max_actions.to_i
+        action_effects = character.derived_feature_effects(level: target_level, subclass_name: selected_subclass_name)
+        explanations << {
+          type: "auto_applied",
+          message: "Maximum actions increase to #{max_actions}.",
+          source_ref: action_effects.fetch("max_actions_modifier_source_ref", Rules::NimbleCatalog.derived_values.fetch("default_max_actions_source_ref")),
+          quote: action_effects.fetch("max_actions_modifier_source_quote", Rules::NimbleCatalog.derived_values.fetch("default_max_actions_source_quote"))
+        }
+      end
       [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
         explanations << {
           type: "applied",

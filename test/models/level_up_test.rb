@@ -62,6 +62,37 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 4, level_up.preview.fetch("level")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-3 S-06:AC-4 S-09:AC-3
+  test "level-up preview and application apply Zephyr's permanent action increase without refilling actions" do
+    character = Character.create!(
+      name: "Windborne Level-Up",
+      level: 19,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    level_up = character.level_ups.build(
+      from_level: 19,
+      to_level: 20,
+      skill_name: "might",
+      stat_name: "strength",
+      second_stat_name: "dexterity",
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 7
+    )
+    preview = LevelUpPlanner.new(character, level_up).preview
+    action_explanation = preview.fetch("explanations").find { |explanation| explanation.fetch(:message).include?("Maximum actions") }
+
+    assert_equal 4, preview.fetch("traits").fetch("max_actions")
+    assert_equal "Heroes 2.0.1, p. 69", action_explanation.fetch(:source_ref)
+    assert_includes action_explanation.fetch(:quote), "Permanently gain 1 action"
+
+    LevelUpService.send(:apply_preview!, character, preview)
+    assert_equal 4, character.reload.trait_set.max_actions
+    assert_equal 3, character.trait_set.current_actions, "the permanent ceiling rises without refilling spent actions"
+  end
+
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-07:AC-2 S-09:AC-3
   test "Hit Dice maximum and level-up gain follow the catalog progression" do
     original_catalog = Rules::NimbleCatalog.data

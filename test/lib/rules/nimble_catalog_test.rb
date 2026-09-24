@@ -129,6 +129,9 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     derived = @catalog.derived_values
 
     assert_equal 6, derived.fetch("base_speed")
+    assert_equal 3, derived.fetch("default_max_actions")
+    assert_equal "Core Rules 2.0.1, p. 12", derived.fetch("default_max_actions_source_ref")
+    assert_includes derived.fetch("default_max_actions_source_quote"), "heroes get 3 actions"
     assert_equal 6, derived.fetch("default_max_wounds")
     assert_equal 10, derived.fetch("base_inventory_slots")
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
@@ -300,6 +303,16 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     assert_equal 2, effects.fetch("armor_multiplier")
     assert_equal "Heroes 2.0.1, p. 68", effects.fetch("armor_multiplier_source_ref")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-09:AC-3
+  test "Zephyr's level-twenty Windborne action increase is structured with its source" do
+    assert_equal 0, @catalog.derived_effects_for("Zephyr", nil, 19).fetch("max_actions_modifier", 0)
+    windborne = @catalog.derived_effects_for("Zephyr", nil, 20)
+
+    assert_equal 1, windborne.fetch("max_actions_modifier")
+    assert_equal "Heroes 2.0.1, p. 69", windborne.fetch("max_actions_modifier_source_ref")
+    assert_includes windborne.fetch("max_actions_modifier_source_quote"), "Permanently gain 1 action"
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3

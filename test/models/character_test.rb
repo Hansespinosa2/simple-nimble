@@ -154,6 +154,35 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 69", dying.fetch("effects_source_ref")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-06:AC-3 S-09:AC-3
+  test "Zephyr's permanent action maximum comes from its level-twenty feature" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Zephyr")
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Fearless")
+    character_class = CharacterClass.find_by!(name: "Zephyr")
+    level_nineteen = Character.create!(
+      name: "Windborne Candidate",
+      level: 19,
+      character_class:,
+      ancestry:,
+      background:,
+      stat_array: "balanced"
+    )
+    level_twenty = Character.create!(
+      name: "Windborne Zephyr",
+      level: 20,
+      character_class:,
+      ancestry:,
+      background:,
+      stat_array: "balanced"
+    )
+
+    assert_equal 3, level_nineteen.trait_set.max_actions
+    assert_equal 4, level_twenty.trait_set.max_actions
+    assert_equal 4, level_twenty.trait_set.current_actions
+    assert_equal 4, level_twenty.max_actions_for
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-3
   test "a starting-gold choice scales with level and coin weight counts toward inventory" do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")

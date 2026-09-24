@@ -16,6 +16,9 @@ sources:
 
 derived_values:
   base_speed: 6
+  default_max_actions: 3
+  default_max_actions_source_ref: "Core Rules 2.0.1, p. 12"
+  default_max_actions_source_quote: "On your turn, heroes get 3 actions to attack, move around the battlefield, cast spells, etc."
   default_max_wounds: 6
   base_inventory_slots: 10
   save_dc_base: 10
@@ -1801,6 +1804,10 @@ derived_effects:
       13:
         armor_multiplier: 2
         armor_multiplier_source_ref: Heroes 2.0.1, p. 68
+      20:
+        max_actions_modifier: 1
+        max_actions_modifier_source_ref: Heroes 2.0.1, p. 69
+        max_actions_modifier_source_quote: "Permanently gain 1 action (while Dying, you have a max of 2 actions)."
   subclasses:
     Commander:
       "Champion of the Vanguard":

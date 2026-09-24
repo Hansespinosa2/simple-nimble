@@ -429,6 +429,26 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-3 S-07:AC-2 S-09:AC-3
+  test "a level-twenty Zephyr sheet shows its permanent and Dying action limits" do
+    character = Character.create!(
+      name: "Windborne Sheet Hero",
+      level: 20,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    character.trait_set.update!(current_hp: 0)
+
+    visit character_url(character)
+
+    assert_equal "4", find("#character_trait_set_attributes_current_actions")["max"]
+    find("details.condition-rule-note summary").click
+    assert_text "Permanently gain 1 action (while Dying, you have a max of 2 actions)."
+    assert_text "Heroes 2.0.1, p. 69"
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet explains and tracks a limited-use ancestry ability" do
     character = Character.create!(
