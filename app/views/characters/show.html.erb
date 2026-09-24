@@ -148,16 +148,16 @@
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
         <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
-          <% initiative_mana = resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" } %>
-          <% reaver_initiative = @character.character_class&.name == "Shadowmancer" && @character.subclass_name == "Reaver" && @character.level.to_i >= 15 %>
-          <% if initiative_mana.present? || reaver_initiative %>
+          <% initiative_grant = @character.initiative_resource_grant %>
+          <% initiative_track = resource_tracks.find { |track| track.fetch("key") == initiative_grant&.fetch("resource_key") } %>
+          <% if initiative_grant.present? && initiative_track.present? %>
             <div class="safe-rest-action">
-              <p class="eyebrow"><%= reaver_initiative ? "Reaver · Initiative" : "Spellblade · Initiative" %></p>
-              <p><%= reaver_initiative ? "Roll initiative at the table, then record it here to summon up to 2 free Shadow Minions, subject to your normal minion limit." : "Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends." %></p>
+              <p class="eyebrow"><%= initiative_grant.fetch("feature_label") %></p>
+              <p><%= initiative_grant.fetch("description") %> (<%= initiative_grant.fetch("source_ref") %>)</p>
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
               <% else %>
-                <%= button_to(reaver_initiative ? "Record Initiative Roll · summon 2 minions" : "Record Initiative Roll · gain #{initiative_mana.fetch('max')} mana", begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+                <%= button_to(initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount.to_s), begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
               <% end %>
             </div>
           <% end %>
@@ -167,8 +167,8 @@
               <p class="eyebrow">Reaver · Bonescythe</p>
               <% if bonescythe.fetch(:summoned) %>
                 <p><%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. The next hit shatters it.</p>
-                <% if @character.subclass_name == "Reaver" && @character.level.to_i >= 7 %>
-                  <p class="field-hint">At level 7, Reap can summon one minion on a critical hit or kill, if you are below your limit.</p>
+                <% if @character.story_subclass_feature_unlocked?("Reap") %>
+                  <p class="field-hint">Reap can summon one minion on a critical hit or kill, if you are below your limit. (Heroes 2.0.1, p. 78)</p>
                   <%= button_to "Record Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
                   <%= button_to "Record Critical Hit · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }, class: "button button-secondary button-full" %>
                   <%= button_to "Record Kill · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "kill" } }, class: "button button-secondary button-full" %>

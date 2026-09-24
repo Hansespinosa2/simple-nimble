@@ -476,6 +476,10 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     stat_values = Character::STAT_NAMES.index_with { |stat| spellblade.stat_value(stat) }
     tracks = spellblade.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Spellblade")
     spellblade.trait_set.update!(resource_tracks: tracks)
+    spellblade.update_column(:level, 2)
+    assert_empty spellblade.story_subclass_initiative_feature_entries
+    assert_nil spellblade.initiative_resource_grant
+    spellblade.update_column(:level, 3)
 
     get character_url(spellblade)
     assert_response :success
@@ -484,7 +488,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
     patch begin_encounter_character_url(spellblade)
     assert_redirected_to character_url(spellblade)
-    assert_equal "Initiative recorded. Arcane Command mana is ready to spend.", flash[:notice]
+    assert_equal "Initiative recorded. Initiative rolled; gained 1 Arcane Command mana.", flash[:notice]
     assert_equal 1, spellblade.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
 
     get character_url(spellblade)
@@ -517,6 +521,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     get character_url(reaver)
     assert_response :success
     assert_select ".progression-entry-subclass", /Bonescythe · 2d12/
+    assert_select "form[action='#{begin_encounter_character_path(reaver)}']", count: 0
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Bonescythe · spend 1 action"
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
@@ -561,6 +566,21 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to character_url(reaver)
     assert_equal 1, reaver.reload.trait_set.current_wounds
     assert reaver.character_revisions.exists?(event_type: "my_blood_my_power")
+
+    reaver.update_column(:level, 15)
+    stats = Character::STAT_NAMES.index_with { |stat| reaver.stat_value(stat) }
+    tracks = reaver.derived_resource_tracks_for(stat_values: stats, level: 15, subclass_name: "Reaver")
+    tracks = tracks.map { |track| track.merge("current" => 0) }
+    reaver.trait_set.update!(resource_tracks: tracks)
+
+    get character_url(reaver)
+    assert_select "form[action='#{begin_encounter_character_path(reaver)}'] button[type='submit']", text: "Record Initiative Roll · summon up to 2 minions"
+
+    expected_gain = [ 2, tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("max") ].min
+    patch begin_encounter_character_url(reaver)
+    assert_redirected_to character_url(reaver)
+    assert_includes flash[:notice], "summoned #{expected_gain} free Shadow Minions"
+    assert_equal expected_gain, reaver.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
   end
 
   test "should track a keyed class resource and reject a value above its maximum" do

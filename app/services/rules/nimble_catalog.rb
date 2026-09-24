@@ -301,6 +301,40 @@ module Rules
           .fetch(subclass_name.to_s, [])
       end
 
+      def story_subclass_feature_unlock_level_for(class_name, subclass_name, feature_name)
+        class_name = class_name.to_s
+        subclass_name = subclass_name.to_s
+        feature_name = feature_name.to_s
+
+        feature = story_subclass_feature_notes_for(class_name, subclass_name).find do |note|
+          note.fetch("name") == feature_name
+        end
+        return feature.fetch("unlock_level").to_i if feature
+
+        feature = story_subclass_initiative_features_for(class_name, subclass_name).find do |entry|
+          entry.fetch("name") == feature_name
+        end
+        return feature.fetch("unlock_level").to_i if feature&.key?("unlock_level")
+
+        unlock_level = progression_for(class_name)
+          .fetch("subclass_features", {})
+          .fetch(subclass_name, {})
+          .find { |_unlock_level, features| Array(features).include?(feature_name) }
+          &.first
+        unlock_level&.to_i
+      end
+
+      def initiative_resource_grant_for(class_name, subclass_name, level)
+        class_name = class_name.to_s
+        subclass_name = subclass_name.to_s
+        grants = Array(data.fetch("initiative_resource_grants", {}).fetch(class_name, {}).fetch(subclass_name, []))
+
+        grants.find do |grant|
+          unlock_level = story_subclass_feature_unlock_level_for(class_name, subclass_name, grant.fetch("feature_name"))
+          unlock_level.present? && level.to_i >= unlock_level
+        end
+      end
+
       def story_subclass_empowered_orders_for(class_name, subclass_name)
         data.fetch("story_subclass_empowered_orders", {})
           .fetch(class_name.to_s, {})

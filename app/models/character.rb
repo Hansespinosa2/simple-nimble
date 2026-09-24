@@ -425,11 +425,40 @@ class Character < ApplicationRecord
 
   def story_subclass_initiative_feature_entries
     Rules::NimbleCatalog.story_subclass_initiative_features_for(character_class&.name, subclass_name)
+      .select do |feature|
+        unlock_level = Rules::NimbleCatalog.story_subclass_feature_unlock_level_for(
+          character_class&.name,
+          subclass_name,
+          feature.fetch("name")
+        )
+        unlock_level.present? && level.to_i >= unlock_level
+      end
+  end
+
+  def initiative_resource_grant
+    Rules::NimbleCatalog.initiative_resource_grant_for(character_class&.name, subclass_name, level)
+  end
+
+  def initiative_resource_amount
+    grant = initiative_resource_grant
+    return 0 if grant.blank?
+    return grant.fetch("amount").to_i unless grant.fetch("amount").to_s == "maximum"
+
+    track = Array(trait_set&.resource_tracks).map(&:to_h).find do |resource|
+      resource.fetch("key") == grant.fetch("resource_key")
+    end
+    return 0 if track.blank?
+
+    [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max
   end
 
   def story_subclass_feature_note_entries(level: self.level)
     Rules::NimbleCatalog.story_subclass_feature_notes_for(character_class&.name, subclass_name)
       .select { |note| level.to_i >= note.fetch("unlock_level").to_i }
+  end
+
+  def story_subclass_feature_unlocked?(feature_name)
+    story_subclass_feature_note_entries.any? { |note| note.fetch("name") == feature_name.to_s }
   end
 
   def story_subclass_weapon_entry
@@ -693,29 +722,21 @@ class Character < ApplicationRecord
     with_lock do
       raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
       tracks = Array(trait_set&.resource_tracks)
-      if character_class&.name == "Commander" && subclass_name == "Spellblade"
-        track_key = "spellblade_initiative_mana"
-        track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
-        raise ArgumentError, "Arcane Command mana is unavailable on this sheet. Heroes 2.0.1, p. 76." unless track
+      grant = initiative_resource_grant
+      raise ArgumentError, "This character has no initiative-triggered feature to record." if grant.blank?
 
-        tracks = tracks.map do |resource|
-          resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("max").to_i) : resource
-        end
-        summary = "Initiative rolled; gained #{track.to_h.fetch('max')} Arcane Command mana"
-      elsif character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && level.to_i >= 15
-        track_key = "shadow_minions"
-        track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
-        raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless track
+      track_key = grant.fetch("resource_key")
+      track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
+      raise ArgumentError, "#{grant.fetch('feature_label')} resource is unavailable on this sheet. #{grant.fetch('source_ref')}." unless track
 
-        available_capacity = [ track.to_h.fetch("max").to_i - track.to_h.fetch("current").to_i, 0 ].max
-        gained_minions = [ 2, available_capacity ].min
-        tracks = tracks.map do |resource|
-          resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("current").to_i + gained_minions) : resource
-        end
-        summary = "Initiative rolled; summoned #{gained_minions} free Shadow Minions"
-      else
-        raise ArgumentError, "This character has no initiative-triggered feature to record."
+      track = track.to_h
+      available_capacity = [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max
+      requested_amount = grant.fetch("amount").to_s == "maximum" ? available_capacity : grant.fetch("amount").to_i
+      gained_amount = [ requested_amount, available_capacity ].min
+      tracks = tracks.map do |resource|
+        resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => track.fetch("current").to_i + gained_amount) : resource
       end
+      summary = grant.fetch("summary").gsub("%{amount}", gained_amount.to_s)
 
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
@@ -728,12 +749,12 @@ class Character < ApplicationRecord
   end
 
   def martyr_spawn!
-    apply_shadow_minion_change!(-1, summary: "Martyr Spawn sacrificed a Shadow Minion to negate damage", required_reaver_ability: "Martyr Spawn", minimum_level: 3)
+    apply_shadow_minion_change!(-1, summary: "Martyr Spawn sacrificed a Shadow Minion to negate damage", required_reaver_ability: "Martyr Spawn")
   end
 
   def use_shadow_exploit!(spell_name:)
     with_lock do
-      require_reaver!("Shadow Exploit", minimum_level: 3)
+      require_reaver!("Shadow Exploit")
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
         raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
@@ -772,7 +793,7 @@ class Character < ApplicationRecord
 
   def use_my_blood_my_power!(spell_name:)
     with_lock do
-      require_reaver!("My Blood, My Power", minimum_level: 11)
+      require_reaver!("My Blood, My Power")
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
         raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
@@ -794,7 +815,7 @@ class Character < ApplicationRecord
 
   def summon_bonescythe!
     with_lock do
-      require_reaver!("Bonescythe", minimum_level: 3)
+      require_reaver!("Hollow One")
       raise ArgumentError, "The Bonescythe is already summoned." if bonescythe_summoned?
       raise ArgumentError, "You need at least 1 action to summon the Bonescythe." if trait_set.current_actions.to_i < 1
 
@@ -806,7 +827,7 @@ class Character < ApplicationRecord
 
   def mark_bonescythe_hit!(outcome: "hit")
     with_lock do
-      require_reaver!("Bonescythe", minimum_level: 3)
+      require_reaver!("Hollow One")
       raise ArgumentError, "Summon the Bonescythe before recording a hit." unless bonescythe_summoned?
 
       hit_outcome = outcome.to_s
@@ -815,7 +836,7 @@ class Character < ApplicationRecord
       end
 
       summary = "Bonescythe hit recorded; weapon shattered"
-      if level.to_i >= 7 && %w[critical kill].include?(hit_outcome)
+      if story_subclass_feature_unlocked?("Reap") && %w[critical kill].include?(hit_outcome)
         tracks = Array(trait_set.resource_tracks).map(&:to_h)
         minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
         raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
@@ -1449,16 +1470,20 @@ class Character < ApplicationRecord
   end
 
   private
-    def require_reaver!(ability, minimum_level:)
-      return if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && level.to_i >= minimum_level
+    def require_reaver!(ability)
+      feature = Rules::NimbleCatalog.story_subclass_feature_notes_for("Shadowmancer", "Reaver").find do |note|
+        note.fetch("name") == ability.to_s
+      end
+      return if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && story_subclass_feature_unlocked?(ability)
 
+      minimum_level = feature&.fetch("unlock_level", 1).to_i
       raise ArgumentError, "#{ability} requires a level #{minimum_level} Shadowmancer Reaver. Heroes 2.0.1, p. 78."
     end
 
-    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_reaver_ability: nil, minimum_level: 1)
+    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_reaver_ability: nil)
       with_lock do
         if required_reaver_ability.present?
-          require_reaver!(required_reaver_ability, minimum_level:)
+          require_reaver!(required_reaver_ability)
         elsif character_class&.name != "Shadowmancer"
           raise ArgumentError, "Only a Shadowmancer can summon Shadow Minions. Heroes 2.0.1, p. 43."
         end

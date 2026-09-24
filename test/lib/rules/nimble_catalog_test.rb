@@ -48,6 +48,24 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 2, CharacterClass.find_by!(name: "Oathsworn").resource_rules.fetch("max_start_level")
   end
 
+  test "initiative resource grants follow the unlock level of their published feature" do
+    assert_equal 3, @catalog.story_subclass_feature_unlock_level_for("Commander", "Spellblade", "Arcane Command")
+    assert_equal 3, @catalog.story_subclass_feature_unlock_level_for("Commander", "Spellblade", "Firebrand")
+    assert_nil @catalog.initiative_resource_grant_for("Shadowmancer", "Reaver", 14)
+    reaver_grant = @catalog.initiative_resource_grant_for("Shadowmancer", "Reaver", 15)
+    assert_equal "I'm the Patron Now!", reaver_grant.fetch("feature_name")
+    assert_equal "shadow_minions", reaver_grant.fetch("resource_key")
+    assert_equal 2, reaver_grant.fetch("amount")
+    assert_equal "Heroes 2.0.1, p. 78", reaver_grant.fetch("source_ref")
+
+    assert_nil @catalog.initiative_resource_grant_for("Commander", "Spellblade", 2)
+    spellblade_grant = @catalog.initiative_resource_grant_for("Commander", "Spellblade", 3)
+    assert_equal "Arcane Command", spellblade_grant.fetch("feature_name")
+    assert_equal "spellblade_initiative_mana", spellblade_grant.fetch("resource_key")
+    assert_equal "maximum", spellblade_grant.fetch("amount")
+    assert_equal "Heroes 2.0.1, p. 76", spellblade_grant.fetch("source_ref")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "every published class follows its source-defined stat schedule through the catalog maximum" do
     max_level = @catalog.derived_values.fetch("max_level").to_i

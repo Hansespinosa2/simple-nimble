@@ -1430,6 +1430,30 @@ story_subclass_initiative_features:
         source_ref: Heroes 2.0.1, p. 77
         source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
 
+initiative_resource_grants:
+  Commander:
+    Spellblade:
+      - feature_name: Arcane Command
+        resource_key: spellblade_initiative_mana
+        amount: maximum
+        summary: "Initiative rolled; gained %{amount} Arcane Command mana"
+        feature_label: "Spellblade · Initiative"
+        description: "Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends."
+        action_label: "Record Initiative Roll · gain %{amount} mana"
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+  Shadowmancer:
+    Reaver:
+      - feature_name: "I'm the Patron Now!"
+        resource_key: shadow_minions
+        amount: 2
+        summary: "Initiative rolled; summoned %{amount} free Shadow Minions"
+        feature_label: "Reaver · Initiative"
+        description: "Roll initiative at the table, then record it here to summon up to 2 free Shadow Minions, subject to your normal minion limit."
+        action_label: "Record Initiative Roll · summon up to %{amount} minions"
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Summon 2 shadow minions for free when you roll Initiative."
+
 story_subclass_empowered_orders:
   Commander:
     Spellblade:

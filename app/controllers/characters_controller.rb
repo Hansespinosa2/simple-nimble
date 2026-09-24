@@ -123,12 +123,7 @@ class CharactersController < ApplicationController
 
   def begin_encounter
     revision = @character.begin_encounter!
-    notice = if @character.character_class&.name == "Commander" && @character.subclass_name == "Spellblade"
-      "Initiative recorded. Arcane Command mana is ready to spend."
-    else
-      "Initiative recorded. #{revision.summary}."
-    end
-    redirect_to @character, notice:
+    redirect_to @character, notice: "Initiative recorded. #{revision.summary}."
   rescue ArgumentError => error
     redirect_to @character, alert: error.message
   end
