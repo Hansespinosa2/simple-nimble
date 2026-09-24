@@ -48,7 +48,11 @@
               <%= label_tag "story_subclass_change[companion_name]", "Companion animal" %>
               <%= text_field_tag "story_subclass_change[companion_name]", nil, maxlength: @story_subclass_companion_rule.fetch("name_max_length"), placeholder: "For example, a hawk named Ember", required: true, class: "choice-input" %>
             </div>
-            <span class="field-hint"><%= @story_subclass_companion_rule.fetch("source_quote") %> <%= @story_subclass_companion_rule.fetch("behavior_quote") %> Medium and Large companions require level 3. (<%= @story_subclass_companion_rule.fetch("source_ref") %>)</span>
+            <span class="field-hint">
+              <%= @story_subclass_companion_rule.fetch("source_quote") %> <%= @story_subclass_companion_rule.fetch("behavior_quote") %>
+              <% companion_size_level_requirements(@story_subclass_companion_rule).each do |requirement| %><%= requirement %> <% end %>
+              (<%= @story_subclass_companion_rule.fetch("source_ref") %>)
+            </span>
           </fieldset>
         <% end %>
         <% if @story_subclass_feature_choice_pools.any? %>

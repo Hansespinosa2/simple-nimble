@@ -288,6 +288,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "select[name='story_subclass_change[companion_size]'][required] option", text: "Small"
+    assert_select ".feature-choice-field .field-hint", /Medium and Large companions require level 3/
     assert_select "input[name='story_subclass_change[companion_name]'][required][maxlength='80']"
     assert_select "select[name='story_subclass_change[feature_choices][Thrill of the Hunt][2][]'][multiple][required] option[value='Go for the Throat!']"
     assert_select "select[name='story_subclass_change[feature_choices][Thrill of the Hunt][2][]'][multiple][required] option[value='Protect Me!']"
