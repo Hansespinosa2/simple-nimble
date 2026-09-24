@@ -108,6 +108,35 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     end
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "all class starting kits have source-backed inventory slots" do
+    expected_gear = {
+      "Berserker" => { "Battleaxe" => 2, "Rations (meat)" => 1, "Rope (50 ft.)" => 1 },
+      "The Cheat" => { "2 Daggers" => 2, "Sling" => 2, "Cheap Hides" => 1, "Chalk" => 1 },
+      "Commander" => { "Short Sword" => 1, "Javelins" => 1, "Rusty Mail" => 1 },
+      "Hunter" => { "Shortbow" => 2, "Cheap Hides" => 1, "Dagger" => 1, "Hunting Trap" => 1 },
+      "Mage" => { "Adventurer's Garb" => 1, "Staff" => 2, "Soap" => 1 },
+      "Oathsworn" => { "Mace" => 1, "Rusty Mail" => 1, "Wooden Buckler" => 1, "Manacles" => 1 },
+      "Shadowmancer" => { "Adventurer's Garb" => 1, "Sickle" => 1, "Shovel" => 1 },
+      "Shepherd" => { "Rusty Mail" => 1, "Mace" => 1, "Wooden Buckler" => 1, "Bell" => 1 },
+      "Songweaver" => { "Adventurer's Garb" => 1, "Instrument" => 1, "Dagger" => 1, "Mirror" => 1 },
+      "Stormshifter" => { "Cheap Hides" => 1, "Staff" => 2, "Strange Plant" => 1 },
+      "Zephyr" => { "Staff" => 2, "Traveling Robes & Sandals" => 1 }
+    }
+
+    expected_gear.each do |class_name, expected_items|
+      items = @catalog.starting_gear_inventory_items(class_name)
+      gear_names = @catalog.class_for(class_name).fetch("starting_gear")
+      actual_items = items.to_h { |item| [ item.fetch("name"), item.fetch("slots").to_i ] }
+
+      assert_equal gear_names, items.map { |item| item.fetch("name") }, "#{class_name} slot items should cover its full class kit"
+      assert_equal expected_items, actual_items, "#{class_name} item slots should match the source rules and documented default"
+      assert items.all? { |item| item.fetch("source_ref").present? }, "#{class_name} gear slots should cite their rules"
+    end
+
+    assert_match(/GM may adjust/, @catalog.data.fetch("starting_gear_inventory").fetch("miscellaneous_item_note"))
+  end
+
   test "feature choice effects add together for repeated source options" do
     effects = @catalog.feature_choice_effects_for(
       "Commander",

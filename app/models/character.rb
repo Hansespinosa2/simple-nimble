@@ -155,7 +155,17 @@ class Character < ApplicationRecord
   end
 
   def inventory_slots_used
-    inventory_items.sum(:slots) + gold_inventory_slots
+    starting_gear_inventory_slots + inventory_items.sum(:slots) + gold_inventory_slots
+  end
+
+  def starting_gear_inventory_slots
+    starting_gear_inventory_items.sum { |item| item.fetch("slots").to_i }
+  end
+
+  def starting_gear_inventory_items
+    return [] unless starting_equipment_choice == "class_gear" && character_class.present?
+
+    Rules::NimbleCatalog.starting_gear_inventory_items(character_class.name)
   end
 
   def inventory_slots_capacity

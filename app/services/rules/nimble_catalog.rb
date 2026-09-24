@@ -29,6 +29,17 @@ module Rules
         data.fetch("starting_equipment")
       end
 
+      def starting_gear_inventory_items(class_name)
+        gear_names = Array(class_for(class_name).to_h.fetch("starting_gear", []))
+        inventory_items = data.fetch("starting_gear_inventory").fetch("items")
+
+        gear_names.map { |name| inventory_items.fetch(name.to_s).merge("name" => name) }
+      end
+
+      def starting_gear_inventory_slots(class_name)
+        starting_gear_inventory_items(class_name).sum { |item| item.fetch("slots").to_i }
+      end
+
       def class_for(name)
         data.fetch("classes")[name.to_s]
       end

@@ -26,19 +26,19 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to character_url(@character)
     assert_equal "2 potions", item.name
     assert_equal 1, item.slots
-    assert_equal 1, @character.reload.inventory_slots_used
+    assert_equal 5, @character.reload.inventory_slots_used
     assert_equal [ { "name" => "2 potions", "slots" => 1 } ], @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items")
   end
 
   test "inventory can exceed capacity without blocking the GM-waivable rules option" do
-    overage = @character.inventory_slots_capacity + 1
+    item_slots = @character.inventory_slots_capacity - @character.starting_gear_inventory_slots + 1
 
     post character_inventory_items_url(@character), params: {
-      inventory_item: { name: "Oversized treasure", slots: overage }
+      inventory_item: { name: "Oversized treasure", slots: item_slots }
     }
 
     assert_redirected_to character_url(@character)
-    assert_equal overage, @character.reload.inventory_slots_used
+    assert_equal @character.inventory_slots_capacity + 1, @character.reload.inventory_slots_used
     assert_includes @character.reload.snapshot_payload.fetch("inventory_items").map { |item| item.fetch("name") }, "Oversized treasure"
   end
 
@@ -52,6 +52,7 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_equal "Grouped camping supplies", item.reload.name
     assert_equal 2, item.slots
+    assert_equal 6, @character.reload.inventory_slots_used
     assert_equal "Grouped camping supplies", @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").first.fetch("name")
 
     assert_difference("InventoryItem.count", -1) do
@@ -61,6 +62,7 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_not InventoryItem.exists?(item.id)
     assert_empty @character.reload.snapshot_payload.fetch("inventory_items")
+    assert_equal 4, @character.inventory_slots_used
   end
 
   test "an inventory item cannot be edited through another character's nested URL" do

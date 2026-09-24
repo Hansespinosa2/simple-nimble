@@ -68,6 +68,14 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal @character_class, created.character_class
     assert_equal @ancestry, created.ancestry
     assert_equal @background, created.background
+    assert_equal 4, created.inventory_slots_used
+    assert_text "Starting class gear"
+    assert_text "4 slots · included in total"
+    assert_text "#{created.inventory_slots_used} / #{created.inventory_slots_capacity} slots used"
+    find(".starting-gear-breakdown summary").click
+    battleaxe = find(".starting-gear-list li", text: "Battleaxe")
+    assert_includes battleaxe.text, "2 slots"
+    assert_includes battleaxe.text, "Core Rules 2.0.1, pp. 21, 34"
   end
 
   test "the guided builder previews structured skill and language grants" do
@@ -109,6 +117,8 @@ class CharactersTest < ApplicationSystemTestCase
     character = Character.find_by!(name: "Gold Start Hero")
     assert_equal 150, character.current_gold
     assert_equal 1, character.inventory_slots_used
+    assert_no_text "Starting class gear"
+    assert_text "Gold carried is counted above"
 
     fill_in "Gold (gp)", with: 501
     click_on "Save game state"

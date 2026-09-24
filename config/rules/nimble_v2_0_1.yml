@@ -39,6 +39,37 @@ starting_equipment:
   gold_per_inventory_slot_source_ref: Core Rules 2.0.1, p. 21
   gold_per_inventory_slot_source_quote: "500 gp"
 
+starting_gear_inventory:
+  source_ref: Core Rules 2.0.1, pp. 21, 33-37
+  miscellaneous_item_note: "Starting-kit items without a specific size are counted as one slot; a GM may adjust unusually bulky items."
+  items:
+    Battleaxe: {slots: 2, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    "Rations (meat)": {slots: 1, source_ref: "Heroes 2.0.1, p. 7; Core Rules 2.0.1, p. 21"}
+    "Rope (50 ft.)": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    "2 Daggers": {slots: 2, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    Sling: {slots: 2, source_ref: "Core Rules 2.0.1, pp. 21, 35"}
+    "Cheap Hides": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 33"}
+    Chalk: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    "Short Sword": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    Javelins: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 35"}
+    "Rusty Mail": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 33"}
+    Shortbow: {slots: 2, source_ref: "Core Rules 2.0.1, pp. 21, 35"}
+    Dagger: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    "Hunting Trap": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    "Adventurer's Garb": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 33"}
+    Staff: {slots: 2, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    Soap: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    Mace: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    "Wooden Buckler": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 33"}
+    Manacles: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    Sickle: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 34"}
+    Shovel: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    Bell: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    Instrument: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    Mirror: {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    "Strange Plant": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
+    "Traveling Robes & Sandals": {slots: 1, source_ref: "Heroes 2.0.1, p. 67; Core Rules 2.0.1, p. 21"}
+
 stats:
   strength:
     abbreviation: STR

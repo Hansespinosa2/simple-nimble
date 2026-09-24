@@ -55,6 +55,9 @@ class CharacterTest < ActiveSupport::TestCase
     assert_includes mage.starting_equipment, "Staff"
     assert_equal 0, mage.current_gold
     assert_equal 0, mage.gold_inventory_slots
+    assert_equal 4, mage.starting_gear_inventory_slots
+    assert_equal 3, mage.starting_gear_inventory_items.size
+    assert_equal 4, mage.inventory_slots_used
     assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), mage.trait_set.armor
   end
 
@@ -70,16 +73,40 @@ class CharacterTest < ActiveSupport::TestCase
     )
     class_gear_armor = mage.trait_set.armor
     assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), class_gear_armor
+    assert_equal 4, mage.inventory_slots_used
 
     mage.update!(starting_equipment_choice: "starting_gold")
 
     assert_equal 50, mage.current_gold
+    assert_equal 1, mage.inventory_slots_used
+    assert_empty mage.starting_gear_inventory_items
     unarmored_armor = mage.stat_value("dexterity") + mage.derived_modifier_for(:armor_modifier)
     assert_equal unarmored_armor, mage.trait_set.armor
 
     mage.update!(starting_equipment_choice: "class_gear")
     assert_equal 0, mage.current_gold
+    assert_equal 4, mage.inventory_slots_used
     assert_equal class_gear_armor, mage.trait_set.armor
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "starting class gear contributes to inventory use for every catalog class" do
+    Rails.application.load_seed unless CharacterClass.count >= 11
+    expected_slots = {
+      "Berserker" => 4, "The Cheat" => 6, "Commander" => 3, "Hunter" => 5,
+      "Mage" => 4, "Oathsworn" => 4, "Shadowmancer" => 3, "Shepherd" => 4,
+      "Songweaver" => 4, "Stormshifter" => 4, "Zephyr" => 3
+    }
+
+    expected_slots.each do |class_name, slots|
+      character = Character.new(
+        character_class: CharacterClass.find_by!(name: class_name),
+        starting_equipment_choice: "class_gear"
+      )
+
+      assert_equal slots, character.starting_gear_inventory_slots, "#{class_name} kit slots"
+      assert_equal slots, character.inventory_slots_used, "#{class_name} total slots before carried items"
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3

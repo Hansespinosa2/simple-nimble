@@ -66,6 +66,8 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Battleaxe, Rations (meat), Rope (50 ft.)"
+    assert_includes response.body, "Starting gear slots and sources"
+    assert_includes response.body, "Core Rules 2.0.1, pp. 21, 34"
     assert_includes response.body, "The Core Rules include background equipment with class gear"
     assert_includes response.body, "Core Rules 2.0.1, p. 20"
   end
