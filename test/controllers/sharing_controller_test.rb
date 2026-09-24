@@ -11,6 +11,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     @character = Character.create!(name: "Shared Hero", account: @player)
   end
 
+  # S-02:AC-2 S-08:AC-1 S-09:AC-1 S-09:AC-3
   test "a player can share a read-only sheet without transferring ownership" do
     sign_in(@player)
 
@@ -29,6 +30,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Shared Hero"
     assert_includes response.body, "Read-only shared sheet"
     assert_select ".save-dc-formula", text: "10 + KEY"
+    assert_select ".wound-death-rule-note", /You die when you have taken 6 Wounds/
   end
 
   test "the read-only shared sheet includes structured inventory without edit controls" do

@@ -84,6 +84,10 @@ module Rules
         exception || rules
       end
 
+      def wound_death_threshold_rules
+        condition_tracking.fetch("wound_death_threshold")
+      end
+
       def resting_rules
         data.fetch("resting")
       end

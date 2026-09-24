@@ -127,6 +127,11 @@ condition_tracking:
         actions_limited_to: 2
         source_ref: "Heroes 2.0.1, p. 69"
         source_quote: "Permanently gain 1 action (while Dying, you have a max of 2 actions)."
+  wound_death_threshold:
+    default_wounds: 6
+    source_ref: "Core Rules 2.0.1, p. 9"
+    source_quote: "You die when you have taken 6 Wounds (unless you have an ability that changes this number)."
+    tracker_note: "Some abilities change the death threshold. The tracker displays the source's default but does not calculate feature-specific or situational exceptions."
   minor_status_examples:
     - Charged
     - Distracted

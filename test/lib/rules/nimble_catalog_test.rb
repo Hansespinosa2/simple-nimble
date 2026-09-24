@@ -201,6 +201,11 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 1, @catalog.zero_hp_transition_rules.fetch("wounds_gained")
     assert_equal "Core Rules 2.0.1, p. 9", @catalog.zero_hp_transition_rules.fetch("source_ref")
     assert_includes @catalog.zero_hp_transition_rules.fetch("source_quote"), "gain 1 Wound"
+    death_rules = @catalog.wound_death_threshold_rules
+    assert_equal 6, death_rules.fetch("default_wounds")
+    assert_equal "Core Rules 2.0.1, p. 9", death_rules.fetch("source_ref")
+    assert_includes death_rules.fetch("source_quote"), "unless you have an ability that changes this number"
+    assert_match(/does not calculate feature-specific or situational exceptions/, death_rules.fetch("tracker_note"))
     assert_match(/does not automate other condition effects or durations/, conditions.fetch("tracker_note"))
     assert_match(/does not enforce Dying's action limit/, conditions.fetch("tracker_note"))
   end

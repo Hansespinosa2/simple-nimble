@@ -390,6 +390,11 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_selector ".derived-condition-chip", text: "Bloodied"
     assert_selector ".derived-condition-chip", text: "Wounded"
+    assert_text "Death at 6 Wounds by default"
+    find("details.wound-death-rule-note summary").click
+    assert_text "You die when you have taken 6 Wounds (unless you have an ability that changes this number)."
+    assert_text "Core Rules 2.0.1, p. 9"
+    assert_text "does not calculate feature-specific or situational exceptions"
     assert_selector "datalist#nimble-condition-suggestions option[value='Poisoned']", visible: :all
     assert_selector "datalist#nimble-condition-suggestions option[value='Smoldering']", visible: :all
     assert_no_selector "datalist#nimble-condition-suggestions option[value='Bloodied']", visible: :all
@@ -438,7 +443,7 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_text "Elusive · save success"
     assert_text "Core Rules 2.0.1, p. 23"
-    find(".resource-rule-note summary").click
+    find(".resource-summary-item .resource-rule-note summary").click
     assert_text "If you fail a save, you can succeed instead, 1/Safe Rest."
     find("label", text: /Elusive · save success/).find("input[type='number']").set(0)
     click_on "Save game state"
