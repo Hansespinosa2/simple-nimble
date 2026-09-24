@@ -75,7 +75,8 @@
         <div class="field feature-choice-field spell-choice-field">
           <%= label_tag field_name, "#{pool.fetch('name')} · choose #{pool.fetch('count')}" %>
           <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, selected_options), include_blank: (multiple_choices ? nil : "Choose an option"), multiple: multiple_choices, class: "choice-select" %>
-          <span class="field-hint"><%= pool.fetch("source_quote", "Choose from the options listed for this feature.") %> (<%= pool.fetch("source_ref") %>)</span>
+          <% source_refs = [ pool.fetch("source_ref"), pool["story_source_ref"] ].compact.uniq %>
+          <span class="field-hint"><%= pool.fetch("source_quote", "Choose from the options listed for this feature.") %> (<%= source_refs.join(" · ") %>)</span>
           <% if already_chosen.any? %>
             <span class="field-hint">Already recorded: <%= already_chosen.join(", ") %>. Choose a different spell or school.</span>
           <% end %>

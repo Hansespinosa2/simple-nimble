@@ -405,6 +405,32 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "MIN(INT, LVL)", shadow_minions.fetch("max_formula")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Oathbreaker spell access and features are structured with the cited story rules" do
+    assert_equal [ "True Strike", "Heal", "Warding Bond" ], @catalog.story_subclass_spell_restrictions_for("Oathsworn", "Oathbreaker")
+    assert_equal "Heroes 2.0.1, p. 73", @catalog.story_subclass_spell_restriction_source_ref_for("Oathsworn", "Oathbreaker")
+    assert_equal [ "Entice", "Shadow Trap", "Dread Visage" ], @catalog.story_subclass_spell_grants_for("Oathsworn", "Oathbreaker")
+    assert_equal [ "Necrotic" ], @catalog.story_subclass_spell_choice_school_extensions_for("Oathsworn", "Oathbreaker")
+    assert_equal [ "Paragon of Virtue" ], @catalog.story_subclass_replaced_progression_features_for("Oathsworn", "Oathbreaker")
+    assert_equal [ "Pilfered Power" ], @catalog.story_subclass_replaced_progression_features_for("Shadowmancer", "Reaver")
+
+    notes = @catalog.story_subclass_feature_notes_for("Oathsworn", "Oathbreaker")
+    assert_equal [ "Dark Benediction", "Paragon of Power", "Aura of Suffering", "We All Suffer", "Bring Me Your Pain", "Torment", "Exploit", "Bloody Terror" ], notes.map { |note| note.fetch("name") }
+    assert notes.all? { |note| note.fetch("source_ref") == "Heroes 2.0.1, p. 73" }
+    expected_unlock_levels = { "Dark Benediction" => 1, "Paragon of Power" => 2, "Aura of Suffering" => 3, "We All Suffer" => 3, "Bring Me Your Pain" => 3, "Torment" => 7, "Exploit" => 11, "Bloody Terror" => 15 }
+    assert_equal expected_unlock_levels, notes.index_with { |note| note.fetch("unlock_level") }.transform_keys { |note| note.fetch("name") }
+
+    effects = notes.index_by { |note| note.fetch("name") }.transform_values { |note| note.fetch("effect") }
+    assert_match(/True Strike.*Heal.*Warding Bond.*Entice.*Shadow Trap.*Dread Visage.*Radiant.*Necrotic/, effects.fetch("Dark Benediction"))
+    assert_match(/Replaces Paragon of Virtue.*Might.*intimidate/, effects.fetch("Paragon of Power"))
+    assert_match(/Reach 4.*Interpose.*Radiant Judgment/, effects.fetch("Aura of Suffering"))
+    assert_match(/\+2 maximum Wounds.*gain Wounds or fail a save.*Radiant Judgment/, effects.fetch("We All Suffer"))
+    assert_match(/Reaction.*willing ally.*0 HP.*exchange current HP.*Temp HP.*Wound/, effects.fetch("Bring Me Your Pain"))
+    assert_match(/twice.*half.*Lay on Hands.*damage.*ignoring armor/, effects.fetch("Torment"))
+    assert_match(/Reaction.*ally.*Defends.*Judgment Dice.*enemy.*Interpose.*own attack/, effects.fetch("Exploit"))
+    assert_match(/disadvantage.*Wound.*three/, effects.fetch("Bloody Terror"))
+  end
+
   # S-02:AC-1 S-02:AC-2
   test "Beastmaster companion and alternate Hunt choices are catalog-backed" do
     pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole

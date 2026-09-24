@@ -763,7 +763,7 @@ progression:
   Oathsworn:
     features:
       1: ["Radiant Judgment", "Lay on Hands"]
-      2: ["Mana and Radiant Spellcasting", "Zealot"]
+      2: ["Mana and Radiant Spellcasting", "Zealot", "Paragon of Virtue"]
       3: ["Subclass choice", "Radiant Judgment (2)", "Sacred Decree", "Serve Selflessly"]
       4: ["My Life, for My Friends", "Tier 2 Spells"]
       5: ["Radiant Judgment (3)", "Upgraded Cantrips"]
@@ -1293,12 +1293,30 @@ story_subclass_resource_pool_replacements:
     Reaver: [pilfered_power]
 
 story_subclass_spell_restrictions:
+  Oathsworn:
+    Oathbreaker: [True Strike, Heal, Warding Bond]
   Shadowmancer:
     Reaver: [Shadow Blast]
 
 story_subclass_spell_restriction_source_refs:
+  Oathsworn:
+    Oathbreaker: Heroes 2.0.1, p. 73
   Shadowmancer:
     Reaver: Heroes 2.0.1, p. 78
+
+story_subclass_spell_grants:
+  Oathsworn:
+    Oathbreaker: [Entice, Shadow Trap, Dread Visage]
+
+story_subclass_spell_choice_school_extensions:
+  Oathsworn:
+    Oathbreaker: [Necrotic]
+
+story_subclass_replaced_progression_features:
+  Oathsworn:
+    Oathbreaker: [Paragon of Virtue]
+  Shadowmancer:
+    Reaver: [Pilfered Power]
 
 story_subclass_weapon_rules:
   Shadowmancer:
@@ -1316,6 +1334,44 @@ story_subclass_weapon_rules:
         source_quote: "Action: Summon a magical Bonescythe, a melee weapon: 2d12 slashing+DEX necrotic damage to each die (Reach: 2). It shatters after you hit with it (or when combat ends). Any Invocations affecting Shadow Blast affect your Bonescythe instead. Every 5 levels, add 1 extra damage die."
 
 story_subclass_feature_notes:
+  Oathsworn:
+    Oathbreaker:
+      - name: Dark Benediction
+        unlock_level: 1
+        effect: Replace access to True Strike, Heal, and Warding Bond with Entice, Shadow Trap, and Dread Visage; Utility Spell choices may be Radiant or Necrotic.
+        source_ref: Heroes 2.0.1, p. 73
+        source_quote: "gain access"
+      - name: Paragon of Power
+        unlock_level: 2
+        effect: Replaces Paragon of Virtue; gain advantage on Might checks to intimidate.
+        source_ref: Heroes 2.0.1, p. 73
+        source_quote: "Advantage on Might checks"
+      - name: Aura of Suffering
+        unlock_level: 3
+        effect: Gain Reach 4 and may Interpose for allies in the aura; Radiant Judgment triggers when you could Interpose but choose not to, rather than when attacked.
+        source_ref: Heroes 2.0.1, p. 73
+      - name: We All Suffer
+        unlock_level: 3
+        effect: Gain +2 maximum Wounds. When an ally in your aura would gain Wounds or fail a save, you may take the effect instead and trigger Radiant Judgment.
+        source_ref: Heroes 2.0.1, p. 73
+        source_quote: "Gain +2 max Wounds"
+      - name: Bring Me Your Pain
+        unlock_level: 3
+        effect: Reaction when a willing ally in your aura would drop to 0 HP; exchange current HP, grant the ally Temp HP for any excess over their maximum, and take the Wound instead.
+        source_ref: Heroes 2.0.1, p. 73
+      - name: Torment
+        unlock_level: 7
+        effect: Lay on Hands heals you for twice its normal amount and others for half; when dealing damage, spend Lay on Hands points to add the same amount of damage, ignoring armor.
+        source_ref: Heroes 2.0.1, p. 73
+      - name: Exploit
+        unlock_level: 11
+        effect: Reaction when an ally in your aura Defends; spend Judgment Dice to force an enemy in your aura to Interpose, except against its own attack.
+        source_ref: Heroes 2.0.1, p. 73
+      - name: Bloody Terror
+        unlock_level: 15
+        effect: Attacks against you gain one instance of disadvantage per Wound, up to three.
+        source_ref: Heroes 2.0.1, p. 73
+        source_quote: "max 3"
   Shadowmancer:
     Reaver:
       - name: Hollow One

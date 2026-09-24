@@ -214,10 +214,13 @@ module Rules
       end
 
       def story_subclass_replaced_progression_features_for(class_name, subclass_name)
-        story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
+        explicit_replacements = data.fetch("story_subclass_replaced_progression_features", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+        choice_pool_replacements = story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
           .values
           .flat_map { |definition| Array(definition.to_h["replaces_progression_features"]) }
-          .uniq
+        (Array(explicit_replacements) + choice_pool_replacements).uniq
       end
 
       def story_subclass_companion_rule_for(class_name, subclass_name)
@@ -260,6 +263,18 @@ module Rules
         data.fetch("story_subclass_spell_restriction_source_refs", {})
           .fetch(class_name.to_s, {})
           .fetch(subclass_name.to_s, nil)
+      end
+
+      def story_subclass_spell_grants_for(class_name, subclass_name)
+        data.fetch("story_subclass_spell_grants", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_spell_choice_school_extensions_for(class_name, subclass_name)
+        data.fetch("story_subclass_spell_choice_school_extensions", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
       end
 
       def story_subclass_weapon_rules_for(class_name, subclass_name)

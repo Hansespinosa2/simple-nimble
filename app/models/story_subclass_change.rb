@@ -55,6 +55,22 @@ class StorySubclassChange < ApplicationRecord
       }
     end
 
+    choices.fetch("granted_spells", []).each do |spell_name|
+      entries << {
+        label: "Granted spell",
+        value: spell_name,
+        source_refs: Array(source_refs.fetch("granted_spells", {}).to_h.fetch(spell_name, source_ref))
+      }
+    end
+
+    choices.fetch("replaced_progression_features", []).each do |feature_name|
+      entries << {
+        label: "Replaced progression feature",
+        value: feature_name,
+        source_refs: Array(source_refs.fetch("replaced_progression_features", {}).to_h.fetch(feature_name, source_ref))
+      }
+    end
+
     entries
   end
 

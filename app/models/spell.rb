@@ -13,8 +13,10 @@ class Spell < ApplicationRecord
     return false if character.story_subclass_restricted_spell_names.include?(name)
     return false if class_restricted_from?(character)
     return false if utility? && !character.utility_spell_names.include?(name)
-    return true if character.story_granted_spell_names.include?(name)
-    return false unless utility? || character.known_spell_schools.include?(school)
+    story_granted = character.story_granted_spell_names.include?(name)
+    return false unless utility? || story_granted || character.known_spell_schools.include?(school)
+    return false if !utility? && tier.to_i > character.character_class.spell_tier_for(character.level) && (!story_granted || character.story_subclass_granted_spell_names.include?(name))
+    return true if story_granted
 
     tier.to_i <= character.character_class.spell_tier_for(character.level)
   end

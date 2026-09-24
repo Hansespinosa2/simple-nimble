@@ -147,6 +147,12 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".story-subclass-history", /Oath of Refuge → Oathbreaker/
     assert_select ".story-subclass-entry", /She breaks the oath to save the refugees\./
     assert_select ".story-subclass-entry", /Heroes 2\.0\.1, p\. 73/
+    assert_includes response.body, "Dark Benediction"
+    assert_includes response.body, "Gain +2 maximum Wounds."
+    assert_includes response.body, "Entice"
+    assert_includes response.body, "Shadow Trap"
+    assert_not_includes response.body, "Torment"
+    assert_select ".tracker-form", 0
     assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}']", 0
   end
 

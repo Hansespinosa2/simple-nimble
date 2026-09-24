@@ -39,13 +39,13 @@
         <div class="progression-entry progression-entry-subclass"><span><%= subclass_weapon.fetch(:summoned) ? "Summoned · shatters after a hit" : "Weapon · action to summon" %></span><strong><%= subclass_weapon.fetch(:name) %> · <%= subclass_weapon.fetch(:damage_dice) %></strong><em><%= subclass_weapon.fetch(:damage_effect) %> · Reach <%= subclass_weapon.fetch(:reach) %></em><small><%= subclass_weapon.fetch(:source_ref) %> · +1 damage die every 5 levels</small></div>
       <% end %>
       <% subclass_feature_notes.each do |note| %>
-        <div class="progression-entry progression-entry-subclass"><span>Level <%= note.fetch("unlock_level") %> · <%= note.fetch("source_ref") %></span><strong><%= note.fetch("name") %></strong><em><%= note.fetch("effect") %></em><small><%= note.fetch("source_quote") %></small></div>
+        <div class="progression-entry progression-entry-subclass"><span>Level <%= note.fetch("unlock_level") %> · <%= note.fetch("source_ref") %></span><strong><%= note.fetch("name") %></strong><em><%= note.fetch("effect") %></em><% if note["source_quote"].present? %><small><%= note.fetch("source_quote") %></small><% end %></div>
       <% end %>
       <% feature_choices.each do |choice| %>
         <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>
       <% end %>
       <% spell_choices.each do |choice| %>
-        <div class="progression-entry progression-entry-choice progression-entry-spell"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em></div>
+        <div class="progression-entry progression-entry-choice progression-entry-spell"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>
       <% end %>
     </div>
   </section>

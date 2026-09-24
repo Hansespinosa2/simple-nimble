@@ -548,7 +548,13 @@ class Character < ApplicationRecord
       when "utility_school"
         [ pool.merge("options" => Array(pool.fetch("allowed_schools", []))) ]
       when "utility_spell"
-        [ pool.merge("options" => utility_spell_options(pool.fetch("allowed_schools", []))) ]
+        school_extensions = Rules::NimbleCatalog.story_subclass_spell_choice_school_extensions_for(character_class&.name, subclass_name)
+        allowed_schools = (Array(pool.fetch("allowed_schools", [])) + school_extensions).uniq
+        extended_pool = pool.merge("allowed_schools" => allowed_schools, "options" => utility_spell_options(allowed_schools))
+        if school_extensions.any?
+          extended_pool["story_source_ref"] = character_class.story_based_subclass_rule(subclass_name).fetch("source_ref")
+        end
+        [ extended_pool ]
       when "utility_spell_any"
         [ pool.merge("options" => utility_spell_options_from_any_school) ]
       when "spell_up_to_tier"
@@ -600,7 +606,8 @@ class Character < ApplicationRecord
         level: pool.fetch("level"),
         name: pool.fetch("name"),
         selected: pool.fetch("selected"),
-        source_ref: pool.fetch("source_ref")
+        source_ref: pool.fetch("source_ref"),
+        source_refs: [ pool.fetch("source_ref"), pool["story_source_ref"] ].compact.uniq
       }
     end
   end
@@ -640,7 +647,11 @@ class Character < ApplicationRecord
       selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
     end
 
-    (level_based_spells + arcane_command_spells).uniq
+    (level_based_spells + arcane_command_spells + story_subclass_granted_spell_names).uniq
+  end
+
+  def story_subclass_granted_spell_names
+    Rules::NimbleCatalog.story_subclass_spell_grants_for(character_class&.name, subclass_name).map(&:to_s)
   end
 
   def sheet_spells

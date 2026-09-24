@@ -16,7 +16,11 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
 
   test "a campaign GM replaces the current subclass with a story-based subclass and records an auditable revision" do
     @character.trait_set.update!(current_hp: 7, current_wounds: 2)
+    @character.spells = Spell.where(name: [ "True Strike", "Heal", "Warding Bond" ])
+    ungranted_necrotic_spell = Spell.create!(name: "Unlisted Necrotic Test Spell", school: "Necrotic", tier: 1)
     original_revision_count = @character.character_revisions.count
+
+    assert_includes @character.progression_features_through.map { |feature| feature.fetch(:name) }, "Paragon of Virtue"
 
     assert_difference("StorySubclassChange.count", 1) do
       assert_difference("CharacterRevision.where(event_type: 'story_subclass_change').count", 1) do
@@ -35,9 +39,33 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     @change.reload
     revision = @change.character_revision
     assert_equal "Oathbreaker", @character.subclass_name
+    assert_not_includes @character.progression_features_through.map { |feature| feature.fetch(:name) }, "Paragon of Virtue"
+    assert_equal [ "Dark Benediction", "Paragon of Power", "Aura of Suffering", "We All Suffer", "Bring Me Your Pain" ], @character.story_subclass_feature_note_entries.map { |note| note.fetch("name") }
     assert_equal 8, @character.trait_set.max_wounds
     assert_equal 2, @character.trait_set.current_wounds
     assert_equal 7, @character.trait_set.current_hp
+    assert_empty @character.spells.where(name: [ "True Strike", "Heal", "Warding Bond" ])
+    assert_equal [ "Dread Visage", "Entice", "Shadow Trap" ], @character.sheet_spells.where(school: "Necrotic").order(:name).pluck(:name)
+    assert @character.available_spells.include?(Spell.find_by!(name: "Entice"))
+    assert @character.available_spells.include?(Spell.find_by!(name: "Shadow Trap"))
+    assert_not @character.available_spells.include?(Spell.find_by!(name: "Dread Visage")), "Tier 2 remains locked at Oathsworn level 3"
+    assert_not ungranted_necrotic_spell.available_to?(@character), "Dark Benediction grants specific Necrotic spells, not the whole school"
+    @character.update_column(:level, 4)
+    assert Spell.find_by!(name: "Dread Visage").available_to?(@character)
+    utility_pool = @character.spell_choice_pools_for(7).find { |pool| pool.fetch("name") == "Master of Radiance" }
+    necrotic_utility = Spell.where(tier: -1, school: "Necrotic").pick(:name)
+    radiant_utility = Spell.where(tier: -1, school: "Radiant").pick(:name)
+    unrelated_utility = Spell.where(tier: -1).where.not(school: [ "Radiant", "Necrotic" ]).pick(:name)
+    assert_includes utility_pool.fetch("options"), necrotic_utility
+    assert_includes utility_pool.fetch("options"), radiant_utility
+    assert_not_includes utility_pool.fetch("options"), unrelated_utility
+    assert_equal "Heroes 2.0.1, p. 73", utility_pool.fetch("story_source_ref")
+    granted_entries = @change&.subclass_choice_entries&.select { |entry| entry.fetch(:label) == "Granted spell" }
+    assert_equal [ "Entice", "Shadow Trap", "Dread Visage" ], granted_entries&.map { |entry| entry.fetch(:value) }
+    assert_equal [ "Heroes 2.0.1, p. 73" ], granted_entries.first.fetch(:source_refs)
+    replaced_paragon = @change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "Replaced progression feature" }
+    assert_equal "Paragon of Virtue", replaced_paragon.fetch(:value)
+    assert_equal [ "Heroes 2.0.1, p. 73" ], replaced_paragon.fetch(:source_refs)
     assert_equal "Oath of Refuge", @change.from_subclass
     assert_equal "Oathbreaker", @change.to_subclass
     assert_equal @campaign, @change.campaign
@@ -325,6 +353,7 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     features = shadowmancer.subclass_progression_features_through.map { |feature| feature.fetch(:name) }
     assert_includes features, "Hollow One"
     assert_includes features, "Bonescythe"
+    assert_not_includes shadowmancer.progression_features_through.map { |feature| feature.fetch(:name) }, "Pilfered Power"
     assert_includes shadowmancer.story_subclass_feature_note_entries.map { |note| note.fetch("name") }, "Shadow Exploit"
     weapon = shadowmancer.story_subclass_weapon_entry
     assert_equal "2d12", weapon.fetch(:damage_dice)
