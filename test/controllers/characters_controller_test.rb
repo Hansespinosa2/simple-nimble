@@ -541,6 +541,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     get character_url(reaver)
     assert_response :success
     assert_select ".progression-entry-subclass", /Bonescythe · 2d12/
+    assert_select ".safe-rest-action .field-hint", /Any Invocations affecting Shadow Blast affect your Bonescythe instead.*Heroes 2\.0\.1, p\. 78/
     assert_select "form[action='#{begin_encounter_character_path(reaver)}']", count: 0
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Bonescythe · spend 1 action"
 

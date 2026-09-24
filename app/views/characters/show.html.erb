@@ -165,6 +165,7 @@
           <% if bonescythe.present? %>
             <div class="safe-rest-action">
               <p class="eyebrow">Reaver · Bonescythe</p>
+              <p class="field-hint"><%= bonescythe.fetch(:invocation_carryover_note) %> (<%= bonescythe.fetch(:source_ref) %>)</p>
               <% if bonescythe.fetch(:summoned) %>
                 <p><%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. The next hit shatters it.</p>
                 <% if @character.story_subclass_feature_unlocked?("Reap") %>

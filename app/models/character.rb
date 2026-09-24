@@ -474,6 +474,7 @@ class Character < ApplicationRecord
       damage_effect: "#{weapon.fetch('damage_type').capitalize} damage plus DEX (#{dexterity}) #{weapon.fetch('bonus_damage_type')} damage per die",
       reach: weapon.fetch("reach"),
       action_cost: weapon.fetch("action_cost"),
+      invocation_carryover_note: weapon.fetch("invocation_carryover_note"),
       summoned: bonescythe_summoned?,
       source_ref: weapon.fetch("source_ref"),
       source_quote: weapon.fetch("source_quote")

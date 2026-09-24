@@ -427,6 +427,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 5, weapon.fetch("additional_die_every_levels")
     assert_equal "d12", weapon.fetch("damage_die")
     assert_equal 2, weapon.fetch("reach")
+    assert_includes weapon.fetch("source_quote"), weapon.fetch("invocation_carryover_note")
     assert_equal "Heroes 2.0.1, p. 78", weapon.fetch("source_ref")
 
     notes = @catalog.story_subclass_feature_notes_for("Shadowmancer", "Reaver")
