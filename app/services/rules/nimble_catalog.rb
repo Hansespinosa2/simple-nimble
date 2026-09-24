@@ -25,6 +25,10 @@ module Rules
         data.fetch("derived_values")
       end
 
+      def condition_tracking
+        data.fetch("condition_tracking")
+      end
+
       def starting_equipment_rules
         data.fetch("starting_equipment")
       end

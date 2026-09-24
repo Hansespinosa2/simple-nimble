@@ -97,7 +97,7 @@ Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
    - `Prerequisite` — stat minimums, proficiency requirements, background stat gates
    - `Boon` — Minor, Major, Epic; epic boons chosen at level 19
    - `Equipment` — Weapon, Armor, Shield categories with properties and STR requirements
-   - `Condition` (20 named conditions; referenced by feature legality checks)
+   - `Condition` (18 named conditions; Bloodied, Dying, and Wounded derive from tracked HP/Wounds; minor statuses remain contextual)
 
 Current repo entities that likely remain but need reframing:
 

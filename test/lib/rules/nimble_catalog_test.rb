@@ -53,6 +53,23 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "condition tracking distinguishes manual conditions, derived states, and minor statuses" do
+    conditions = @catalog.condition_tracking
+    expected_manual = %w[
+      Blinded Charmed Dazed Frightened Grappled Hampered Incapacitated Invisible Petrified
+      Poisoned Prone Restrained Riding Slowed Taunted
+    ]
+    expected_derived = %w[Bloodied Dying Wounded]
+
+    assert_equal "Core Rules 2.0.1, p. 11", conditions.fetch("source_ref")
+    assert_equal expected_manual, conditions.fetch("manual_conditions")
+    assert_equal expected_derived, conditions.fetch("derived_conditions").map { |entry| entry.fetch("name") }
+    assert_equal 18, expected_manual.length + expected_derived.length
+    assert_equal %w[Charged Distracted Smoldering], conditions.fetch("minor_status_examples")
+    assert_match(/does not apply their effects or durations/, conditions.fetch("tracker_note"))
+  end
+
   test "the starting-gold alternative and coin slot size are source-backed" do
     starting_equipment = @catalog.starting_equipment_rules
 

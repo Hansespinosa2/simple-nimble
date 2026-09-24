@@ -177,6 +177,24 @@ class Character < ApplicationRecord
     inventory_slots_capacity - inventory_slots_used
   end
 
+  def derived_condition_entries
+    return [] unless trait_set && trait_set.current_hp.present? && trait_set.max_hp.to_i.positive?
+
+    rules = Rules::NimbleCatalog.condition_tracking
+    rules.fetch("derived_conditions").select do |condition|
+      case condition.fetch("predicate")
+      when "at_or_below_half_hit_points"
+        trait_set.current_hp.to_i * 2 <= trait_set.max_hp.to_i
+      when "zero_hit_points"
+        trait_set.current_hp.to_i.zero?
+      when "any_wounds"
+        trait_set.current_wounds.to_i.positive?
+      else
+        raise ArgumentError, "Unknown derived condition predicate: #{condition.fetch('predicate')}"
+      end
+    end.map { |condition| condition.merge("source_ref" => rules.fetch("source_ref")) }
+  end
+
   def progression_features_through(level = self.level)
     return [] if character_class.blank?
 

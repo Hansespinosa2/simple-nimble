@@ -1,0 +1,21 @@
+<% entries = character.derived_condition_entries %>
+<% if entries.any? %>
+  <section class="panel derived-condition-panel" aria-label="Conditions derived from hit points and wounds">
+    <div class="panel-heading compact">
+      <div><p class="eyebrow">Current states</p><h2>HP &amp; Wounds</h2></div>
+      <span class="mini-label">Derived · read-only</span>
+    </div>
+    <div class="derived-condition-list">
+      <% entries.each do |entry| %>
+        <span class="derived-condition-chip"><%= entry.fetch("name") %></span>
+      <% end %>
+    </div>
+    <details class="condition-rule-note">
+      <summary>Why these appear · <%= entries.first.fetch("source_ref") %></summary>
+      <ul>
+        <% entries.each do |entry| %><li><strong><%= entry.fetch("name") %>:</strong> <%= entry.fetch("source_quote") %></li><% end %>
+      </ul>
+      <p>The sheet derives these labels from tracked values. It does not automate other condition effects or durations.</p>
+    </details>
+  </section>
+<% end %>

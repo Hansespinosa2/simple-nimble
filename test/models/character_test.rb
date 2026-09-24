@@ -10,6 +10,32 @@ class CharacterTest < ActiveSupport::TestCase
     assert_includes character.errors.attribute_names, :current_gold
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Bloodied, Dying, and Wounded are derived from current HP and Wounds" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    character = Character.create!(
+      name: "Condition State Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    traits = character.trait_set
+    max_hp = traits.max_hp
+
+    traits.update!(current_hp: max_hp / 2 + 1, current_wounds: 0)
+    assert_empty character.derived_condition_entries
+
+    traits.update!(current_hp: max_hp / 2, current_wounds: 1)
+    entries = character.derived_condition_entries
+    assert_equal %w[Bloodied Wounded], entries.map { |entry| entry.fetch("name") }
+    assert_equal "At half HP or less.", entries.first.fetch("source_quote")
+    assert_equal "Core Rules 2.0.1, p. 11", entries.first.fetch("source_ref")
+
+    traits.update!(current_hp: 0, current_wounds: 0)
+    assert_equal %w[Bloodied Dying], character.derived_condition_entries.map { |entry| entry.fetch("name") }
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-3
   test "a starting-gold choice scales with level and coin weight counts toward inventory" do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")

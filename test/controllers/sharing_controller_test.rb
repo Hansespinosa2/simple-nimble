@@ -47,6 +47,22 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".inventory-item-row form", 0
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
+  test "the read-only shared sheet derives conditions from current HP and Wounds" do
+    @character.trait_set.update!(max_hp: 10, current_hp: 5, max_wounds: 6, current_wounds: 1)
+    sign_in(@player)
+    post character_shares_url(@character), params: { campaign_id: @campaign.id }
+    share = @character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select ".derived-condition-chip", text: "Bloodied"
+    assert_select ".derived-condition-chip", text: "Wounded"
+    assert_includes response.body, "Core Rules 2.0.1, p. 11"
+    assert_includes response.body, "Derived · read-only"
+  end
+
   # S-05:AC-1 S-05:AC-2 S-08:AC-1 S-08:AC-3 S-09:AC-1 S-09:AC-3
   test "the read-only shared sheet shows class starting gear and the unitemized background-gear notice" do
     Rails.application.load_seed

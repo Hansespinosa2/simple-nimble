@@ -415,13 +415,13 @@ Chosen at level 19 (Epic Boon). Minor and Major Boons are optionally used as que
 
 ---
 
-#### 16. Conditions (16 named conditions + minor statuses)
+#### 16. Conditions (18 named conditions + minor statuses)
 
-Conditions affect legality of actions during creation and level-up edge cases (e.g., some features trigger on or grant conditions; prerequisite abilities reference specific conditions).
+Core Rules 2.0.1, p. 11 lists 18 distinct named conditions (17 bullets, with Grappled/Restrained grouped together). Bloodied, Dying, and Wounded are mechanically derived from tracked HP/Wounds; the other 15 named conditions can be recorded during play. The character sheet surfaces the three derived states automatically.
 
-Named: Blinded, Bloodied, Charged, Charmed, Dazed, Dying, Frightened, Grappled, Hampered, Incapacitated, Invisible, Petrified, Poisoned, Prone, Restrained, Riding, Slowed, Smoldering, Taunted, Wounded.
+Named conditions: Blinded, Bloodied, Charmed, Dazed, Dying, Frightened, Grappled, Hampered, Incapacitated, Invisible, Petrified, Poisoned, Prone, Restrained, Riding, Slowed, Taunted, Wounded.
 
-Minor/unnamed statuses (Smoldering, Charged, Distracted, etc.) do nothing on their own; they are referenced by spell and ability prerequisite checks.
+Minor statuses (for example, Charged, Distracted, and Smoldering) do nothing on their own and are referenced by spell and ability prerequisites. The tracker records other conditions and statuses as notes; it does not automate their effects or durations.
 
 ---
 

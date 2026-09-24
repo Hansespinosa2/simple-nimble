@@ -44,6 +44,7 @@
     <div class="vital-card"><span class="vital-label">Speed</span><strong><%= @character.trait_set&.speed || "—" %></strong><span class="vital-foot">spaces</span></div>
     <div class="vital-card"><span class="vital-label">Wounds</span><strong><%= @character.trait_set&.current_wounds || "—" %><small> / <%= @character.trait_set&.max_wounds || "—" %></small></strong><span class="vital-foot">Hit Dice <%= @character.trait_set&.current_hit_dice || "—" %>/<%= @character.trait_set&.max_hit_dice || "—" %></span></div>
   </section>
+  <%= render "characters/derived_conditions", character: @character %>
 
   <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
   <% if resource_tracks.any? %>
@@ -133,7 +134,15 @@
               <% end %>
             </div>
           <% end %>
-          <div class="field"><%= tracker_form.label :conditions, "Conditions" %><%= tracker_form.text_field :conditions, placeholder: "e.g. Smoldering, Inspired" %></div>
+          <% condition_rules = Rules::NimbleCatalog.condition_tracking %>
+          <div class="field">
+            <%= tracker_form.label :conditions, "Conditions & minor statuses" %>
+            <%= tracker_form.text_field :conditions, placeholder: "e.g. Poisoned, Smoldering, Inspired", list: "nimble-condition-suggestions" %>
+            <datalist id="nimble-condition-suggestions">
+              <% (condition_rules.fetch("manual_conditions") + condition_rules.fetch("minor_status_examples")).each do |condition_name| %><option value="<%= condition_name %>"><% end %>
+            </datalist>
+            <span class="field-hint"><%= condition_rules.fetch("source_ref") %> · comma-separate multiple entries; custom table statuses are allowed. <%= condition_rules.fetch("tracker_note") %></span>
+          </div>
           <div class="field"><%= tracker_form.label :inventory, "Inventory notes" %><%= tracker_form.text_area :inventory, rows: 3, placeholder: "Loose notes or loot details…" %><span class="field-hint">This text is not included in slot calculations; add carried items to the structured Inventory list.</span></div>
           <div class="field"><%= tracker_form.label :game_notes, "Session notes" %><%= tracker_form.text_area :game_notes, rows: 3, placeholder: "Remember this for next time…" %></div>
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>

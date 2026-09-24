@@ -193,6 +193,13 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .stat-placement-field { color: var(--ink-soft); display: flex; flex-direction: column; font-size: 10px; gap: 4px; }
 .stat-placement-field select { background: #fff; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink); min-height: 32px; padding: 4px 6px; }
 .stat-placement-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); outline: none; }
+.derived-condition-panel { margin: 18px 0; }
+.derived-condition-list { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.derived-condition-chip { background: #fbf0d6; border: 1px solid #eddbac; border-radius: 999px; color: #795d23; font-size: 11px; font-weight: 800; padding: 6px 10px; }
+.condition-rule-note { color: var(--ink-soft); font-size: 10px; line-height: 1.45; }
+.condition-rule-note summary { cursor: pointer; }
+.condition-rule-note ul { margin: 7px 0; padding-left: 19px; }
+.condition-rule-note p { margin: 6px 0 0; }
 .resource-summary-panel { margin: 18px 0; }
 .resource-summary-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .resource-summary-item { background: var(--surface-muted); border-radius: 10px; display: flex; flex-direction: column; gap: 4px; padding: 11px 12px; }

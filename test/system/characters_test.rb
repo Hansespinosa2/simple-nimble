@@ -307,6 +307,45 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal "Met the ferryman.", @character.game_notes
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
+    character = Character.create!(
+      name: "Condition Tracker Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    max_hp = character.trait_set.max_hp
+    character.trait_set.update!(current_hp: max_hp / 2, current_wounds: 1)
+
+    visit character_url(character)
+
+    assert_selector ".derived-condition-chip", text: "Bloodied"
+    assert_selector ".derived-condition-chip", text: "Wounded"
+    assert_selector "datalist#nimble-condition-suggestions option[value='Poisoned']", visible: :all
+    assert_selector "datalist#nimble-condition-suggestions option[value='Smoldering']", visible: :all
+    assert_no_selector "datalist#nimble-condition-suggestions option[value='Bloodied']", visible: :all
+    find("details.condition-rule-note summary").click
+    assert_text "At half HP or less."
+    assert_text "It does not automate other condition effects or durations."
+
+    fill_in "character_trait_set_attributes_current_hp", with: 0
+    fill_in "character_trait_set_attributes_current_wounds", with: 0
+    fill_in "character_conditions", with: "Poisoned, Smoldering, Inspired"
+    click_on "Save game state"
+
+    assert_text "Game state saved."
+    assert_selector ".derived-condition-chip", text: "Dying"
+    assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
+    assert_equal %w[Bloodied Dying], character.derived_condition_entries.map { |entry| entry.fetch("name") }
+
+    fill_in "character_trait_set_attributes_current_hp", with: max_hp
+    click_on "Save game state"
+    assert_no_selector ".derived-condition-panel"
+    assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet explains and tracks a limited-use ancestry ability" do
     character = Character.create!(
