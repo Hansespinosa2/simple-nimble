@@ -194,14 +194,14 @@
               <% if minion_count < minion_capacity && @character.trait_set&.current_actions.to_i.positive? %>
                 <%= button_to "Summon Shadow Minion · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
               <% end %>
-              <% if reaver && minion_count.positive? %>
+              <% if reaver && @character.story_subclass_feature_unlocked?("Martyr Spawn") && minion_count.positive? %>
                 <%= button_to "Martyr Spawn · spend 1 minion to negate Defend damage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "martyr_spawn" } }, class: "button button-secondary button-full" %>
               <% end %>
-              <% if reaver && @character.level.to_i >= 3 %>
+              <% if reaver && @character.story_subclass_feature_unlocked?("Shadow Exploit") %>
                 <% next_cost = resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" } %>
                 <% tiered_spells = @character.sheet_spells.select { |spell| spell.tier.to_i.positive? && spell.available_to?(@character) } %>
                 <% if next_cost.present? && tiered_spells.any? %>
-                  <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %>. Spend the spell's normal actions separately.</p>
+                  <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %>. Spend the spell's normal actions separately. (Heroes 2.0.1, p. 78)</p>
                   <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
                     <%= feature_form.hidden_field :action, value: "shadow_exploit" %>
                     <div class="field">
@@ -211,10 +211,10 @@
                     <%= feature_form.submit "Record Shadow Exploit cast", class: "button button-secondary button-full" %>
                   <% end %>
                 <% end %>
-                <% if @character.level.to_i >= 11 && tiered_spells.any? %>
+                <% if @character.story_subclass_feature_unlocked?("My Blood, My Power") && tiered_spells.any? %>
                   <% current_wounds = @character.trait_set&.current_wounds.to_i %>
                   <% max_wounds = @character.trait_set&.max_wounds.to_i %>
-                  <p class="field-hint">My Blood, My Power: take 1 Wound to cast a known tiered spell at your highest unlocked tier; the spell's normal action cost still applies. Current Wounds: <%= current_wounds %> / <%= max_wounds %>.</p>
+                  <p class="field-hint">My Blood, My Power: take 1 Wound to cast a known tiered spell at your highest unlocked tier; the spell's normal action cost still applies. Current Wounds: <%= current_wounds %> / <%= max_wounds %>. (Heroes 2.0.1, p. 78)</p>
                   <% if current_wounds < max_wounds %>
                     <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
                       <%= feature_form.hidden_field :action, value: "my_blood_my_power" %>

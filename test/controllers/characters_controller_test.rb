@@ -517,6 +517,26 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     stat_values = Character::STAT_NAMES.index_with { |stat| reaver.stat_value(stat) }
     tracks = reaver.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Reaver")
     reaver.trait_set.update!(resource_tracks: tracks, current_actions: 3)
+    reaver.spells << Spell.find_by!(name: "Shadow Trap")
+
+    tracks_with_minion = tracks.map do |track|
+      track.fetch("key") == "shadow_minions" ? track.merge("current" => track.fetch("max")) : track
+    end
+    reaver.trait_set.update!(resource_tracks: tracks_with_minion)
+    reaver.update_column(:level, 2)
+    get character_url(reaver)
+    assert_response :success
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: /Martyr Spawn/, count: 0
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='shadow_exploit']", count: 0
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']", count: 0
+
+    reaver.update_column(:level, 3)
+    get character_url(reaver)
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: /Martyr Spawn/
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='shadow_exploit']"
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']", count: 0
+
+    reaver.trait_set.update!(resource_tracks: tracks, current_actions: 3)
 
     get character_url(reaver)
     assert_response :success
@@ -541,6 +561,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     get character_url(reaver)
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Critical Hit · shatter + Reap"
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Kill · shatter + Reap"
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']", count: 0
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }
     assert_redirected_to character_url(reaver)
@@ -554,7 +575,6 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:notice], "Reap could not add a minion because you are at your limit"
     assert_equal 1, reaver.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
 
-    reaver.spells << Spell.find_by!(name: "Shadow Trap")
     reaver.update_column(:level, 11)
     get character_url(reaver)
     assert_response :success
