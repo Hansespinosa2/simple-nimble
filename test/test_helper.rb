@@ -4,8 +4,9 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    # PostgreSQL connections segfault after fork on macOS with the current pg gem.
+    # Keep local macOS runs serial while retaining parallel workers on Linux CI.
+    parallelize(workers: RUBY_PLATFORM.match?(/darwin/) ? 1 : :number_of_processors)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
