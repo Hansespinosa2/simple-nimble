@@ -533,16 +533,19 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     arcane_command = @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 4).sole
     assert_equal "Arcane Command", arcane_command.fetch("name")
     assert_equal "arcane_command_order_or_spell", arcane_command.fetch("kind")
+    assert_equal [ "choice_pool", "spell_catalog" ], arcane_command.fetch("option_sources").map { |source| source.fetch("type") }
+    assert_equal "Commander's Orders", arcane_command.fetch("option_sources").first.fetch("pool_name")
+    assert_equal [ 0, 1 ], arcane_command.fetch("option_sources").last.values_at("min_tier", "max_tier")
     assert_equal "Heroes 2.0.1, p. 76", arcane_command.fetch("source_ref")
     assert_equal "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school.", arcane_command.fetch("source_quote")
-    assert_equal 0, arcane_command.fetch("spell_min_tier")
-    assert_equal 1, arcane_command.fetch("spell_max_tier")
     assert_equal [ "Combat Tactics", "Weapon Mastery" ], arcane_command.fetch("replaces_feature_choice_pools")
     assert_equal [ "Weapon Mastery" ], @catalog.story_subclass_replaced_progression_features_for("Commander", "Spellblade")
 
     combat_ability = @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 6).find { |pool| pool.fetch("name") == "Combat Ability" }
     assert_equal [ 6, 8, 10, 12, 16 ], @catalog.story_subclass_feature_choice_pool_rules_for("Commander", "Spellblade").fetch("Combat Ability").fetch("choices").keys
     assert_equal "arcane_command_combat_ability", combat_ability.fetch("kind")
+    assert combat_ability.fetch("replace_existing_options")
+    assert_equal "repeatable_options", combat_ability.fetch("option_sources").last.fetch("option_field")
     assert_empty @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 5)
   end
 

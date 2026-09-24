@@ -1683,19 +1683,38 @@ story_subclass_feature_choice_pools:
         source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
         choices: {4: 1, 6: 1, 10: 1}
         kind: arcane_command_order_or_spell
+        option_sources:
+          - type: choice_pool
+            class_name: Commander
+            pool_name: "Commander's Orders"
+            option_field: options
+            prefix: "Order: "
+          - type: spell_catalog
+            min_tier: 0
+            max_tier: 1
+            prefix: "Spell: "
         replaces_feature_choice_pools: ["Combat Tactics", "Weapon Mastery"]
         replaces_progression_features: ["Weapon Mastery"]
-        spell_max_tier: 1
-        spell_min_tier: 0
-        include_utility_spells: false
       "Combat Ability":
         source_ref: Heroes 2.0.1, p. 76
         source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
         choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
         kind: arcane_command_combat_ability
-        spell_max_tier: 1
-        spell_min_tier: 0
-        include_utility_spells: false
+        replace_existing_options: true
+        option_sources:
+          - type: choice_pool
+            class_name: Commander
+            pool_name: "Commander's Orders"
+            option_field: options
+            prefix: "Order: "
+          - type: spell_catalog
+            min_tier: 0
+            max_tier: 1
+            prefix: "Spell: "
+          - type: choice_pool
+            class_name: Commander
+            pool_name: "Combat Ability"
+            option_field: repeatable_options
   Hunter:
     Beastmaster:
       "Thrill of the Hunt":

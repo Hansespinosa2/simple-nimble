@@ -315,35 +315,27 @@ class Character < ApplicationRecord
     replaced_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character_class&.name, subclass_name)
     pools.reject! { |pool| replaced_pools.include?(pool.fetch("name")) }
 
-    if character_class&.name == "Commander" && subclass_name == "Spellblade"
-      pools.each do |pool|
-        next unless pool.fetch("name") == "Combat Ability"
-
-        orders = commander_order_options.map { |name| "Order: #{name}" }
-        spells = arcane_command_spell_options
-        repeatable = Array(pool.fetch("repeatable_options", []))
-        pool["options"] = (orders + spells + repeatable).uniq
-      end
-    end
-
     story_pools.each do |story_pool|
       story_pool = story_pool.merge("options" => story_subclass_feature_options(story_pool))
       base_pool = pools.find { |pool| pool.fetch("name") == story_pool.fetch("name") }
       story_options = Array(story_pool.fetch("options", []))
       if base_pool
+        base_options = story_pool.fetch("replace_existing_options", false) ? [] : Array(base_pool.fetch("options", []))
         base_pool.merge!(
-          "options" => (Array(base_pool.fetch("options", [])) + story_options).uniq,
+          "options" => (base_options + story_options).uniq,
           "story_options" => story_options - Array(base_pool.fetch("repeatable_options", [])),
           "story_source_ref" => story_pool.fetch("source_ref"),
           "story_source_quote" => story_pool.fetch("source_quote"),
-          "story_choice_kind" => story_pool["kind"]
+          "story_choice_kind" => story_pool["kind"],
+          "story_option_sources" => story_pool.fetch("option_sources", [])
         )
       else
         pools << story_pool.merge(
           "story_options" => story_options,
           "story_source_ref" => story_pool.fetch("source_ref"),
           "story_source_quote" => story_pool.fetch("source_quote"),
-          "story_choice_kind" => story_pool["kind"]
+          "story_choice_kind" => story_pool["kind"],
+          "story_option_sources" => story_pool.fetch("option_sources", [])
         )
       end
     end
@@ -351,31 +343,28 @@ class Character < ApplicationRecord
     pools
   end
 
-  def commander_order_options
-    Rules::NimbleCatalog.choice_pool_for("Commander", "Commander's Orders").to_h.fetch("options", [])
-  end
-
-  def arcane_command_spell_options
-    Rules::NimbleCatalog.story_subclass_feature_choice_pool_rules_for("Commander", "Spellblade")
-      .values
-      .find { |pool| pool.to_h.fetch("kind", nil) == "arcane_command_order_or_spell" }
-      .then do |pool|
-        minimum_tier = pool.fetch("spell_min_tier").to_i
-        maximum_tier = pool.fetch("spell_max_tier").to_i
-        Spell.where(tier: minimum_tier..maximum_tier).order(:name).pluck(:name).map { |name| "Spell: #{name}" }
-      end
-  end
-
   def story_subclass_feature_options(pool)
-    case pool.fetch("kind", nil)
-    when "arcane_command_order_or_spell"
-      commander_order_options.map { |name| "Order: #{name}" } + arcane_command_spell_options
-    when "arcane_command_combat_ability"
-      combat_pool = Rules::NimbleCatalog.choice_pool_for("Commander", "Combat Ability").to_h
-      repeatable = Array(combat_pool.fetch("repeatable_options", []))
-      commander_order_options.map { |name| "Order: #{name}" } + arcane_command_spell_options + repeatable
+    sources = Array(pool.fetch("option_sources", []))
+    return Array(pool.fetch("options", [])) if sources.empty?
+
+    sources.flat_map do |source|
+      story_subclass_feature_option_source_options(source).map do |option|
+        "#{source.fetch('prefix', '')}#{option}"
+      end
+    end.uniq
+  end
+
+  def story_subclass_feature_option_source_options(source)
+    case source.fetch("type")
+    when "choice_pool"
+      Rules::NimbleCatalog.choice_pool_for(source.fetch("class_name"), source.fetch("pool_name"))
+        .to_h.fetch(source.fetch("option_field", "options"), [])
+    when "spell_catalog"
+      minimum_tier = source.fetch("min_tier", 0).to_i
+      maximum_tier = source.fetch("max_tier", 9).to_i
+      Spell.where(tier: minimum_tier..maximum_tier).order(:name).pluck(:name)
     else
-      Array(pool.fetch("options", []))
+      raise ArgumentError, "Unsupported story subclass choice source: #{source.fetch('type')}"
     end
   end
 
@@ -383,10 +372,16 @@ class Character < ApplicationRecord
     kind = pool.fetch("story_choice_kind", nil)
     return selections unless %w[arcane_command_order_or_spell arcane_command_combat_ability].include?(kind)
 
-    repeatable = Array(Rules::NimbleCatalog.choice_pool_for("Commander", "Combat Ability").to_h.fetch("repeatable_options", []))
+    sources = Array(pool.fetch("story_option_sources", []))
     selections.filter_map do |selection|
-      next selection if selection.start_with?("Order: ", "Spell: ") || repeatable.include?(selection)
-      next "Order: #{selection}" if commander_order_options.include?(selection)
+      next selection if Array(pool.fetch("options", [])).include?(selection)
+
+      source = sources.find do |candidate|
+        story_subclass_feature_option_source_options(candidate).include?(selection)
+      end
+      next unless source
+
+      "#{source.fetch('prefix', '')}#{selection}"
     end
   end
 
