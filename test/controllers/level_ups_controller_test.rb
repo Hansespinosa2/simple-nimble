@@ -24,6 +24,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", /Level up to 2/
     assert_select "select[name='level_up[skill_name]']"
+    assert_select ".skill-rule-note", /parsed texts do not specify a general per-level award or transfer/
     assert_select ".progression-preview", /Intensifying Fury/
     assert_select ".progression-preview .source-note", /Heroes 2.0.1/
   end
@@ -167,6 +168,23 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "not a recognized skill"
+    assert_equal 1, @character.reload.level
+    assert level_up.reload.draft?
+  end
+
+  test "a blocked required choice retains its source and interpretation note in the form" do
+    level_up = @character.level_ups.create!(from_level: 1, to_level: 2, skill_name: "might")
+
+    patch character_level_up_url(@character, level_up), params: {
+      level_up: { skill_name: "" },
+      finalize: "1"
+    }
+
+    assert_response :unprocessable_entity
+    assert_select ".blocked-choice-list .blocked-choice strong", text: "Choose one skill to improve."
+    assert_select ".blocked-choice-list .blocked-choice small", /Heroes 2.0.1, p. 56/
+    assert_select ".blocked-choice-list .blocked-choice small", /move a skill point as if you just leveled up/
+    assert_select ".blocked-choice-list .blocked-choice .source-note", /do not specify a general per-level award or transfer/
     assert_equal 1, @character.reload.level
     assert level_up.reload.draft?
   end

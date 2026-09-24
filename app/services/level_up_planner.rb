@@ -48,6 +48,18 @@ class LevelUpPlanner
     "#{count} #{count == 1 ? 'point' : 'points'}"
   end
 
+  def skill_point_progression_source_ref
+    Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_source_ref")
+  end
+
+  def skill_point_progression_source_quote
+    Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_source_quote")
+  end
+
+  def skill_point_progression_note
+    Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_note")
+  end
+
   def stat_increase_mechanic
     Rules::NimbleCatalog.stat_increase_mechanic_for(stat_increase_type)
   end
@@ -245,7 +257,12 @@ class LevelUpPlanner
     validate_spell_choices(result)
 
     if level_up.skill_name.blank?
-      result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants #{skill_points_per_level_description}.")
+      result << issue(
+        "Choose one skill to improve.",
+        skill_point_progression_source_ref,
+        skill_point_progression_source_quote,
+        rule_note: skill_point_progression_note
+      )
     elsif !Character::SKILL_NAMES.include?(level_up.skill_name)
       result << issue("#{level_up.skill_name.to_s.humanize} is not a recognized skill.", "Chapter 3, Skills", "Choose one of the ten skills listed in the character rules.")
     elsif !skill_options.include?(level_up.skill_name)
@@ -777,8 +794,9 @@ class LevelUpPlanner
         {
           type: "applied",
           message: "Level #{target_level} grants #{skill_points_per_level_description} to #{level_up.skill_name.to_s.humanize}.",
-          source_ref: "Chapter 3, Skills",
-          quote: "Each level grants +#{skill_points_per_level} skill #{skill_points_per_level == 1 ? 'point' : 'points'}."
+          source_ref: skill_point_progression_source_ref,
+          quote: skill_point_progression_source_quote,
+          rule_note: skill_point_progression_note
         },
         {
           type: "auto_applied",
@@ -814,7 +832,7 @@ class LevelUpPlanner
       explanations
     end
 
-    def issue(message, source_ref, quote)
-      { message: message, source_ref: source_ref, quote: quote }
+    def issue(message, source_ref, quote, rule_note: nil)
+      { message: message, source_ref: source_ref, quote: quote, rule_note: rule_note }.compact
     end
 end

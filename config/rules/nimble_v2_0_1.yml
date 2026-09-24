@@ -24,6 +24,9 @@ derived_values:
   skill_point_transfers_per_level: 1
   skill_point_source_ref: "Core Rules 2.0.1, p. 20"
   skill_point_source_quote: "At level 1 ... may place 4 additional skill points wherever you like."
+  skill_point_progression_source_ref: "App rules canon, §2 Skills; Heroes 2.0.1, p. 56"
+  skill_point_progression_source_quote: "Jack of All Trades. When you Safe Rest, you may move a skill point as if you just leveled up."
+  skill_point_progression_note: "The app's +1-per-level grant and one transferable point per level follow its canon. The parsed Core Rules explicitly grant 4 additional points at level 1; the cited Songweaver feature is not a universal level-up grant, and the parsed texts do not specify a general per-level award or transfer."
   stat_increase_mechanics:
     key: {choice_count: 1, amount: 1, distinct: true, label: "Key Stat"}
     secondary: {choice_count: 1, amount: 1, distinct: true, label: "Secondary Stat"}

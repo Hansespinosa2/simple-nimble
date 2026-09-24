@@ -1,10 +1,22 @@
 <%= form_with model: [ character, level_up ], class: "level-up-form" do |form| %>
   <% if level_up.errors.any? %>
+    <% planner_explanations = @planner&.explanations.to_a %>
+    <% planner_messages = planner_explanations.map { |explanation| explanation.fetch(:message) } %>
+    <% unmatched_errors = level_up.errors.full_messages.reject { |message| planner_messages.include?(message) } %>
     <section class="alert-card alert-card-danger">
       <div class="alert-icon">!</div>
       <div>
         <h2>Finish the level-up choices</h2>
-        <ul><% level_up.errors.full_messages.each { |message| %><li><%= message %></li><% } %></ul>
+        <ul class="blocked-choice-list">
+          <% planner_explanations.each do |explanation| %>
+            <li class="blocked-choice">
+              <strong><%= explanation.fetch(:message) %></strong>
+              <small><%= explanation.fetch(:source_ref) %> · “<%= explanation.fetch(:quote) %>”</small>
+              <% if explanation[:rule_note].present? %><small class="source-note">Rules note: <%= explanation.fetch(:rule_note) %></small><% end %>
+            </li>
+          <% end %>
+          <% unmatched_errors.each do |message| %><li><%= message %></li><% end %>
+        </ul>
       </div>
     </section>
   <% end %>
@@ -14,6 +26,7 @@
       <p class="eyebrow">Required</p>
       <h2>Choose your improvement</h2>
       <p class="panel-subtitle">Every level grants <%= @planner.skill_points_per_level_description %>. The level-up stays a preview until you apply it.</p>
+      <small class="source-note skill-rule-note">Rules basis: <%= @planner.skill_point_progression_note %> (<%= @planner.skill_point_progression_source_ref %>).</small>
       <div class="field">
         <%= form.label :skill_name, "Skill point" %>
         <%= form.select :skill_name, @planner.skill_options.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Choose a skill" }, class: "choice-select" %>
