@@ -14,6 +14,13 @@ The product cannot enforce legality or explain rules unless Nimble's rules exist
 as structured, versioned application data. This spec defines what "source of
 truth" means for rules content.
 
+The v2.0.1 rules registry uses Core Rules 2.0.1, Heroes 2.0.1, and the
+Gamemaster's Guide 2.0 as mechanical sources. The parsed Creator's Kit 1.2 is
+design guidance, not a rules authority: its introduction explicitly describes
+its suggestions as guidelines rather than a rulebook. Its class-cadence advice
+may inform UX or future content authoring, but published 2.0.1 progression
+tables remain authoritative for character mechanics.
+
 ## 2. Outcome statement
 
 **After this spec is executed:**

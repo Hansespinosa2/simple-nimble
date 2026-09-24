@@ -21,6 +21,21 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     end
   end
 
+  test "registered source ranges cover the pages cited by the rules catalog" do
+    core_rules = @catalog.source("core_rules")
+    heroes = @catalog.source("heroes")
+    gamemasters_guide = @catalog.source("gamemasters_guide")
+
+    assert_equal "Core Rules, pp. 6-37, 44-60", core_rules.fetch("reference")
+    assert_equal "Heroes, pp. 7-80", heroes.fetch("reference")
+    assert_equal "Gamemaster's Guide, pp. 23, 43", gamemasters_guide.fetch("reference")
+    assert_match(/pp\. 20, 23-26/, @catalog.language_rules.fetch("source_ref"))
+    assert_equal "Core Rules 2.0.1, pp. 21, 33-37", @catalog.data.fetch("starting_gear_inventory").fetch("source_ref")
+    beastmaster_pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole
+    assert_equal "Heroes 2.0.1, p. 80", beastmaster_pool.fetch("source_ref")
+    assert_equal "Heroes 2.0.1, p. 78", @catalog.data.fetch("story_subclass_weapon_rules").fetch("Shadowmancer").fetch("Reaver").fetch("Bonescythe").fetch("source_ref")
+  end
+
   test "spell unlocks are read from canonical class schedules" do
     assert_equal 0, @catalog.spell_tier_for("Mage", 1)
     assert_equal 1, @catalog.spell_tier_for("Mage", 2)

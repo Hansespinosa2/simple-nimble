@@ -3,11 +3,11 @@ version: v2.0.1
 sources:
   core_rules:
     label: Core Rules 2.0.1
-    reference: Core Rules, pp. 6-22, 44-60
+    reference: Core Rules, pp. 6-37, 44-60
     path: specs/nimble-docs/CoreRules-2.0.1.md
   heroes:
     label: Heroes 2.0.1
-    reference: Heroes, pp. 7-71
+    reference: Heroes, pp. 7-80
     path: specs/nimble-docs/Heroes-2.0.1.md
   gamemasters_guide:
     label: Gamemaster's Guide 2.0
