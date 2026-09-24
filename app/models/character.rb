@@ -460,27 +460,81 @@ class Character < ApplicationRecord
     10 + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
   end
 
+  def equipped_armor_profiles
+    inventory_profiles = if persisted?
+      items = inventory_items.where(equipped: true).order(:id).to_a
+      items.reject!(&:starting_gear?) if starting_gear_loadout_pending?
+      items.filter_map do |item|
+        armor_rules = Rules::NimbleCatalog.equipment_armor_item(item.name)
+        next unless armor_rules
+
+        { "name" => item.name, "rules" => armor_rules, "source_ref" => item.source_ref.presence || armor_rules.fetch("source_ref") }
+      end
+    else
+      []
+    end
+
+    return inventory_profiles if persisted? && !starting_gear_loadout_pending?
+    return inventory_profiles unless starting_equipment_choice == "class_gear" && character_class.present?
+
+    starting_profiles = Rules::NimbleCatalog.starting_gear_inventory_items(character_class.name).filter_map do |item|
+      armor_rules = Rules::NimbleCatalog.equipment_armor_item(item.fetch("name"))
+      next unless armor_rules
+
+      { "name" => item.fetch("name"), "rules" => armor_rules, "source_ref" => item.fetch("source_ref") }
+    end
+
+    inventory_profiles + starting_profiles
+  end
+
   def armor_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
     return nil if character_class.blank?
 
     values = stat_values || current_stat_values
     rules = character_class.armor_rules
     dexterity = value_for_stat(values, "dexterity")
-    starting_gold = starting_equipment_choice == "starting_gold"
-    base = starting_gold ? 0 : rules.fetch("base", 0).to_i
+    equipment = equipped_armor_profiles.select { |item| equipment_armor_requirement_met?(item.fetch("rules"), stat_values: values) }
+    body_armor = equipment.select { |item| item.fetch("rules").fetch("kind") == "armor" }
+      .max_by { |item| equipment_armor_value(item.fetch("rules"), stat_values: values) }
+    shields = equipment.select { |item| item.fetch("rules").fetch("kind") == "shield" }
 
-    armor = case rules.fetch("formula", "dexterity")
-    when "dexterity_plus_strength"
-      base + dexterity + value_for_stat(values, "strength")
+    armor = if body_armor
+      equipment_armor_value(body_armor.fetch("rules"), stat_values: values)
+    elsif rules.fetch("unarmored_formula", "dexterity") == "dexterity_plus_strength"
+      dexterity + value_for_stat(values, "strength")
     else
-      cap = starting_gold ? nil : rules["dexterity_cap"]
-      base + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
+      dexterity
     end
-    armor += rules.fetch("shield_bonus", 0).to_i unless starting_gold
+    armor += shields.sum { |item| item.fetch("rules").fetch("armor_value").to_i }
     effects = derived_feature_effects(level:, subclass_name:)
-    armor *= effects.fetch("armor_multiplier", 1).to_i
+    armor *= effects.fetch("armor_multiplier", 1).to_i unless body_armor
     armor += value_for_stat(values, effects["armor_stat_addition"]) if effects["armor_stat_addition"].present?
     armor
+  end
+
+  def equipment_armor_value(armor_rules, stat_values: current_stat_values)
+    value = armor_rules.fetch("armor_value").to_i
+    return value unless armor_rules.fetch("formula") == "dexterity"
+
+    dexterity = value_for_stat(stat_values, "dexterity")
+    cap = armor_rules["dexterity_cap"]
+    value + (cap.present? ? [ dexterity, cap.to_i ].min : dexterity)
+  end
+
+  def equipment_armor_requirement_met?(armor_rules, stat_values: current_stat_values)
+    requirement = armor_rules["strength_requirement"]
+    requirement.blank? || value_for_stat(stat_values, "strength") >= requirement.to_i
+  end
+
+  def armor_proficient_with?(armor_rules)
+    proficiencies = character_class&.armor_proficiencies || []
+    proficiencies.include?("all") || proficiencies.include?(armor_rules.fetch("proficiency"))
+  end
+
+  def recalculate_armor!
+    return unless persisted? && trait_set.present? && character_class.present?
+
+    trait_set.update!(armor: armor_for + derived_modifier_for(:armor_modifier))
   end
 
   def mana_max_for(stat_values: nil, level: self.level)
@@ -804,7 +858,7 @@ class Character < ApplicationRecord
         "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
-      "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots") },
+      "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots", "equipped") },
       "rules" => {
         "class" => character_class&.name,
         "ancestry" => ancestry&.name,
@@ -876,7 +930,7 @@ class Character < ApplicationRecord
     end
 
     def should_sync_derived_values?
-      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || starting_equipment_choice_changed?
+      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || starting_equipment_choice_changed?
     end
 
     def should_sync_starting_equipment?
@@ -887,17 +941,23 @@ class Character < ApplicationRecord
       saved_change_to_character_class_id? || saved_change_to_starting_equipment_choice?
     end
 
+    def starting_gear_loadout_pending?
+      will_save_change_to_character_class_id? || will_save_change_to_starting_equipment_choice?
+    end
+
     def sync_starting_gear_inventory
       inventory_items.where(starting_gear: true).destroy_all
       return unless starting_equipment_choice == "class_gear" && character_class.present?
 
       Rules::NimbleCatalog.starting_gear_inventory_items(character_class.name).each do |item|
+        armor_rules = Rules::NimbleCatalog.equipment_armor_item(item.fetch("name"))
         inventory_items.create!(
           name: item.fetch("name"),
           slots: item.fetch("slots"),
           starting_gear: true,
           source_ref: item.fetch("source_ref"),
-          catalog_slots: item.fetch("slots")
+          catalog_slots: item.fetch("slots"),
+          equipped: armor_rules.present?
         )
       end
     end
@@ -953,7 +1013,7 @@ class Character < ApplicationRecord
     end
 
     def canonical_choices_changed?
-      character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || starting_equipment_choice_changed?
+      character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || starting_equipment_choice_changed?
     end
 
     def assign_attributes_to_stat_set(values)

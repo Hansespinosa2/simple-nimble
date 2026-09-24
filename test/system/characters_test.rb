@@ -108,8 +108,8 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
     assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
     assert_no_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
-    assert_text "Core Rules 2.0.1, pp. 20, 33; Heroes 2.0.1, p. 67"
-    assert_text "class-appropriate unarmored Armor, including Zephyr’s DEX + STR"
+    assert_text "Core Rules 2.0.1, pp. 20, 32–33; Heroes 2.0.1, p. 67"
+    assert_text "adding gear does not automatically deduct its cost from tracked gold"
     click_on "Save draft"
 
     assert_text "Draft saved"
@@ -151,6 +151,125 @@ class CharactersTest < ApplicationSystemTestCase
     armor_card = find(".vital-card", text: "Unarmored DEX + origin")
     assert_equal "0", armor_card.find("strong").text
     assert_text "Core Rules 2.0.1, p. 33"
+    find("summary", text: /Slot rules/).click
+    assert_text "Optional Deflect"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the live preview doubles Zephyr's unarmored Armor at level thirteen" do
+    visit new_character_url
+
+    select "Zephyr", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Fearless", from: "Background"
+    select "Standard", from: "Stat array"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "3"
+
+    fill_in "Level", with: "13"
+    rules_payload = JSON.parse(find("form.builder-form")["data-character-builder-rules-value"])
+    zephyr_id = find("select[name='character[character_class_id]']").value
+    assert_equal "13", find("#character_level").value
+    assert_equal 2, rules_payload.dig("classes", zephyr_id, "derived_effects", "13", "armor_multiplier")
+    assert_selector "[data-character-builder-target='armorPreview']", text: "7"
+    select "Starting gold instead (50 gp per level)", from: "Starting equipment"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "7"
+
+    fill_in "Level", with: "12"
+    assert_selector "[data-character-builder-target='armorPreview']", text: "3"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "equipping catalog armor updates Armor, slots, source details, and proficiency guidance" do
+    character = Character.create!(
+      name: "Armored Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+    visit character_url(character)
+
+    starting_armor = character.reload.trait_set.armor
+    fill_in "Add item or stack", with: "Rusty Mail"
+    click_on "Add item"
+    assert_text "Rusty Mail added to inventory."
+    row = find(".inventory-item-row")
+    item_id = row["data-inventory-item-id"]
+    assert_equal "Rusty Mail", row.find("input[name$='[name]']").value
+    assert_equal "2", row.find("input[name$='[slots]']").value
+    assert_includes row.text, "Cost 15 gp"
+    assert_equal starting_armor, character.trait_set.armor
+
+    row.find("input[type='checkbox']").check
+    within(row) { click_on "Save item" }
+
+    assert_text "Inventory item updated."
+    row = find("[data-inventory-item-id='#{item_id}']")
+    assert_includes row.text, "Equipped"
+    assert_equal "1", row.find("input[name$='[slots]']").value
+    assert_equal 5, character.reload.trait_set.armor
+    assert_equal "Rusty Mail", row.find("input[name$='[name]']").value
+    assert_includes row.text, "+6 Armor to total"
+    assert_includes row.text, "Not proficient with mail armor"
+    assert_includes row.text, "Defend while wearing it costs 1 additional action"
+    assert_includes row.text, "Core Rules 2.0.1, p. 33"
+    assert_equal true, character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").find { |item| item.fetch("name") == "Rusty Mail" }.fetch("equipped")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the sheet explains and blocks armor with an unmet STR requirement" do
+    character = Character.create!(
+      name: "Understrength Armor Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+    visit character_url(character)
+    armor_before = find(".vital-card:nth-child(2)").find("strong").text.to_i
+    fill_in "Add item or stack", with: "Rusty Plate"
+    click_on "Add item"
+
+    row = find(".inventory-item-row")
+    item_id = row["data-inventory-item-id"]
+    assert_includes row.text, "Requires STR 2 (current STR 1)"
+    assert_includes row.text, "Armor benefit is not applied until the requirement is met"
+    revisions_before = character.character_revisions.count
+
+    row.find("input[type='checkbox']").check
+    within(row) { click_on "Save item" }
+
+    assert_text "Equipped requires at least STR 2"
+    row = find("[data-inventory-item-id='#{item_id}']")
+    assert_not row.find("input[type='checkbox']").checked?
+    assert_equal "2", row.find("input[name$='[slots]']").value
+    assert_equal armor_before, find(".vital-card:nth-child(2)").find("strong").text.to_i
+    assert_equal revisions_before, character.character_revisions.count
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "removing a starting shield immediately recalculates live Armor" do
+    character = Character.create!(
+      name: "Disarmed Oathsworn",
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    shield = character.starting_gear_inventory_items.find_by!(name: "Wooden Buckler")
+
+    visit character_url(character)
+    original_armor = find(".vital-card:nth-child(2)").find("strong").text.to_i
+    row = find("[data-inventory-item-id='#{shield.id}']")
+    accept_confirm("Remove Wooden Buckler from inventory?") do
+      within(row) { click_on "Remove" }
+    end
+
+    assert_text "Wooden Buckler removed from inventory."
+    assert_equal original_armor - 2, find(".vital-card:nth-child(2)").find("strong").text.to_i
+    assert_no_selector "[data-inventory-item-id='#{shield.id}']"
   end
 
   test "choosing Academy Dropout reveals its Utility Spell picker" do
@@ -274,13 +393,13 @@ class CharactersTest < ApplicationSystemTestCase
     visit character_url(@character)
 
     capacity = @character.reload.inventory_slots_capacity
-    fill_in "Add item or stack", with: "Dragon Shield"
+    fill_in "Add item or stack", with: "Oversized treasure"
     fill_in "Slots used", with: capacity + 1
     click_on "Add item"
 
-    assert_text "Dragon Shield"
+    assert_text "Oversized treasure"
     assert_text "Over capacity by 1 slot."
-    item = @character.reload.inventory_items.find_by!(name: "Dragon Shield")
+    item = @character.reload.inventory_items.find_by!(name: "Oversized treasure")
     row = find("[data-inventory-item-id='#{item.id}']")
     row.find("input[name$='[slots]']").set("2")
     within(row) { click_on "Save item" }
@@ -289,11 +408,11 @@ class CharactersTest < ApplicationSystemTestCase
     assert_text "2 / #{capacity} slots used"
     item.reload
     row = find("[data-inventory-item-id='#{item.id}']")
-    accept_confirm("Remove Dragon Shield from inventory?") do
+    accept_confirm("Remove Oversized treasure from inventory?") do
       within(row) { click_on "Remove" }
     end
 
-    assert_text "Dragon Shield removed from inventory."
+    assert_text "Oversized treasure removed from inventory."
     assert_text "0 / #{capacity} slots used"
     assert_not InventoryItem.exists?(item.id)
   end

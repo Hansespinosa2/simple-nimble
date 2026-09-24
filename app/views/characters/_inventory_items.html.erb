@@ -15,6 +15,8 @@
     <summary>Slot rules · Core Rules 2.0.1, p. 21</summary>
     <p>Each hero has 10 + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, 500 gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
     <p>When class gear is selected, its known item slots are included in the total automatically. Starting items can be adjusted or removed; unusual item sizes may be grouped with your GM.</p>
+    <p>Known body armor and shields add their listed Armor only while equipped. Non-proficient worn body armor costs 1 additional action to Defend. Catalog STR requirements must be met for the Armor benefit to apply. Core Rules 2.0.1, pp. 32–33.</p>
+    <p>Optional Deflect: instead of adding a shield’s Armor to your total, reduce one attack’s damage by that value for free once per round. This tracker displays the default add-to-Armor calculation. Tracker behavior (not an extra published restriction): one body-armor item and one shield stay equipped at a time; equipping another in that category replaces the current one.</p>
     <p>The rules also let the GM waive inventory bookkeeping. This tracker warns when you exceed capacity but does not block the save.</p>
   </details>
 
@@ -35,13 +37,25 @@
             <%= form_with model: [ character, item ], class: "inventory-item-form" do |item_form| %>
               <div class="field"><%= item_form.label :name, item.starting_gear? ? "Starting item" : "Item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true %></div>
               <div class="field"><%= item_form.label :slots, "Slots used" %><%= item_form.number_field :slots, min: 1, step: 1, required: true %></div>
+              <% if item.armor_profile %>
+                <label class="inventory-equipped-field"><%= item_form.check_box :equipped %><span>Equipped</span></label>
+              <% end %>
               <%= item_form.submit "Save item", class: "button button-secondary" %>
             <% end %>
             <%= button_to "Remove", character_inventory_item_path(character, item), method: :delete, class: "button button-quiet inventory-remove", form: { data: { turbo_confirm: "Remove #{item.name} from inventory?" } } %>
             <% if item.starting_gear? %><small class="inventory-item-source">Starting kit · <%= item.source_ref %><%= " · adjusted from #{item.catalog_slots} catalog slots" if item.slots != item.catalog_slots %></small><% end %>
+            <% if item.armor_profile %>
+              <small class="inventory-item-source"><%= item.equipped? ? "Equipped" : "Carried, not equipped" %> · <%= inventory_armor_effect(character, item) %> · <%= item.armor_profile.fetch('source_ref') %><%= " · adjusted from #{item.catalog_slots} catalog slots" if item.slots != item.catalog_slots && !item.starting_gear? %></small>
+              <% inventory_armor_warnings(character, item).each do |warning| %><small class="inventory-armor-warning" role="note"><%= warning %></small><% end %>
+              <small class="inventory-item-source">Cost <%= number_with_delimiter(item.armor_profile.fetch('cost_gp')) %> gp<%= " · requires STR #{item.armor_profile.fetch('strength_requirement')}" if item.armor_profile['strength_requirement'].present? %></small>
+            <% end %>
           <% else %>
             <strong><%= item.name %></strong><span><%= item.slots %> <%= "slot" if item.slots == 1 %><%= "slots" if item.slots != 1 %></span>
             <% if item.starting_gear? %><small class="inventory-item-source">Starting kit · <%= item.source_ref %><%= " · adjusted from #{item.catalog_slots} catalog slots" if item.slots != item.catalog_slots %></small><% end %>
+            <% if item.armor_profile %>
+              <small class="inventory-item-source"><%= item.equipped? ? "Equipped" : "Carried, not equipped" %> · <%= inventory_armor_effect(character, item) %> · <%= item.armor_profile.fetch('source_ref') %></small>
+              <% inventory_armor_warnings(character, item).each do |warning| %><small class="inventory-armor-warning" role="note"><%= warning %></small><% end %>
+            <% end %>
           <% end %>
         </li>
       <% end %>
@@ -59,7 +73,7 @@
       "Record carried gear and loot here to include it in the slot total."
     end %></p>
     <%= form_with model: [ character, InventoryItem.new ], class: "inventory-create-form" do |item_form| %>
-      <div class="field"><%= item_form.label :name, "Add item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true, placeholder: "e.g. 2 potions, 1 slot" %></div>
+      <div class="field"><%= item_form.label :name, "Add item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true, placeholder: "e.g. 2 potions or Rusty Plate", list: "known-armor-items" %><datalist id="known-armor-items"><% Rules::NimbleCatalog.equipment_armor_items.each_key do |name| %><option value="<%= name %>"><% end %></datalist></div>
       <div class="field"><%= item_form.label :slots, "Slots used" %><%= item_form.number_field :slots, min: 1, step: 1, value: 1, required: true %></div>
       <%= item_form.submit "Add item", class: "button button-primary" %>
     <% end %>

@@ -70,6 +70,31 @@ starting_gear_inventory:
     "Strange Plant": {slots: 1, source_ref: "Core Rules 2.0.1, pp. 21, 37"}
     "Traveling Robes & Sandals": {slots: 1, source_ref: "Heroes 2.0.1, p. 67; Core Rules 2.0.1, p. 21"}
 
+equipment_armor:
+  source_ref: Core Rules 2.0.1, p. 33
+  slots_source_ref: Core Rules 2.0.1, p. 21
+  items:
+    "Adventurer's Garb": {kind: armor, proficiency: cloth, armor_value: 2, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 10, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Minor Enchantment": {kind: armor, proficiency: cloth, armor_value: 3, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 100, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Major Enchantment": {kind: armor, proficiency: cloth, armor_value: 4, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 1000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Epic Enchantment": {kind: armor, proficiency: cloth, armor_value: 5, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 10000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Cheap Hides": {kind: armor, proficiency: leather, armor_value: 3, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 5, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Ox Hide": {kind: armor, proficiency: leather, armor_value: 4, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 45, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Hard Leather": {kind: armor, proficiency: leather, armor_value: 5, formula: dexterity, slots_worn: 1, slots_unworn: 2, strength_requirement: 1, cost_gp: 300, source_ref: "Core Rules 2.0.1, p. 33"}
+    Wyrmhide: {kind: armor, proficiency: leather, armor_value: 6, formula: dexterity, slots_worn: 1, slots_unworn: 2, strength_requirement: 1, cost_gp: 2000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Rusty Mail": {kind: armor, proficiency: mail, armor_value: 6, formula: dexterity, dexterity_cap: 2, slots_worn: 1, slots_unworn: 2, cost_gp: 15, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Chain Shirt": {kind: armor, proficiency: mail, armor_value: 9, formula: dexterity, dexterity_cap: 2, slots_worn: 1, slots_unworn: 2, strength_requirement: 2, cost_gp: 60, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Scale Mail": {kind: armor, proficiency: mail, armor_value: 12, formula: dexterity, dexterity_cap: 2, slots_worn: 1, slots_unworn: 2, strength_requirement: 3, cost_gp: 700, source_ref: "Core Rules 2.0.1, p. 33"}
+    Dragonscale: {kind: armor, proficiency: mail, armor_value: 15, formula: dexterity, dexterity_cap: 2, slots_worn: 1, slots_unworn: 2, strength_requirement: 4, cost_gp: 3000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Rusty Plate": {kind: armor, proficiency: plate, armor_value: 10, formula: flat, slots_worn: 1, slots_unworn: 2, strength_requirement: 2, cost_gp: 25, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Half Plate": {kind: armor, proficiency: plate, armor_value: 14, formula: flat, slots_worn: 1, slots_unworn: 2, strength_requirement: 3, cost_gp: 200, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Full Plate": {kind: armor, proficiency: plate, armor_value: 18, formula: flat, slots_worn: 1, slots_unworn: 2, strength_requirement: 4, cost_gp: 2000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Mithril Plate": {kind: armor, proficiency: plate, armor_value: 22, formula: flat, slots_worn: 1, slots_unworn: 2, strength_requirement: 5, cost_gp: 5000, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Wooden Buckler": {kind: shield, proficiency: shields, armor_value: 2, formula: flat, slots_worn: 1, slots_unworn: 1, cost_gp: 5, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Iron Shield": {kind: shield, proficiency: shields, armor_value: 4, formula: flat, slots_worn: 1, slots_unworn: 1, strength_requirement: 2, cost_gp: 80, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Tower Shield": {kind: shield, proficiency: shields, armor_value: 6, formula: flat, slots_worn: 1, slots_unworn: 1, strength_requirement: 3, cost_gp: 1500, source_ref: "Core Rules 2.0.1, p. 33"}
+    "Dragon Shield": {kind: shield, proficiency: shields, armor_value: 8, formula: flat, slots_worn: 1, slots_unworn: 1, strength_requirement: 3, cost_gp: 9000, source_ref: "Core Rules 2.0.1, p. 33"}
+
 stats:
   strength:
     abbreviation: STR
@@ -112,7 +137,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: []
     weapon_proficiencies: [strength]
-    armor: {formula: dexterity, base: 0, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Battleaxe, "Rations (meat)", "Rope (50 ft.)"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -144,7 +169,7 @@ classes:
     save_penalty: will
     armor_proficiencies: [leather]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["2 Daggers", Sling, "Cheap Hides", Chalk]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -167,7 +192,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [mail, shields]
     weapon_proficiencies: [martial]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Short Sword", Javelins, "Rusty Mail"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -200,7 +225,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: [leather]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Shortbow, "Cheap Hides", Dagger, "Hunting Trap"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -230,7 +255,7 @@ classes:
     save_penalty: strength
     armor_proficiencies: [cloth]
     weapon_proficiencies: [blades, staves, wands]
-    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Staff, Soap]
     spell_schools: [Fire, Ice, Lightning]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -261,7 +286,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [all]
     weapon_proficiencies: [strength]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2, shield_bonus: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: [Mace, "Rusty Mail", "Wooden Buckler", Manacles]
     spell_schools: [Radiant]
     spell_tier_unlocks: {1: -1, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 13: 6, 17: 7}
@@ -304,7 +329,7 @@ classes:
     save_penalty: will
     armor_proficiencies: [cloth]
     weapon_proficiencies: [blades, wands]
-    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Sickle, Shovel]
     spell_schools: [Necrotic]
     spell_tier_unlocks: {1: 0, 2: 1, 5: 2, 7: 3, 10: 4, 13: 5, 16: 6, 19: 7}
@@ -333,7 +358,7 @@ classes:
     save_penalty: dexterity
     armor_proficiencies: [mail, shields]
     weapon_proficiencies: [strength, wands]
-    armor: {formula: dexterity, base: 6, dexterity_cap: 2, shield_bonus: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Rusty Mail", Mace, "Wooden Buckler", Bell]
     spell_schools: [Radiant, Necrotic]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -364,7 +389,7 @@ classes:
     save_penalty: strength
     armor_proficiencies: [cloth, leather]
     weapon_proficiencies: [dexterity, wands]
-    armor: {formula: dexterity, base: 2, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Instrument, Dagger, Mirror]
     spell_schools: [Wind, choice]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -398,9 +423,9 @@ classes:
     starting_hp: 13
     save_bonus: will
     save_penalty: strength
-    armor_proficiencies: [cloth]
+    armor_proficiencies: [cloth, leather]
     weapon_proficiencies: [dexterity]
-    armor: {formula: dexterity, base: 3, source_ref: "Core Rules 2.0.1, p. 33"}
+    armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Cheap Hides", Staff, "Strange Plant"]
     spell_schools: [Wind, Lightning]
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
@@ -436,7 +461,7 @@ classes:
     save_penalty: intelligence
     armor_proficiencies: []
     weapon_proficiencies: [melee]
-    armor: {formula: dexterity_plus_strength, base: 0, source_ref: "Heroes 2.0.1, p. 67"}
+    armor: {unarmored_formula: dexterity_plus_strength, source_ref: "Heroes 2.0.1, p. 67"}
     starting_gear: [Staff, "Traveling Robes & Sandals"]
     spell_schools: []
     spell_tier_unlocks: {}
@@ -1236,6 +1261,7 @@ derived_effects:
         speed_modifier: 2
       13:
         armor_multiplier: 2
+        armor_multiplier_source_ref: Heroes 2.0.1, p. 68
   subclasses:
     Commander:
       "Champion of the Vanguard":

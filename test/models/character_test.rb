@@ -95,6 +95,27 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal class_gear_armor, mage.trait_set.armor
   end
 
+  # S-02:AC-1 S-05:AC-2 S-09:AC-3
+  test "editing a draft stat placement refreshes armor and persisted derived stats" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(
+      name: "Reassigned Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+
+    assert_equal 0, mage.stat_set.dexterity
+    assert_equal 1, mage.trait_set.armor
+
+    mage.update!(stat_assignments: { strength: 0, dexterity: 2, intelligence: 1, will: 1 })
+
+    assert_equal 2, mage.reload.stat_set.dexterity
+    assert_equal 3, mage.trait_set.armor
+    assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), mage.trait_set.armor
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "starting class gear contributes to inventory use for every catalog class" do
     Rails.application.load_seed unless CharacterClass.count >= 11
@@ -146,9 +167,6 @@ class CharacterTest < ActiveSupport::TestCase
       character.starting_equipment_choice = "starting_gold"
       assert_equal 3, character.armor_for({ "dexterity" => 3 })
     end
-
-    commander = CharacterClass.find_by!(name: "Commander")
-    assert_nil commander.armor_rules["shield_bonus"]
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
@@ -162,6 +180,73 @@ class CharacterTest < ActiveSupport::TestCase
 
     assert_equal 3, zephyr.armor_for(stats, level: 1)
     assert_equal 6, zephyr.armor_for(stats, level: 13)
+
+    zephyr = Character.create!(
+      name: "Armored Zephyr",
+      level: 13,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      starting_equipment_choice: "starting_gold",
+      stat_array: "standard"
+    )
+    plate = zephyr.inventory_items.create!(name: "Rusty Plate", equipped: false)
+    unarmored_armor = zephyr.armor_for
+
+    plate.update!(equipped: true)
+
+    assert_equal 1, plate.slots
+    assert_equal 10, zephyr.armor_for
+    assert_equal 2 * (zephyr.stat_value("dexterity") + zephyr.stat_value("strength")), unarmored_armor
+    assert_not_equal 2 * zephyr.armor_for, zephyr.armor_for, "Iron Defense doubles unarmored Armor, not worn plate"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "equipped armor replaces the body-armor formula, uses source slots, and recalculates the sheet" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(
+      name: "Armor Loadout Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    garb = mage.starting_gear_inventory_items.find_by!(name: "Adventurer's Garb")
+    plate = mage.inventory_items.create!(name: "Rusty Mail", equipped: false)
+    original_armor = mage.trait_set.armor
+
+    assert_not plate.equipped?
+    assert_equal 2, plate.slots
+    assert_equal original_armor, mage.trait_set.armor
+
+    plate.update!(equipped: true)
+
+    assert_predicate plate, :equipped?
+    assert_equal 1, plate.slots
+    assert_equal 1, plate.catalog_slots
+    assert_not garb.reload.equipped?
+    assert_equal 5, mage.reload.trait_set.armor
+    assert_not mage.armor_proficient_with?(plate.armor_profile)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "removing an equipped shield removes only its Armor bonus and snapshots equipped state" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Oathsworn")
+    oathsworn = Character.create!(
+      name: "Shield Loadout Oathsworn",
+      character_class: CharacterClass.find_by!(name: "Oathsworn"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    shield = oathsworn.starting_gear_inventory_items.find_by!(name: "Wooden Buckler")
+    armor_with_shield = oathsworn.trait_set.armor
+
+    assert_predicate shield, :equipped?
+    assert_equal armor_with_shield, oathsworn.armor_for + oathsworn.derived_modifier_for(:armor_modifier)
+    assert_equal true, oathsworn.snapshot_payload.fetch("inventory_items").find { |item| item.fetch("name") == "Wooden Buckler" }.fetch("equipped")
+
+    shield.destroy!
+
+    assert_equal armor_with_shield - 2, oathsworn.reload.trait_set.armor
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3

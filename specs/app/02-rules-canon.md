@@ -369,8 +369,11 @@ These must be calculable from structured data — no manual calculation required
 
 | Derived Value | Formula |
 |---|---|
-| Armor (unarmored) | DEX |
-| Armor (equipped) | DEX (or 0 for plate/mail) + equipment armor value |
+| Armor (unarmored) | DEX; Zephyr uses DEX + STR. Zephyr's level-13 Iron Defense doubles Armor while unarmored. |
+| Armor (cloth or leather) | Item value + DEX |
+| Armor (mail) | Item value + min(DEX, 2) |
+| Armor (plate) | Listed flat item value; no DEX |
+| Shield | Add the equipped shield's listed Armor to total Armor; optional Deflect can instead reduce one attack's damage by that value for free once per round. |
 | Initiative | DEX (default; some classes/ancestries modify) |
 | Speed | 6 (default; modified by ancestry/equipment/features) |
 | Max Wounds | 6 (default; modified by ancestry/class features) |
@@ -388,7 +391,7 @@ These must be calculable from structured data — no manual calculation required
 #### 14. Equipment
 
 **Armor types (5 categories):**
-Cloth (4 tiers), Leather (4 tiers), Mail (4 tiers), Plate (4 tiers), Shields (4 tiers). Each has armor value, STR requirements, and cost.
+Cloth (4 tiers), Leather (4 tiers), Mail (4 tiers), Plate (4 tiers), Shields (4 tiers). Each has armor value, STR requirements, and cost. STR requirements are required to equip the item. Unarmored formulas and equipment Armor bonuses follow the category-specific table above (Core Rules 2.0.1, pp. 32–33; Zephyr, Heroes 2.0.1, pp. 67–68).
 
 **Weapons:**
 - Melee (14 types): Dagger, Sickle, Club/Mace, Hand Axe, Short Sword, Rapier, Staff, Longsword, Battleaxe, Pole Hammer, Glaive, Spear, Greatmaul, Greataxe, Greatsword
@@ -396,7 +399,7 @@ Cloth (4 tiers), Leather (4 tiers), Mail (4 tiers), Plate (4 tiers), Shields (4 
 
 **Weapon properties:** 2-handed, Light, Load, Reach, Range, Thrown, Vicious. Each affects legality of use and combat calculations.
 
-**Equipment proficiency per class:** Each class defines which armor tiers and weapon categories are covered. Weapons used without proficiency cannot crit. Armor worn without proficiency costs +1 action to Defend.
+**Equipment proficiency per class:** Each class defines which armor tiers and weapon categories are covered. Heroes may use equipment without proficiency; weapons used without proficiency cannot crit, while Defending in worn armor without proficiency costs +1 action (Core Rules 2.0.1, p. 32).
 
 ---
 

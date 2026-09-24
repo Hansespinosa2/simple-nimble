@@ -62,6 +62,6 @@ class InventoryItemsController < ApplicationController
     end
 
     def inventory_item_params
-      params.expect(inventory_item: [ :name, :slots ])
+      params.expect(inventory_item: [ :name, :slots, :equipped ])
     end
 end

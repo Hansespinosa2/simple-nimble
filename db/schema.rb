@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -165,6 +165,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_060000) do
     t.integer "catalog_slots"
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
+    t.boolean "equipped", default: false, null: false
     t.string "name", null: false
     t.integer "slots", default: 1, null: false
     t.string "source_ref"

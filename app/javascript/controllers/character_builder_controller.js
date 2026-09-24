@@ -154,13 +154,8 @@ export default class extends Controller {
     const intelligence = stats.intelligence || 0
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
     const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
-    const armorRules = { ...(characterClass?.armor_rules || {}) }
-    if (this.hasStartingEquipmentChoiceTarget && this.startingEquipmentChoiceTarget.value === "starting_gold") {
-      armorRules.base = 0
-      delete armorRules.dexterity_cap
-      delete armorRules.shield_bonus
-    }
-    const armor = this.armorValue(armorRules, stats) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
+    const startingEquipmentChoice = this.hasStartingEquipmentChoiceTarget ? this.startingEquipmentChoiceTarget.value : "class_gear"
+    const armor = this.armorValue(characterClass, stats, startingEquipmentChoice, level) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
     const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
     const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
@@ -242,14 +237,36 @@ export default class extends Controller {
     return (stats[stat] || 0) * multiplier + level
   }
 
-  armorValue(rules, stats) {
-    const base = Number(rules?.base || 0)
-    const shieldBonus = Number(rules?.shield_bonus || 0)
+  armorValue(characterClass, stats, startingEquipmentChoice, level) {
+    const armorCatalog = this.rulesValue.equipment_armor || {}
+    const startingGear = startingEquipmentChoice === "class_gear" ? (characterClass?.starting_gear || []) : []
+    const equipment = startingGear.map((name) => ({ name, rules: armorCatalog[name] })).filter((item) => item.rules)
+    const bodyArmor = equipment.filter((item) => item.rules.kind === "armor")
+      .sort((left, right) => this.equipmentArmorValue(right.rules, stats) - this.equipmentArmorValue(left.rules, stats))[0]
+    const shields = equipment.filter((item) => item.rules.kind === "shield")
     const dexterity = stats.dexterity || 0
-    if (rules?.formula === "dexterity_plus_strength") return base + dexterity + (stats.strength || 0) + shieldBonus
+    const armorRules = characterClass?.armor_rules || {}
+    let armor = bodyArmor
+      ? this.equipmentArmorValue(bodyArmor.rules, stats)
+      : armorRules.unarmored_formula === "dexterity_plus_strength" ? dexterity + (stats.strength || 0) : dexterity
+    armor += shields.reduce((total, item) => total + Number(item.rules.armor_value || 0), 0)
 
-    const cap = rules?.dexterity_cap
-    return base + (cap === undefined ? dexterity : Math.min(dexterity, Number(cap))) + shieldBonus
+    if (!bodyArmor) {
+      const multiplier = Object.entries(characterClass?.derived_effects || {})
+        .filter(([effectLevel]) => Number(effectLevel) <= level)
+        .reduce((current, [_effectLevel, effects]) => effects.armor_multiplier ? Number(effects.armor_multiplier) : current, 1)
+      armor *= multiplier
+    }
+    return armor
+  }
+
+  equipmentArmorValue(rules, stats) {
+    const value = Number(rules?.armor_value || 0)
+    if (rules?.formula !== "dexterity") return value
+
+    const dexterity = stats.dexterity || 0
+    const cap = rules.dexterity_cap
+    return value + (cap === undefined ? dexterity : Math.min(dexterity, Number(cap)))
   }
 
   signed(value) {

@@ -238,6 +238,7 @@ class CharactersController < ApplicationController
       {
         stat_arrays: Character::STAT_ARRAYS,
         starting_equipment: Rules::NimbleCatalog.starting_equipment_rules,
+        equipment_armor: Rules::NimbleCatalog.equipment_armor_items,
         classes: @character_classes.index_by(&:id).transform_values do |character_class|
           {
             key_stats: character_class.key_stats,
@@ -252,6 +253,7 @@ class CharactersController < ApplicationController
             armor_proficiencies: character_class.armor_proficiencies,
             weapon_proficiencies: character_class.weapon_proficiencies,
             armor_rules: character_class.armor_rules,
+            derived_effects: Rules::NimbleCatalog.class_derived_effects(character_class.name),
             resource: character_class.resource_rules
           }
         end,

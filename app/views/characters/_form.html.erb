@@ -45,7 +45,7 @@
           </div>
           <div class="field">
             <%= form.label :level, "Level" %>
-            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level", action: "change->character-builder#refresh" } %>
+            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level", action: "input->character-builder#refresh change->character-builder#refresh" } %>
             <span class="field-hint">New heroes start at level 1.</span>
           </div>
           <div class="field field-wide">
@@ -89,7 +89,7 @@
             <div class="field field-wide">
               <%= form.label :starting_equipment_choice, "Starting equipment" %>
               <%= form.select :starting_equipment_choice, [["Class's listed starting gear", "class_gear"], ["Starting gold instead (50 gp per level)", "starting_gold"]], {}, disabled: read_only, data: { character_builder_target: "startingEquipmentChoice", action: "change->character-builder#refresh" } %>
-              <span class="field-hint">Core Rules 2.0.1, pp. 20, 33; Heroes 2.0.1, p. 67 · choose listed class gear or 50 gp per starting level; higher-level starts multiply the gold by level. Gold starts use class-appropriate unarmored Armor, including Zephyr’s DEX + STR; bought armor is not auto-calculated yet.</span>
+              <span class="field-hint">Core Rules 2.0.1, pp. 20, 32–33; Heroes 2.0.1, p. 67 · choose listed class gear or 50 gp per starting level; higher-level starts multiply the gold by level. Equipped catalog armor updates Armor on the sheet; adding gear does not automatically deduct its cost from tracked gold.</span>
               <span class="field-hint" data-character-builder-target="backgroundEquipmentNote" role="note"><%= Rules::NimbleCatalog.starting_equipment_rules.fetch("background_gear_note") %> <%= Rules::NimbleCatalog.starting_equipment_rules.fetch("background_gear_source_ref") %>.</span>
             </div>
           <% end %>

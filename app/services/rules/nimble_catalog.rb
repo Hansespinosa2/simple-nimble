@@ -40,6 +40,18 @@ module Rules
         starting_gear_inventory_items(class_name).sum { |item| item.fetch("slots").to_i }
       end
 
+      def equipment_armor_items
+        data.fetch("equipment_armor").fetch("items")
+      end
+
+      def equipment_armor_item(name)
+        equipment_armor_items[name.to_s]
+      end
+
+      def class_derived_effects(class_name)
+        data.fetch("derived_effects", {}).fetch("classes", {}).fetch(class_name.to_s, {})
+      end
+
       def class_for(name)
         data.fetch("classes")[name.to_s]
       end

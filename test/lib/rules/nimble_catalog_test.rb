@@ -81,7 +81,80 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "cloth" ], mage.armor_proficiencies
     assert_includes mage.weapon_proficiencies, "wands"
     assert_equal "INT * 3 + LVL", mage.resource_rules.fetch("max_formula")
-    assert_equal({ "formula" => "dexterity", "base" => 2, "source_ref" => "Core Rules 2.0.1, p. 33" }, mage.armor_rules)
+    assert_equal({ "unarmored_formula" => "dexterity", "source_ref" => "Core Rules 2.0.1, p. 33" }, mage.armor_rules)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "all class armor proficiencies match the Heroes class entries" do
+    expected = {
+      "Berserker" => [],
+      "The Cheat" => [ "leather" ],
+      "Commander" => [ "mail", "shields" ],
+      "Hunter" => [ "leather" ],
+      "Mage" => [ "cloth" ],
+      "Oathsworn" => [ "all" ],
+      "Shadowmancer" => [ "cloth" ],
+      "Shepherd" => [ "mail", "shields" ],
+      "Songweaver" => [ "cloth", "leather" ],
+      "Stormshifter" => [ "cloth", "leather" ],
+      "Zephyr" => []
+    }
+
+    expected.each do |class_name, proficiencies|
+      assert_equal proficiencies, @catalog.class_for(class_name).fetch("armor_proficiencies"), "#{class_name} armor proficiency"
+    end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "Zephyr's level-thirteen Armor feature retains its specific source" do
+    assert_nil @catalog.derived_effects_for("Zephyr", nil, 12)["armor_multiplier"]
+    effects = @catalog.derived_effects_for("Zephyr", nil, 13)
+
+    assert_equal 2, effects.fetch("armor_multiplier")
+    assert_equal "Heroes 2.0.1, p. 68", effects.fetch("armor_multiplier_source_ref")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the armor catalog matches the published armor, shield, slot, cost, and requirement table" do
+    expected = {
+      "Adventurer's Garb" => [ "armor", "cloth", 2, "dexterity", nil, nil, 10 ],
+      "Minor Enchantment" => [ "armor", "cloth", 3, "dexterity", nil, nil, 100 ],
+      "Major Enchantment" => [ "armor", "cloth", 4, "dexterity", nil, nil, 1_000 ],
+      "Epic Enchantment" => [ "armor", "cloth", 5, "dexterity", nil, nil, 10_000 ],
+      "Cheap Hides" => [ "armor", "leather", 3, "dexterity", nil, nil, 5 ],
+      "Ox Hide" => [ "armor", "leather", 4, "dexterity", nil, nil, 45 ],
+      "Hard Leather" => [ "armor", "leather", 5, "dexterity", nil, 1, 300 ],
+      "Wyrmhide" => [ "armor", "leather", 6, "dexterity", nil, 1, 2_000 ],
+      "Rusty Mail" => [ "armor", "mail", 6, "dexterity", 2, nil, 15 ],
+      "Chain Shirt" => [ "armor", "mail", 9, "dexterity", 2, 2, 60 ],
+      "Scale Mail" => [ "armor", "mail", 12, "dexterity", 2, 3, 700 ],
+      "Dragonscale" => [ "armor", "mail", 15, "dexterity", 2, 4, 3_000 ],
+      "Rusty Plate" => [ "armor", "plate", 10, "flat", nil, 2, 25 ],
+      "Half Plate" => [ "armor", "plate", 14, "flat", nil, 3, 200 ],
+      "Full Plate" => [ "armor", "plate", 18, "flat", nil, 4, 2_000 ],
+      "Mithril Plate" => [ "armor", "plate", 22, "flat", nil, 5, 5_000 ],
+      "Wooden Buckler" => [ "shield", "shields", 2, "flat", nil, nil, 5 ],
+      "Iron Shield" => [ "shield", "shields", 4, "flat", nil, 2, 80 ],
+      "Tower Shield" => [ "shield", "shields", 6, "flat", nil, 3, 1_500 ],
+      "Dragon Shield" => [ "shield", "shields", 8, "flat", nil, 3, 9_000 ]
+    }
+
+    catalog = @catalog.equipment_armor_items
+    assert_equal expected.keys.sort, catalog.keys.sort
+    expected.each do |name, (kind, proficiency, armor, formula, dexterity_cap, strength_requirement, cost)|
+      item = catalog.fetch(name)
+      assert_equal kind, item.fetch("kind"), name
+      assert_equal proficiency, item.fetch("proficiency"), name
+      assert_equal armor, item.fetch("armor_value"), name
+      assert_equal formula, item.fetch("formula"), name
+      dexterity_cap ? assert_equal(dexterity_cap, item["dexterity_cap"], name) : assert_nil(item["dexterity_cap"], name)
+      strength_requirement ? assert_equal(strength_requirement, item["strength_requirement"], name) : assert_nil(item["strength_requirement"], name)
+      assert_equal cost, item.fetch("cost_gp"), name
+      assert_equal 1, item.fetch("slots_worn"), name
+      assert_equal(kind == "shield" ? 1 : 2, item.fetch("slots_unworn"), name)
+      assert_equal "Core Rules 2.0.1, p. 33", item.fetch("source_ref"), name
+    end
+    assert_equal "Core Rules 2.0.1, p. 21", @catalog.data.fetch("equipment_armor").fetch("slots_source_ref")
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3

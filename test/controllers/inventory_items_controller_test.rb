@@ -126,6 +126,32 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".inventory-item-source", text: /adjusted from 2 catalog slots/
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "equipping armor updates Armor, conflicts, slots, and revision history" do
+    garb = @character.starting_gear_inventory_items.find_by!(name: "Adventurer's Garb")
+    post character_inventory_items_url(@character), params: {
+      inventory_item: { name: "Rusty Mail", slots: 1 }
+    }
+    plate = @character.inventory_items.find_by!(name: "Rusty Mail")
+
+    assert_equal 2, plate.slots, "the catalog's unworn weight overrides an arbitrary create-form default"
+    armor_before = @character.reload.trait_set.armor
+
+    patch character_inventory_item_url(@character, plate), params: {
+      inventory_item: { name: "Rusty Mail", slots: 2, equipped: "1" }
+    }
+
+    assert_redirected_to character_url(@character)
+    assert_predicate plate.reload, :equipped?
+    assert_equal 1, plate.slots
+    assert_not garb.reload.equipped?
+    assert_equal 5, @character.reload.trait_set.armor
+    assert_not_equal armor_before, @character.trait_set.armor
+    snapshot_item = @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").find { |item| item.fetch("name") == "Rusty Mail" }
+    assert_equal true, snapshot_item.fetch("equipped")
+    assert_equal 1, snapshot_item.fetch("catalog_slots")
+  end
+
   test "an inventory item cannot be edited through another character's nested URL" do
     other_character = Character.create!(name: "Other Inventory Mage", character_class: @character.character_class)
     item = other_character.inventory_items.create!(name: "Private key", slots: 1)
