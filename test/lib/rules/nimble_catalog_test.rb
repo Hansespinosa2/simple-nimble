@@ -469,6 +469,9 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     resources = @catalog.feature_choice_resource_pools_for("Berserker", "Epic Boon" => [ "Epic Agility", "Epic Knowledge", "Epic Resistance", "Epic Mind" ])
     assert_equal %w[epic_agility epic_knowledge epic_resistance mana], resources.map { |pool| pool.fetch("key") }
+    foresight = @catalog.feature_choice_resource_pools_for("Berserker", "Epic Boon" => [ "Epic Foresight" ]).sole
+    assert_equal "epic_foresight", foresight.fetch("key")
+    assert_equal [ "encounter_end" ], foresight.fetch("reset_events")
   end
 
   test "Academy Dropout's starting Utility Spell is source-backed" do

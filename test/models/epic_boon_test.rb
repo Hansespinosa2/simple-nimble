@@ -79,18 +79,37 @@ class EpicBoonTest < ActiveSupport::TestCase
     assert_equal 8, berserker_mana.fetch("current")
   end
 
-  test "Epic Agility, Epic Knowledge, and Epic Resistance expose usable limited-use trackers" do
+  test "encounter-limited Epic Boons expose counters that refresh when an encounter ends" do
     agility = resource_track("Epic Agility", "epic_agility")
     knowledge = resource_track("Epic Knowledge", "epic_knowledge")
     resistance = resource_track("Epic Resistance", "epic_resistance")
+    foresight_character = character_with_boon("Berserker", "Epic Foresight")
+    foresight = foresight_character.derived_resource_tracks_for(
+      stat_values: { "strength" => 1, "dexterity" => 1, "intelligence" => 1, "will" => 1 },
+      level: 19
+    ).find { |track| track.fetch("key") == "epic_foresight" }
 
-    [ agility, knowledge, resistance ].each do |track|
+    [ agility, knowledge, resistance, foresight ].each do |track|
       assert_equal 1, track.fetch("max")
       assert_equal 1, track.fetch("current")
     end
     assert_equal [ "encounter_end" ], agility.fetch("reset_events")
     assert_equal "Daily (reset manually)", knowledge.fetch("reset")
     assert_equal [ "encounter_end" ], resistance.fetch("reset_events")
+    assert_equal [ "encounter_end" ], foresight.fetch("reset_events")
+
+    foresight_character.update_columns(level: 19, status: "playable")
+    current_tracks = foresight_character.derived_resource_tracks_for(
+      stat_values: foresight_character.stat_set.attributes.slice("strength", "dexterity", "intelligence", "will"),
+      level: 19
+    )
+    spent_tracks = current_tracks.map do |track|
+      track.fetch("key") == "epic_foresight" ? track.merge("current" => 0) : track
+    end
+    foresight_character.trait_set.update!(resource_tracks: spent_tracks)
+    foresight_character.end_encounter!
+
+    assert_equal 1, foresight_character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "epic_foresight" }.fetch("current")
   end
 
   test "Epic Stamina heals one Wound for a qualifying Catch Breath roll, not a lower roll or maximum die result" do

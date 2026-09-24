@@ -1116,6 +1116,15 @@ shared_choice_pools:
           reset: Daily (reset manually)
           source_ref: Gamemaster's Guide 2.0, p. 23
           source_quote: "Epic Knowledge. 1/day, you can call upon a moment of profound insight to gain hidden knowledge about a legendary person or object."
+      "Epic Foresight":
+        - key: epic_foresight
+          name: Epic Foresight · first attack advantage
+          max_formula: "1"
+          initial_current: 1
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Gamemaster's Guide 2.0, p. 23
+          source_quote: "Epic Foresight. Gain +5 to Initiative rolls and advantage on your first attack each encounter."
       "Epic Mind":
         - key: mana
           name: Mana

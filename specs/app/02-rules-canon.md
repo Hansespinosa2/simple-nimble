@@ -455,9 +455,10 @@ Heroes 2.0.1 progression citation, and displays its source-described effect on
 the character sheet. Epic Stats is interpreted as an explicit exception to the
 Core Rules' *typical* +5 stat maximum because the boon grants +1 without stating
 a cap. Epic Speed, Epic Foresight, Epic Defense, Epic Mind, Epic Stats, and Epic
-Stamina update the corresponding derived values; Epic Agility, Epic Knowledge,
-and Epic Resistance have use counters. Situational attack/save effects and
-mana-for-healing substitution remain reference-only.
+Stamina update the corresponding derived values. Epic Agility, Epic Knowledge,
+Epic Resistance, and Epic Foresight's first-attack advantage have use counters;
+encounter-limited counters refresh when an encounter ends. Other situational
+attack/save effects and mana-for-healing substitution remain reference-only.
 
 ---
 
