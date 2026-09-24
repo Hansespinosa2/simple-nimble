@@ -244,6 +244,36 @@ module Rules
           .fetch(subclass_name.to_s, [])
       end
 
+      def story_subclass_resource_pool_replacements_for(class_name, subclass_name)
+        data.fetch("story_subclass_resource_pool_replacements", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_spell_restrictions_for(class_name, subclass_name)
+        data.fetch("story_subclass_spell_restrictions", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_spell_restriction_source_ref_for(class_name, subclass_name)
+        data.fetch("story_subclass_spell_restriction_source_refs", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, nil)
+      end
+
+      def story_subclass_weapon_rules_for(class_name, subclass_name)
+        data.fetch("story_subclass_weapon_rules", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+      end
+
+      def story_subclass_feature_notes_for(class_name, subclass_name)
+        data.fetch("story_subclass_feature_notes", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
       def story_subclass_initiative_features_for(class_name, subclass_name)
         data.fetch("story_subclass_initiative_features", {})
           .fetch(class_name.to_s, {})

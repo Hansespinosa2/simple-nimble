@@ -1,6 +1,6 @@
 class CharactersController < ApplicationController
-  before_action :set_character, only: %i[ show edit update destroy finalize tracker begin_encounter end_encounter safe_rest field_rest history ]
-  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker begin_encounter end_encounter safe_rest field_rest history ]
+  before_action :set_character, only: %i[ show edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
+  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -122,8 +122,42 @@ class CharactersController < ApplicationController
   end
 
   def begin_encounter
-    @character.begin_encounter!
-    redirect_to @character, notice: "Initiative recorded. Arcane Command mana is ready to spend."
+    revision = @character.begin_encounter!
+    notice = if @character.character_class&.name == "Commander" && @character.subclass_name == "Spellblade"
+      "Initiative recorded. Arcane Command mana is ready to spend."
+    else
+      "Initiative recorded. #{revision.summary}."
+    end
+    redirect_to @character, notice:
+  rescue ArgumentError => error
+    redirect_to @character, alert: error.message
+  end
+
+  def game_feature
+    attributes = params.expect(game_feature: [ :action, :spell_name, :outcome ])
+    case attributes[:action]
+    when "summon_bonescythe"
+      @character.summon_bonescythe!
+      notice = "Bonescythe summoned. 1 action spent."
+    when "mark_bonescythe_hit"
+      revision = @character.mark_bonescythe_hit!(outcome: attributes[:outcome].presence || "hit")
+      notice = revision.summary
+    when "summon_shadow_minion"
+      @character.summon_shadow_minion!
+      notice = "Shadow Minion summoned. 1 action spent."
+    when "martyr_spawn"
+      @character.martyr_spawn!
+      notice = "Martyr Spawn sacrificed a Shadow Minion; negate the damage."
+    when "shadow_exploit"
+      @character.use_shadow_exploit!(spell_name: attributes[:spell_name])
+      notice = "Shadow Exploit cast recorded. The spell uses your highest unlocked tier."
+    when "my_blood_my_power"
+      revision = @character.use_my_blood_my_power!(spell_name: attributes[:spell_name])
+      notice = revision.summary
+    else
+      raise ArgumentError, "Choose a supported game feature."
+    end
+    redirect_to @character, notice:
   rescue ArgumentError => error
     redirect_to @character, alert: error.message
   end

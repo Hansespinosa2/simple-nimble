@@ -279,6 +279,114 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_includes commander.subclass_progression_features_through.map { |feature| feature.fetch(:name) }, "Arcane Command"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Reaver approval removes patron powers and records a scaling one-hit Bonescythe" do
+    shadowmancer = create_shadowmancer
+    share = shadowmancer.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    shadow_blast = Spell.find_by!(name: "Shadow Blast")
+    tiered_shadow_spell = Spell.where(school: "Necrotic", tier: 1).where.not(name: "Shadow Blast").first!
+    shadowmancer.spells << shadow_blast
+    shadowmancer.spells << tiered_shadow_spell
+    old_tracks = shadowmancer.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "pilfered_power" ? track.merge("current" => 1) : track
+    end
+    shadowmancer.trait_set.update!(resource_tracks: old_tracks)
+    assert shadow_blast.available_to?(shadowmancer)
+
+    change = StorySubclassChangeService.call(
+      character: shadowmancer,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Pact of the Red Dragon",
+      to_subclass: "Reaver",
+      story_note: "The patron abandons the Shadowmancer, leaving a weapon made of bone."
+    )
+
+    shadowmancer.reload
+    assert_not shadow_blast.available_to?(shadowmancer)
+    assert_not_includes shadowmancer.available_spells, shadow_blast
+    assert_not_includes shadowmancer.sheet_spells, shadow_blast
+    assert_not shadowmancer.spells.exists?(id: shadow_blast.id)
+    assert_includes shadowmancer.available_spells, tiered_shadow_spell
+    tracks = shadowmancer.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_not tracks.key?("pilfered_power")
+    assert_equal 2, tracks.fetch("shadow_minions").fetch("max")
+    assert_equal 1, tracks.fetch("reaver_shadow_exploit_next_cost").fetch("current")
+    assert_equal "Shadow Minions", shadowmancer.trait_set.resource_name
+    replaced_resource = change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "Replaced resource · Pilfered Power" }
+    assert_equal "1 / 2", replaced_resource.fetch(:value)
+    assert_equal [ "Heroes 2.0.1, p. 44" ], replaced_resource.fetch(:source_refs)
+    assert_equal "Heroes 2.0.1, p. 44", change.subclass_choices.dig("source_refs", "replaced_resource_pools", "pilfered_power")
+    replaced_spell = change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "No longer castable" }
+    assert_equal "Shadow Blast", replaced_spell.fetch(:value)
+    assert_equal [ "Heroes 2.0.1, p. 78" ], replaced_spell.fetch(:source_refs)
+    assert_equal [ "Shadow Blast" ], change.subclass_choices.fetch("replaced_spells")
+
+    features = shadowmancer.subclass_progression_features_through.map { |feature| feature.fetch(:name) }
+    assert_includes features, "Hollow One"
+    assert_includes features, "Bonescythe"
+    assert_includes shadowmancer.story_subclass_feature_note_entries.map { |note| note.fetch("name") }, "Shadow Exploit"
+    weapon = shadowmancer.story_subclass_weapon_entry
+    assert_equal "2d12", weapon.fetch(:damage_dice)
+    assert_includes weapon.fetch(:damage_effect), "DEX (2) necrotic damage per die"
+    assert_equal 2, weapon.fetch(:reach)
+
+    unknown_tiered_spell = Spell.create!(name: "Unlearned Necrotic Test Spell", school: "Necrotic", tier: 1)
+    assert unknown_tiered_spell.available_to?(shadowmancer)
+    assert_not shadowmancer.sheet_spells.exists?(id: unknown_tiered_spell.id)
+    assert_raises(ArgumentError) { shadowmancer.use_shadow_exploit!(spell_name: unknown_tiered_spell.name) }
+
+    shadowmancer.summon_bonescythe!
+    assert shadowmancer.reload.bonescythe_summoned?
+    assert_equal 2, shadowmancer.trait_set.current_actions
+    shadowmancer.mark_bonescythe_hit!
+    assert_not shadowmancer.reload.bonescythe_summoned?
+    assert shadowmancer.character_revisions.exists?(event_type: "weapon_shattered")
+
+    shadowmancer.summon_shadow_minion!
+    assert_equal 1, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_equal 1, shadowmancer.trait_set.current_actions
+    shadowmancer.use_shadow_exploit!(spell_name: tiered_shadow_spell.name)
+    assert_equal 0, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_equal 2, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }.fetch("current")
+
+    tracks_with_two_minions = shadowmancer.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "shadow_minions" ? track.merge("current" => 2) : track
+    end
+    shadowmancer.trait_set.update!(resource_tracks: tracks_with_two_minions)
+    shadowmancer.use_shadow_exploit!(spell_name: tiered_shadow_spell.name)
+    assert_equal 0, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_equal 3, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }.fetch("current")
+    assert_raises(ArgumentError) { shadowmancer.use_shadow_exploit!(spell_name: tiered_shadow_spell.name) }
+
+    { 3 => "2d12", 4 => "2d12", 5 => "3d12", 10 => "4d12", 20 => "6d12" }.each do |level, expected_dice|
+      shadowmancer.update_column(:level, level)
+      assert_equal expected_dice, shadowmancer.story_subclass_weapon_entry.fetch(:damage_dice)
+    end
+
+    shadowmancer.update_column(:level, 11)
+    assert_raises(ArgumentError) { shadowmancer.use_my_blood_my_power!(spell_name: unknown_tiered_spell.name) }
+    blood_revision = shadowmancer.use_my_blood_my_power!(spell_name: tiered_shadow_spell.name)
+    assert_equal 1, shadowmancer.trait_set.reload.current_wounds
+    assert_includes blood_revision.summary, "Tier #{shadowmancer.character_class.spell_tier_for(11)}"
+    assert shadowmancer.character_revisions.exists?(event_type: "my_blood_my_power")
+    shadowmancer.trait_set.update!(current_wounds: shadowmancer.trait_set.max_wounds)
+    assert_raises(ArgumentError) { shadowmancer.use_my_blood_my_power!(spell_name: tiered_shadow_spell.name) }
+
+    shadowmancer.update_column(:level, 7)
+    assert_raises(ArgumentError) { shadowmancer.mark_bonescythe_hit!(outcome: "critical") }
+    shadowmancer.summon_bonescythe!
+    reap_revision = shadowmancer.mark_bonescythe_hit!(outcome: "critical")
+    assert_equal 1, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_includes reap_revision.summary, "Reap summoned a Shadow Minion"
+    shadowmancer.martyr_spawn!
+    assert_equal 0, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    shadowmancer.end_encounter!
+    assert_equal 0, shadowmancer.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_equal 1, shadowmancer.trait_set.resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }.fetch("current")
+    assert_not shadowmancer.bonescythe_summoned?
+  end
+
   test "Beastmaster approval records the companion and reselects the first two Hunt abilities" do
     hunter = create_hunter
     hunter.update_columns(feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet", "Wild Instinct" ] })
@@ -520,6 +628,28 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
       character.finalize_creation!
       character.update_columns(level: 3, status: "playable", subclass_name: "Champion of the Bulwark")
       character.skill_set.update!(might: 9)
+      character
+    end
+
+    def create_shadowmancer
+      character = Character.create!(
+        name: "Reaver Candidate",
+        account: @owner,
+        character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        language_choices: [ "Elvish", "Draconic" ],
+        skill_set_attributes: { stealth: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(
+        level: 3,
+        status: "playable",
+        subclass_name: "Pact of the Red Dragon",
+        feature_choices: { "Lesser Shadow Invocation" => { "3" => [ "Whispers of the Grave" ] } }
+      )
+      character.skill_set.update!(stealth: 9)
       character
     end
 

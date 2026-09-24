@@ -944,6 +944,67 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, character.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Shadowmancer minions respect min(INT, level), and Reaver replaces Pilfered Power" do
+    Rails.application.load_seed
+    shadowmancer = Character.create!(
+      name: "Shadow Pool Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    stats = { strength: 1, dexterity: 2, intelligence: 2, will: 0 }
+    ordinary_tracks = shadowmancer.derived_resource_tracks_for(stat_values: stats, level: 3, subclass_name: "Pact of the Red Dragon").index_by { |track| track.fetch("key") }
+    assert_equal 2, ordinary_tracks.fetch("shadow_minions").fetch("max")
+    assert_equal 2, ordinary_tracks.fetch("pilfered_power").fetch("max")
+
+    reaver_tracks = shadowmancer.derived_resource_tracks_for(stat_values: stats, level: 3, subclass_name: "Reaver").index_by { |track| track.fetch("key") }
+    assert_not reaver_tracks.key?("pilfered_power")
+    assert_equal 2, reaver_tracks.fetch("shadow_minions").fetch("max")
+    assert_equal 1, reaver_tracks.fetch("reaver_shadow_exploit_next_cost").fetch("current")
+    assert_equal "Shadow Minions", shadowmancer.derived_resource_values_for(stat_values: stats, level: 3, subclass_name: "Reaver").fetch(:name)
+
+    nonpositive_int_tracks = shadowmancer.derived_resource_tracks_for(
+      stat_values: stats.merge(intelligence: -1),
+      level: 3,
+      subclass_name: "Reaver"
+    ).index_by { |track| track.fetch("key") }
+    assert_equal 0, nonpositive_int_tracks.fetch("shadow_minions").fetch("max")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Reaver's level-15 initiative feature is once per encounter and respects its minion limit" do
+    Rails.application.load_seed
+    shadowmancer = Character.create!(
+      name: "Reaver Initiative",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 1, dexterity: 2, intelligence: 1, will: 0 },
+      language_choices: [ "Elvish" ]
+    )
+    shadowmancer.update_columns(level: 15, status: "playable", subclass_name: "Reaver")
+    stat_values = Character::STAT_NAMES.index_with { |stat| shadowmancer.stat_value(stat) }
+    tracks = shadowmancer.derived_resource_tracks_for(stat_values:, level: 15, subclass_name: "Reaver")
+    assert_equal 1, tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("max")
+    shadowmancer.trait_set.update!(resource_tracks: tracks)
+
+    revision = shadowmancer.begin_encounter!
+
+    assert_includes revision.summary, "summoned 1 free Shadow Minions"
+    assert_equal 1, shadowmancer.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert shadowmancer.encounter_started_at.present?
+    assert_raises(ArgumentError) { shadowmancer.begin_encounter! }
+
+    shadowmancer.end_encounter!
+    assert_equal 0, shadowmancer.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+    assert_nil shadowmancer.encounter_started_at
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "limited-use ancestry abilities become source-backed game resource tracks" do
     Rails.application.load_seed

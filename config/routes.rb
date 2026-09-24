@@ -6,6 +6,7 @@ Rails.application.routes.draw do
       post :finalize
       patch :tracker
       patch :begin_encounter
+      patch :game_feature
       patch :end_encounter
       patch :safe_rest
       patch :field_rest

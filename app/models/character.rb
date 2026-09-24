@@ -426,6 +426,34 @@ class Character < ApplicationRecord
     Rules::NimbleCatalog.story_subclass_initiative_features_for(character_class&.name, subclass_name)
   end
 
+  def story_subclass_feature_note_entries(level: self.level)
+    Rules::NimbleCatalog.story_subclass_feature_notes_for(character_class&.name, subclass_name)
+      .select { |note| level.to_i >= note.fetch("unlock_level").to_i }
+  end
+
+  def story_subclass_weapon_entry
+    weapon = Rules::NimbleCatalog.story_subclass_weapon_rules_for(character_class&.name, subclass_name).fetch("Bonescythe", nil)
+    return if weapon.blank?
+
+    dice_interval = weapon.fetch("additional_die_every_levels").to_i
+    dice_count = weapon.fetch("base_damage_dice").to_i + level.to_i / dice_interval
+    dexterity = stat_value(weapon.fetch("bonus_damage_stat"))
+    {
+      name: "Bonescythe",
+      damage_dice: "#{dice_count}#{weapon.fetch('damage_die')}",
+      damage_effect: "#{weapon.fetch('damage_type').capitalize} damage plus DEX (#{dexterity}) #{weapon.fetch('bonus_damage_type')} damage per die",
+      reach: weapon.fetch("reach"),
+      action_cost: weapon.fetch("action_cost"),
+      summoned: bonescythe_summoned?,
+      source_ref: weapon.fetch("source_ref"),
+      source_quote: weapon.fetch("source_quote")
+    }
+  end
+
+  def story_subclass_restricted_spell_names
+    Rules::NimbleCatalog.story_subclass_spell_restrictions_for(character_class&.name, subclass_name)
+  end
+
   def story_subclass_empowered_order_entries
     empowered_orders = Rules::NimbleCatalog.story_subclass_empowered_orders_for(character_class&.name, subclass_name)
     return [] if empowered_orders.empty?
@@ -617,7 +645,9 @@ class Character < ApplicationRecord
 
   def sheet_spells
     rule_granted_names = granted_utility_spells.pluck(:name) + story_granted_spell_names
-    Spell.where(id: (spells.ids + Spell.where(name: rule_granted_names).ids).uniq)
+    sheet = Spell.where(id: (spells.ids + Spell.where(name: rule_granted_names).ids).uniq)
+    restrictions = story_subclass_restricted_spell_names
+    restrictions.any? ? sheet.where.not(name: restrictions) : sheet
   end
 
   def granted_utility_spells(level: self.level, ledger: spell_choice_ledger)
@@ -641,6 +671,7 @@ class Character < ApplicationRecord
         current_resource: resource_values.fetch(:current_resource) || trait_set.max_resource,
         resource_tracks: tracks
       )
+      update_columns(bonescythe_summoned: false, updated_at: Time.current) if bonescythe_summoned?
       update_columns(encounter_started_at: nil, updated_at: Time.current) if encounter_started_at.present?
       record_revision!(event_type: "safe_rest", summary: "Safe Rest completed", from_level: level, to_level: level)
     end
@@ -648,23 +679,150 @@ class Character < ApplicationRecord
 
   def begin_encounter!
     with_lock do
-      unless character_class&.name == "Commander" && subclass_name == "Spellblade"
-        raise ArgumentError, "Only a Spellblade can gain Arcane Command mana. Heroes 2.0.1, p. 76."
-      end
-
       raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
-
-      track_key = "spellblade_initiative_mana"
       tracks = Array(trait_set&.resource_tracks)
-      track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
-      raise ArgumentError, "Arcane Command mana is unavailable on this sheet. Heroes 2.0.1, p. 76." unless track
+      if character_class&.name == "Commander" && subclass_name == "Spellblade"
+        track_key = "spellblade_initiative_mana"
+        track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
+        raise ArgumentError, "Arcane Command mana is unavailable on this sheet. Heroes 2.0.1, p. 76." unless track
 
-      tracks = tracks.map do |resource|
-        resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("max").to_i) : resource
+        tracks = tracks.map do |resource|
+          resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("max").to_i) : resource
+        end
+        summary = "Initiative rolled; gained #{track.to_h.fetch('max')} Arcane Command mana"
+      elsif character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && level.to_i >= 15
+        track_key = "shadow_minions"
+        track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
+        raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless track
+
+        available_capacity = [ track.to_h.fetch("max").to_i - track.to_h.fetch("current").to_i, 0 ].max
+        gained_minions = [ 2, available_capacity ].min
+        tracks = tracks.map do |resource|
+          resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("current").to_i + gained_minions) : resource
+        end
+        summary = "Initiative rolled; summoned #{gained_minions} free Shadow Minions"
+      else
+        raise ArgumentError, "This character has no initiative-triggered feature to record."
       end
+
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
-      record_revision!(event_type: "initiative_roll", summary: "Initiative rolled; gained #{track.to_h.fetch('max')} Arcane Command mana", from_level: level, to_level: level)
+      record_revision!(event_type: "initiative_roll", summary:, from_level: level, to_level: level)
+    end
+  end
+
+  def summon_shadow_minion!
+    apply_shadow_minion_change!(1, action_cost: 1, summary: "Summoned a Shadow Minion (1 action)")
+  end
+
+  def martyr_spawn!
+    apply_shadow_minion_change!(-1, summary: "Martyr Spawn sacrificed a Shadow Minion to negate damage", required_reaver_ability: "Martyr Spawn", minimum_level: 3)
+  end
+
+  def use_shadow_exploit!(spell_name:)
+    with_lock do
+      require_reaver!("Shadow Exploit", minimum_level: 3)
+      spell = sheet_spells.find_by(name: spell_name.to_s)
+      unless spell&.tier.to_i.positive? && spell.available_to?(self)
+        raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
+      end
+
+      tracks = Array(trait_set.resource_tracks).map(&:to_h)
+      minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
+      cost_track = tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }
+      raise ArgumentError, "Reaver resource tracking is unavailable. Heroes 2.0.1, p. 78." unless minion_track && cost_track
+
+      cost = cost_track.fetch("current").to_i
+      if minion_track.fetch("current").to_i < cost
+        raise ArgumentError, "Shadow Exploit costs #{cost} Shadow Minion#{'s' unless cost == 1}; you have #{minion_track.fetch('current')}."
+      end
+
+      tracks = tracks.map do |track|
+        case track.fetch("key")
+        when "shadow_minions"
+          track.merge("current" => track.fetch("current").to_i - cost)
+        when "reaver_shadow_exploit_next_cost"
+          track.merge("current" => cost + 1)
+        else
+          track
+        end
+      end
+      trait_set.update!(resource_tracks: tracks)
+      highest_tier = character_class.spell_tier_for(level)
+      record_revision!(
+        event_type: "shadow_exploit",
+        summary: "Cast #{spell.name} at Tier #{highest_tier} through Shadow Exploit; sacrificed #{cost} Shadow Minion#{'s' unless cost == 1}",
+        from_level: level,
+        to_level: level
+      )
+    end
+  end
+
+  def use_my_blood_my_power!(spell_name:)
+    with_lock do
+      require_reaver!("My Blood, My Power", minimum_level: 11)
+      spell = sheet_spells.find_by(name: spell_name.to_s)
+      unless spell&.tier.to_i.positive? && spell.available_to?(self)
+        raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
+      end
+      if trait_set.current_wounds.to_i >= trait_set.max_wounds.to_i
+        raise ArgumentError, "My Blood, My Power requires room to take 1 Wound."
+      end
+
+      trait_set.update!(current_wounds: trait_set.current_wounds.to_i + 1)
+      highest_tier = character_class.spell_tier_for(level)
+      record_revision!(
+        event_type: "my_blood_my_power",
+        summary: "Took 1 Wound to cast #{spell.name} at Tier #{highest_tier} through My Blood, My Power",
+        from_level: level,
+        to_level: level
+      )
+    end
+  end
+
+  def summon_bonescythe!
+    with_lock do
+      require_reaver!("Bonescythe", minimum_level: 3)
+      raise ArgumentError, "The Bonescythe is already summoned." if bonescythe_summoned?
+      raise ArgumentError, "You need at least 1 action to summon the Bonescythe." if trait_set.current_actions.to_i < 1
+
+      trait_set.update!(current_actions: trait_set.current_actions.to_i - 1)
+      update_columns(bonescythe_summoned: true, updated_at: Time.current)
+      record_revision!(event_type: "weapon_summoned", summary: "Summoned Bonescythe (1 action)", from_level: level, to_level: level)
+    end
+  end
+
+  def mark_bonescythe_hit!(outcome: "hit")
+    with_lock do
+      require_reaver!("Bonescythe", minimum_level: 3)
+      raise ArgumentError, "Summon the Bonescythe before recording a hit." unless bonescythe_summoned?
+
+      hit_outcome = outcome.to_s
+      unless %w[hit critical kill].include?(hit_outcome)
+        raise ArgumentError, "Record a hit, critical hit, or kill."
+      end
+
+      summary = "Bonescythe hit recorded; weapon shattered"
+      if level.to_i >= 7 && %w[critical kill].include?(hit_outcome)
+        tracks = Array(trait_set.resource_tracks).map(&:to_h)
+        minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
+        raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
+
+        current = minion_track.fetch("current").to_i
+        maximum = minion_track.fetch("max").to_i
+        if current < maximum
+          tracks = tracks.map do |track|
+            track.fetch("key") == "shadow_minions" ? track.merge("current" => current + 1) : track
+          end
+          trait_set.update!(resource_tracks: tracks)
+          summary += "; Reap summoned a Shadow Minion after a Bonescythe #{hit_outcome == 'critical' ? 'critical hit' : 'kill'}"
+        else
+          summary += "; Reap could not add a minion because you are at your limit"
+        end
+      end
+
+      update_columns(bonescythe_summoned: false, updated_at: Time.current)
+      record_revision!(event_type: "weapon_shattered", summary:, from_level: level, to_level: level)
     end
   end
 
@@ -677,6 +835,7 @@ class Character < ApplicationRecord
         current_mana: resource_values.fetch(:current_mana) || trait_set.current_mana,
         current_resource: resource_values.fetch(:current_resource) || trait_set.current_resource
       )
+      update_columns(bonescythe_summoned: false, updated_at: Time.current) if bonescythe_summoned?
       update_columns(encounter_started_at: nil, updated_at: Time.current) if encounter_started_at.present?
       record_revision!(event_type: "encounter_end", summary: "Encounter ended; encounter-reset resources refreshed", from_level: level, to_level: level)
     end
@@ -859,6 +1018,8 @@ class Character < ApplicationRecord
 
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     class_pools = Array(character_class&.resource_rules.to_h["pools"])
+    replaced_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(character_class&.name, subclass_name)
+    class_pools = class_pools.reject { |pool| replaced_pool_keys.include?(pool.to_h["key"]) }
     ancestry_pools = Rules::NimbleCatalog.ancestry_resource_pools_for(ancestry&.name)
     story_pools = Rules::NimbleCatalog.story_subclass_resource_pools_for(character_class&.name, subclass_name)
     pools = class_pools + ancestry_pools + story_pools + story_subclass_companion_resource_pools(level:, subclass_name:)
@@ -944,6 +1105,13 @@ class Character < ApplicationRecord
   def derived_resource_values_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     rules = character_class&.resource_rules.to_h
     formula = rules["max_formula"].presence || rules["formula"].presence
+    replaced_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(character_class&.name, subclass_name)
+    resource_name = rules["name"]
+    if replaced_pool_keys.present?
+      active_class_pools = Array(rules["pools"]).reject { |pool| replaced_pool_keys.include?(pool.to_h["key"]) }
+      resource_name = active_class_pools.filter_map { |pool| pool.to_h["name"] }.join(" and ").presence
+      formula = active_class_pools.filter_map { |pool| pool.to_h["max_formula"] }.join("; ").presence
+    end
     tracks = derived_resource_tracks_for(
       stat_values: stat_values,
       level: level,
@@ -954,7 +1122,7 @@ class Character < ApplicationRecord
     die = tracks.find { |track| track["die"].present? }&.fetch("die")
 
     {
-      name: rules["name"],
+      name: resource_name,
       formula: formula,
       die: die || resource_die_for(rules["die_by_level"], level),
       max_mana: legacy_values.fetch(:max_mana),
@@ -1211,7 +1379,7 @@ class Character < ApplicationRecord
     {
       "character" => attributes.slice(
         "name", "race", "nimble_class", "level", "subclass_name", "subclass_choices", "legacy_background_text", "description", "languages", "language_choices", "feature_language_choices", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
-        "status", "conditions", "inventory", "game_notes", "stat_array", "encounter_started_at"
+        "status", "conditions", "inventory", "game_notes", "stat_array", "encounter_started_at", "bonescythe_summoned"
       ),
       "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots", "equipped") },
       "rules" => {
@@ -1268,6 +1436,44 @@ class Character < ApplicationRecord
   end
 
   private
+    def require_reaver!(ability, minimum_level:)
+      return if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && level.to_i >= minimum_level
+
+      raise ArgumentError, "#{ability} requires a level #{minimum_level} Shadowmancer Reaver. Heroes 2.0.1, p. 78."
+    end
+
+    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_reaver_ability: nil, minimum_level: 1)
+      with_lock do
+        if required_reaver_ability.present?
+          require_reaver!(required_reaver_ability, minimum_level:)
+        elsif character_class&.name != "Shadowmancer"
+          raise ArgumentError, "Only a Shadowmancer can summon Shadow Minions. Heroes 2.0.1, p. 43."
+        end
+
+        tracks = Array(trait_set&.resource_tracks).map(&:to_h)
+        minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
+        raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
+
+        current = minion_track.fetch("current").to_i
+        maximum = minion_track.fetch("max").to_i
+        updated_count = current + amount.to_i
+        raise ArgumentError, "You do not have a Shadow Minion to sacrifice." if updated_count.negative?
+        raise ArgumentError, "You can control at most #{maximum} Shadow Minion#{'s' unless maximum == 1}." if updated_count > maximum
+
+        updates = { resource_tracks: tracks.map do |track|
+          track.fetch("key") == "shadow_minions" ? track.merge("current" => updated_count) : track
+        end }
+        if action_cost.positive?
+          actions = trait_set.current_actions.to_i
+          raise ArgumentError, "You need #{action_cost} action to summon a Shadow Minion." if actions < action_cost
+
+          updates[:current_actions] = actions - action_cost
+        end
+        trait_set.update!(updates)
+        record_revision!(event_type: "shadow_minion_update", summary:, from_level: level, to_level: level)
+      end
+    end
+
     def record_initial_revision
       record_revision!(event_type: "created", summary: "Character created", from_level: level, to_level: level)
     end
@@ -1670,6 +1876,12 @@ class Character < ApplicationRecord
       formula = pool["max_formula"].to_s
       return nil if formula.blank?
       return formula.to_i if formula.match?(/\A\d+\z/)
+
+      minimum_formula_match = formula.match(/\AMIN\(\s*(STR|DEX|INT|WIL)\s*,\s*LVL\s*\)\z/i)
+      if minimum_formula_match
+        stat = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }.fetch(minimum_formula_match[1].upcase)
+        return [ value_for_stat(stat_values, stat), level.to_i ].min
+      end
 
       multiplier_match = formula.match(/\A\s*(\d+)\s*\*\s*LVL\b/i)
       return multiplier_match[1].to_i * level.to_i if multiplier_match

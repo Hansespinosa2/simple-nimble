@@ -23,6 +23,11 @@ class StorySubclassChangeService
       validate_spellblade_choice_conflicts!(character, to_subclass, approved_feature_choices, approved_spell_choices)
       approved_companion = validate_companion!(character, to_subclass, companion_name:, companion_size:)
       replaced_feature_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character.character_class&.name, to_subclass)
+      replaced_resource_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(character.character_class&.name, to_subclass)
+      replaced_spell_names = Rules::NimbleCatalog.story_subclass_spell_restrictions_for(character.character_class&.name, to_subclass) & character.spells.pluck(:name)
+      replaced_resource_pools = Array(character.trait_set&.resource_tracks).map(&:to_h).select do |track|
+        replaced_resource_pool_keys.include?(track["key"])
+      end.index_by { |track| track.fetch("key") }
       feature_choice_ledger = character.feature_choice_ledger
       reconciled_pool_names = approved_feature_choices.keys | replaced_feature_pools
       replaced_feature_choices = feature_choice_ledger.slice(*reconciled_pool_names).reject { |_pool_name, selections| selections.blank? }
@@ -32,12 +37,16 @@ class StorySubclassChangeService
         approved_spell_choices,
         approved_feature_choices,
         approved_companion,
-        replaced_feature_choices
+        replaced_feature_choices,
+        replaced_resource_pools,
+        replaced_spell_names
       )
       approved_subclass_choices = {
         "spell_choices" => approved_spell_choices,
         "feature_choices" => approved_feature_choices,
         "replaced_feature_choices" => replaced_feature_choices,
+        "replaced_resource_pools" => replaced_resource_pools,
+        "replaced_spells" => replaced_spell_names,
         "companion" => approved_companion,
         "source_refs" => choice_sources
       }.reject { |_key, value| value.blank? }
@@ -63,6 +72,8 @@ class StorySubclassChangeService
         approved_by:
       ) do
         character.subclass_name = to_subclass
+        character.bonescythe_summoned = false unless to_subclass == "Reaver"
+        character.spells = character.spells.where.not(name: replaced_spell_names) if replaced_spell_names.present?
         character.spell_choices = spell_choice_ledger
         character.feature_choices = feature_choice_ledger if approved_feature_choices.present?
         character.subclass_choices = approved_subclass_choices
@@ -168,7 +179,7 @@ class StorySubclassChangeService
   end
   private_class_method :validate_companion!
 
-  def self.story_choice_source_refs(character, subclass_name, spell_choices, feature_choices, companion, replaced_feature_choices)
+  def self.story_choice_source_refs(character, subclass_name, spell_choices, feature_choices, companion, replaced_feature_choices, replaced_resource_pools, replaced_spell_names)
     source_refs = {}
     unless spell_choices.empty?
       pools = character.story_subclass_spell_choice_pools_through(subclass_name:).index_by { |pool| pool.fetch("name") }
@@ -187,6 +198,16 @@ class StorySubclassChangeService
     unless replaced_feature_choices.empty?
       source_refs["replaced_feature_choices"] = replaced_feature_choices.keys.index_with do |pool_name|
         Rules::NimbleCatalog.choice_pool_for(character.character_class&.name, pool_name).to_h.fetch("source_ref", character.character_class&.source_reference)
+      end
+    end
+    unless replaced_resource_pools.empty?
+      source_refs["replaced_resource_pools"] = replaced_resource_pools.keys.index_with do |pool_key|
+        replaced_resource_pools.fetch(pool_key).fetch("source_ref", character.character_class&.source_reference)
+      end
+    end
+    unless replaced_spell_names.empty?
+      source_refs["replaced_spells"] = replaced_spell_names.index_with do |_spell_name|
+        Rules::NimbleCatalog.story_subclass_spell_restriction_source_ref_for(character.character_class&.name, subclass_name)
       end
     end
     source_refs

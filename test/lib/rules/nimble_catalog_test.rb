@@ -387,6 +387,24 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 76", orders.fetch("Coordinated Strike!").fetch("source_ref")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Reaver rules remove patron casting and expose the Bonescythe and minion limits" do
+    assert_equal [ "pilfered_power" ], @catalog.story_subclass_resource_pool_replacements_for("Shadowmancer", "Reaver")
+    assert_equal [ "Shadow Blast" ], @catalog.story_subclass_spell_restrictions_for("Shadowmancer", "Reaver")
+
+    weapon = @catalog.story_subclass_weapon_rules_for("Shadowmancer", "Reaver").fetch("Bonescythe")
+    assert_equal 2, weapon.fetch("base_damage_dice")
+    assert_equal 5, weapon.fetch("additional_die_every_levels")
+    assert_equal "d12", weapon.fetch("damage_die")
+    assert_equal 2, weapon.fetch("reach")
+    assert_equal "Heroes 2.0.1, p. 78", weapon.fetch("source_ref")
+
+    notes = @catalog.story_subclass_feature_notes_for("Shadowmancer", "Reaver")
+    assert_equal [ "Hollow One", "Shadow Exploit", "Martyr Spawn", "Grim Harrow", "Reap", "My Blood, My Power", "Otherworldly Might", "I'm the Patron Now!" ], notes.map { |note| note.fetch("name") }
+    shadow_minions = @catalog.class_for("Shadowmancer").fetch("resource").fetch("pools").find { |pool| pool.fetch("key") == "shadow_minions" }
+    assert_equal "MIN(INT, LVL)", shadow_minions.fetch("max_formula")
+  end
+
   # S-02:AC-1 S-02:AC-2
   test "Beastmaster companion and alternate Hunt choices are catalog-backed" do
     pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole

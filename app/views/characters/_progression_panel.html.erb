@@ -7,7 +7,9 @@
 <% companion_abilities = character.story_subclass_companion_ability_entries %>
 <% initiative_features = character.story_subclass_initiative_feature_entries %>
 <% empowered_orders = character.story_subclass_empowered_order_entries %>
-<% if class_features.any? || subclass_features.any? || feature_choices.any? || spell_choices.any? || initiative_features.any? || empowered_orders.any? %>
+<% subclass_feature_notes = character.story_subclass_feature_note_entries %>
+<% subclass_weapon = character.story_subclass_weapon_entry %>
+<% if class_features.any? || subclass_features.any? || feature_choices.any? || spell_choices.any? || initiative_features.any? || empowered_orders.any? || subclass_feature_notes.any? || subclass_weapon.present? %>
   <section class="panel progression-panel">
     <div class="panel-heading compact">
       <div><p class="eyebrow">Class progression</p><h2>Features unlocked</h2></div>
@@ -32,6 +34,12 @@
       <% end %>
       <% empowered_orders.each do |order| %>
         <div class="progression-entry progression-entry-choice"><span>Empowered Order · <%= order.fetch(:arcane_name) %></span><strong><%= order.fetch(:name) %></strong><em><%= order.fetch(:effect) %></em><small><%= order.fetch(:source_ref) %></small></div>
+      <% end %>
+      <% if subclass_weapon.present? %>
+        <div class="progression-entry progression-entry-subclass"><span><%= subclass_weapon.fetch(:summoned) ? "Summoned · shatters after a hit" : "Weapon · action to summon" %></span><strong><%= subclass_weapon.fetch(:name) %> · <%= subclass_weapon.fetch(:damage_dice) %></strong><em><%= subclass_weapon.fetch(:damage_effect) %> · Reach <%= subclass_weapon.fetch(:reach) %></em><small><%= subclass_weapon.fetch(:source_ref) %> · +1 damage die every 5 levels</small></div>
+      <% end %>
+      <% subclass_feature_notes.each do |note| %>
+        <div class="progression-entry progression-entry-subclass"><span>Level <%= note.fetch("unlock_level") %> · <%= note.fetch("source_ref") %></span><strong><%= note.fetch("name") %></strong><em><%= note.fetch("effect") %></em><small><%= note.fetch("source_quote") %></small></div>
       <% end %>
       <% feature_choices.each do |choice| %>
         <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>

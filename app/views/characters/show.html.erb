@@ -149,14 +149,85 @@
         <% end %>
         <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
           <% initiative_mana = resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" } %>
-          <% if initiative_mana.present? %>
+          <% reaver_initiative = @character.character_class&.name == "Shadowmancer" && @character.subclass_name == "Reaver" && @character.level.to_i >= 15 %>
+          <% if initiative_mana.present? || reaver_initiative %>
             <div class="safe-rest-action">
-              <p class="eyebrow">Spellblade · Initiative</p>
-              <p>Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends.</p>
+              <p class="eyebrow"><%= reaver_initiative ? "Reaver · Initiative" : "Spellblade · Initiative" %></p>
+              <p><%= reaver_initiative ? "Roll initiative at the table, then record it here to summon up to 2 free Shadow Minions, subject to your normal minion limit." : "Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends." %></p>
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
               <% else %>
-                <%= button_to "Record Initiative Roll · gain #{initiative_mana.fetch('max')} mana", begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
+                <%= button_to(reaver_initiative ? "Record Initiative Roll · summon 2 minions" : "Record Initiative Roll · gain #{initiative_mana.fetch('max')} mana", begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+              <% end %>
+            </div>
+          <% end %>
+          <% bonescythe = @character.story_subclass_weapon_entry %>
+          <% if bonescythe.present? %>
+            <div class="safe-rest-action">
+              <p class="eyebrow">Reaver · Bonescythe</p>
+              <% if bonescythe.fetch(:summoned) %>
+                <p><%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. The next hit shatters it.</p>
+                <% if @character.subclass_name == "Reaver" && @character.level.to_i >= 7 %>
+                  <p class="field-hint">At level 7, Reap can summon one minion on a critical hit or kill, if you are below your limit.</p>
+                  <%= button_to "Record Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
+                  <%= button_to "Record Critical Hit · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }, class: "button button-secondary button-full" %>
+                  <%= button_to "Record Kill · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "kill" } }, class: "button button-secondary button-full" %>
+                <% else %>
+                  <%= button_to "Record Bonescythe Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
+                <% end %>
+              <% elsif @character.trait_set&.current_actions.to_i.positive? %>
+                <p>Summon as a melee weapon: <%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. It shatters after one hit or when combat ends.</p>
+                <%= button_to "Summon Bonescythe · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_bonescythe" } }, class: "button button-secondary button-full" %>
+              <% else %>
+                <p>Summoning requires 1 action. You currently have no actions available.</p>
+              <% end %>
+            </div>
+          <% end %>
+          <% shadow_minions = resource_tracks.find { |track| track.fetch("key") == "shadow_minions" } %>
+          <% if shadow_minions.present? %>
+            <% minion_count = shadow_minions.fetch("current").to_i %>
+            <% minion_capacity = shadow_minions.fetch("max").to_i %>
+            <% reaver = @character.subclass_name == "Reaver" %>
+            <div class="safe-rest-action">
+              <p class="eyebrow">Shadow Minions · <%= minion_count %> / <%= minion_capacity %></p>
+              <p>Summon Shadows costs 1 action. Minions abandon you when combat ends; the count resets with the encounter.</p>
+              <% if minion_count < minion_capacity && @character.trait_set&.current_actions.to_i.positive? %>
+                <%= button_to "Summon Shadow Minion · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
+              <% end %>
+              <% if reaver && minion_count.positive? %>
+                <%= button_to "Martyr Spawn · spend 1 minion to negate Defend damage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "martyr_spawn" } }, class: "button button-secondary button-full" %>
+              <% end %>
+              <% if reaver && @character.level.to_i >= 3 %>
+                <% next_cost = resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" } %>
+                <% tiered_spells = @character.sheet_spells.select { |spell| spell.tier.to_i.positive? && spell.available_to?(@character) } %>
+                <% if next_cost.present? && tiered_spells.any? %>
+                  <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %>. Spend the spell's normal actions separately.</p>
+                  <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
+                    <%= feature_form.hidden_field :action, value: "shadow_exploit" %>
+                    <div class="field">
+                      <%= feature_form.label :spell_name, "Tiered spell to cast" %>
+                      <%= feature_form.select :spell_name, options_for_select(tiered_spells.map { |spell| [ spell.name, spell.name ] }), { include_blank: "Choose a spell" }, required: true, class: "choice-select" %>
+                    </div>
+                    <%= feature_form.submit "Record Shadow Exploit cast", class: "button button-secondary button-full" %>
+                  <% end %>
+                <% end %>
+                <% if @character.level.to_i >= 11 && tiered_spells.any? %>
+                  <% current_wounds = @character.trait_set&.current_wounds.to_i %>
+                  <% max_wounds = @character.trait_set&.max_wounds.to_i %>
+                  <p class="field-hint">My Blood, My Power: take 1 Wound to cast a known tiered spell at your highest unlocked tier; the spell's normal action cost still applies. Current Wounds: <%= current_wounds %> / <%= max_wounds %>.</p>
+                  <% if current_wounds < max_wounds %>
+                    <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
+                      <%= feature_form.hidden_field :action, value: "my_blood_my_power" %>
+                      <div class="field">
+                        <%= feature_form.label :spell_name, "Known tiered spell" %>
+                        <%= feature_form.select :spell_name, options_for_select(tiered_spells.map { |spell| [ spell.name, spell.name ] }), { include_blank: "Choose a spell" }, required: true, class: "choice-select" %>
+                      </div>
+                      <%= feature_form.submit "Record My Blood, My Power cast", class: "button button-secondary button-full" %>
+                    <% end %>
+                  <% else %>
+                    <p class="field-hint">You are at your Wound limit and cannot use this feature now.</p>
+                  <% end %>
+                <% end %>
               <% end %>
             </div>
           <% end %>

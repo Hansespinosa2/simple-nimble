@@ -496,6 +496,73 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, spellblade.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Reaver sheet renders and tracks Bonescythe summon and shatter actions" do
+    Rails.application.load_seed
+    reaver = Character.create!(
+      name: "Bonescythe Tracker",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 1, dexterity: 2, intelligence: 1, will: 0 },
+      language_choices: [ "Elvish" ]
+    )
+    reaver.update_columns(level: 3, status: "playable", subclass_name: "Reaver")
+    stat_values = Character::STAT_NAMES.index_with { |stat| reaver.stat_value(stat) }
+    tracks = reaver.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Reaver")
+    reaver.trait_set.update!(resource_tracks: tracks, current_actions: 3)
+
+    get character_url(reaver)
+    assert_response :success
+    assert_select ".progression-entry-subclass", /Bonescythe · 2d12/
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Bonescythe · spend 1 action"
+
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
+    assert_redirected_to character_url(reaver)
+    assert_equal 2, reaver.reload.trait_set.current_actions
+    assert reaver.bonescythe_summoned?
+
+    get character_url(reaver)
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Bonescythe Hit · shatter"
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "mark_bonescythe_hit" } }
+    assert_redirected_to character_url(reaver)
+    assert_not reaver.reload.bonescythe_summoned?
+
+    reaver.update_column(:level, 7)
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
+    assert_equal 1, reaver.reload.trait_set.current_actions
+    get character_url(reaver)
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Critical Hit · shatter + Reap"
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Kill · shatter + Reap"
+
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }
+    assert_redirected_to character_url(reaver)
+    assert_includes flash[:notice], "Reap summoned a Shadow Minion"
+    assert_equal 1, reaver.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
+    assert_equal 0, reaver.reload.trait_set.current_actions
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "mark_bonescythe_hit", outcome: "kill" } }
+    assert_redirected_to character_url(reaver)
+    assert_includes flash[:notice], "Reap could not add a minion because you are at your limit"
+    assert_equal 1, reaver.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+
+    reaver.spells << Spell.find_by!(name: "Shadow Trap")
+    reaver.update_column(:level, 11)
+    get character_url(reaver)
+    assert_response :success
+    assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']"
+    assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Trap']"
+    assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Blast']", count: 0
+
+    patch game_feature_character_url(reaver), params: { game_feature: { action: "my_blood_my_power", spell_name: "Shadow Trap" } }
+    assert_redirected_to character_url(reaver)
+    assert_equal 1, reaver.reload.trait_set.current_wounds
+    assert reaver.character_revisions.exists?(event_type: "my_blood_my_power")
+  end
+
   test "should track a keyed class resource and reject a value above its maximum" do
     Rails.application.load_seed
     mage = Character.create!(

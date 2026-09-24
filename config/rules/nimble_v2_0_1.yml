@@ -421,14 +421,25 @@ classes:
       secondary: [5, 9, 13, 17]
       any_two: [20]
     resource:
-      name: Pilfered Power uses
-      max_formula: "DEX uses before patron retaliation; resets on Safe Rest"
+      name: Pilfered Power and Shadow Minions
+      max_formula: "Pilfered Power: DEX uses before patron retaliation; Shadow Minions: min(INT, LVL)"
       pools:
         - key: pilfered_power
           name: Pilfered Power
           max_formula: DEX
           reset: Safe Rest
           reset_events: [safe_rest]
+          source_ref: Heroes 2.0.1, p. 44
+          source_quote: "You can do this DEX times before your patron takes notice."
+        - key: shadow_minions
+          name: Shadow Minions
+          max_formula: "MIN(INT, LVL)"
+          minimum_max: 0
+          initial_current: 0
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 43
+          source_quote: "You can summon a max of INT or LVL minions this way, whichever is lower. They abandon you immediately outside of combat."
     subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths]
     story_based_subclasses:
       - name: Reaver
@@ -822,7 +833,7 @@ progression:
         11: ["Glacial Resilience"]
         15: ["Cryomancer's Reprisal"]
       Reaver:
-        3: ["Shadow Exploit", "Martyr Spawn"]
+        3: ["Hollow One", "Bonescythe", "Shadow Exploit", "Martyr Spawn"]
         7: ["Grim Harrow", "Reap"]
         11: ["My Blood, My Power", "Otherworldly Might"]
         15: ["I'm the Patron Now!"]
@@ -1267,6 +1278,86 @@ story_subclass_resource_pools:
         reset_events: [encounter_end]
         source_ref: Heroes 2.0.1, p. 76
         source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+  Shadowmancer:
+    Reaver:
+      - key: reaver_shadow_exploit_next_cost
+        name: Shadow Exploit · next minion cost
+        initial_current: 1
+        reset: Encounter ends
+        reset_events: [encounter_end]
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Sacrifice a shadow minion to cast a spell at the highest tier you have unlocked. Each subsequent spell you cast in this encounter costs 1 additional minion."
+
+story_subclass_resource_pool_replacements:
+  Shadowmancer:
+    Reaver: [pilfered_power]
+
+story_subclass_spell_restrictions:
+  Shadowmancer:
+    Reaver: [Shadow Blast]
+
+story_subclass_spell_restriction_source_refs:
+  Shadowmancer:
+    Reaver: Heroes 2.0.1, p. 78
+
+story_subclass_weapon_rules:
+  Shadowmancer:
+    Reaver:
+      Bonescythe:
+        base_damage_dice: 2
+        additional_die_every_levels: 5
+        damage_die: d12
+        damage_type: slashing
+        bonus_damage_stat: dexterity
+        bonus_damage_type: necrotic
+        reach: 2
+        action_cost: 1
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Action: Summon a magical Bonescythe, a melee weapon: 2d12 slashing+DEX necrotic damage to each die (Reach: 2). It shatters after you hit with it (or when combat ends). Any Invocations affecting Shadow Blast affect your Bonescythe instead. Every 5 levels, add 1 extra damage die."
+
+story_subclass_feature_notes:
+  Shadowmancer:
+    Reaver:
+      - name: Hollow One
+        unlock_level: 3
+        effect: You can no longer cast Shadow Blast or tiered spells using Pilfered Power; your patron leaves you the Bonescythe.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Cut off from your patron, you can no longer cast Shadow Blast and you can no longer cast tiered spells using Pilfered Power."
+      - name: Shadow Exploit
+        unlock_level: 3
+        effect: Sacrifice a shadow minion to cast a spell at your highest unlocked tier; each subsequent Shadow Exploit cast this encounter costs one more minion.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Sacrifice a shadow minion to cast a spell at the highest tier you have unlocked. Each subsequent spell you cast in this encounter costs 1 additional minion."
+      - name: Martyr Spawn
+        unlock_level: 3
+        effect: Whenever you Defend, you may sacrifice a shadow minion to take no damage.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Whenever you Defend, you can sacrifice a shadow minion to take no damage."
+      - name: Grim Harrow
+        unlock_level: 7
+        effect: When striking with the Bonescythe, divide its damage dice among any number of adjacent targets within Reach.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "When you strike with your Bonescythe, you may divide the dice as you choose amongst any number of adjacent targets within Reach."
+      - name: Reap
+        unlock_level: 7
+        effect: When the Bonescythe crits or kills a creature, summon a shadow minion for free.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "When your Bonescythe crits, or kills a creature, summon a shadow minion for free."
+      - name: My Blood, My Power
+        unlock_level: 11
+        effect: Take 1 Wound to cast a tiered spell you know at the highest tier you have unlocked.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "You may take 1 Wound to cast a tiered spell you know at the highest tier you have unlocked."
+      - name: Otherworldly Might
+        unlock_level: 11
+        effect: Gain advantage on concentration checks while you have any shadow minions.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Advantage on concentration checks if you have any shadow minions."
+      - name: I'm the Patron Now!
+        unlock_level: 15
+        effect: Summon 2 shadow minions for free when you roll Initiative.
+        source_ref: Heroes 2.0.1, p. 78
+        source_quote: "Summon 2 shadow minions for free when you roll Initiative."
 
 story_subclass_initiative_features:
   Commander:

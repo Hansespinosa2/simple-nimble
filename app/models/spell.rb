@@ -10,6 +10,7 @@ class Spell < ApplicationRecord
 
   def available_to?(character)
     return false if character.character_class.blank?
+    return false if character.story_subclass_restricted_spell_names.include?(name)
     return false if class_restricted_from?(character)
     return false if utility? && !character.utility_spell_names.include?(name)
     return true if character.story_granted_spell_names.include?(name)

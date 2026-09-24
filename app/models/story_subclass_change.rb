@@ -38,6 +38,23 @@ class StorySubclassChange < ApplicationRecord
       end
     end
 
+    choices.fetch("replaced_resource_pools", {}).to_h.each do |pool_key, resource|
+      resource = resource.to_h.stringify_keys
+      entries << {
+        label: "Replaced resource · #{resource.fetch('name')}",
+        value: "#{resource.fetch('current')} / #{resource['max']}",
+        source_refs: Array(source_refs.fetch("replaced_resource_pools", {}).to_h.fetch(pool_key, resource["source_ref"] || source_ref))
+      }
+    end
+
+    choices.fetch("replaced_spells", []).each do |spell_name|
+      entries << {
+        label: "No longer castable",
+        value: spell_name,
+        source_refs: Array(source_refs.fetch("replaced_spells", {}).to_h.fetch(spell_name, source_ref))
+      }
+    end
+
     entries
   end
 

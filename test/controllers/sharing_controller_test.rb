@@ -150,6 +150,68 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}']", 0
   end
 
+  # S-08:AC-4 S-09:AC-3
+  test "a GM cannot use owner-only encounter controls on a shared character" do
+    character = create_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    sign_in(@gm)
+
+    original_hp = character.trait_set.current_hp
+    patch game_feature_character_url(character), params: { game_feature: { action: "summon_bonescythe" } }
+
+    assert_redirected_to character_url(character)
+    assert_equal "Only the player who owns this character can edit it.", flash[:alert]
+    assert_equal original_hp, character.reload.trait_set.current_hp
+    assert_not character.reload.bonescythe_summoned?
+    assert_empty character.character_revisions.where(event_type: "weapon_summoned")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-1 S-09:AC-3
+  test "the GM-approved Reaver change records patron powers replaced on the read-only shared sheet" do
+    character = create_shadowmancer
+    character.spells << Spell.find_by!(name: "Shadow Blast")
+    tracks = character.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "pilfered_power" ? track.merge("current" => 1) : track
+    end
+    character.trait_set.update!(resource_tracks: tracks)
+
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+    sign_in(@gm)
+
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_select "select[name='story_subclass_change[to_subclass]'] option", text: "Reaver"
+    assert_select ".tracker-form", 0
+
+    assert_difference("StorySubclassChange.count", 1) do
+      post shared_story_subclass_changes_url(share.share_token), params: {
+        story_subclass_change: {
+          current_subclass: "Pact of the Red Dragon",
+          to_subclass: "Reaver",
+          story_note: "The patron abandons the hero and leaves a bone-forged weapon."
+        }
+      }
+    end
+
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_equal "Reaver", character.reload.subclass_name
+    assert_not character.spells.exists?(name: "Shadow Blast")
+    change = character.story_subclass_changes.sole
+    assert_equal "The patron abandons the hero and leaves a bone-forged weapon.", change.story_note
+    assert_equal "1 / 2", change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "Replaced resource · Pilfered Power" }.fetch(:value)
+    assert_equal [ "Heroes 2.0.1, p. 78" ], change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "No longer castable" }.fetch(:source_refs)
+
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_includes response.body, "Replaced resource · Pilfered Power"
+    assert_includes response.body, "Heroes 2.0.1, p. 44"
+    assert_includes response.body, "The patron abandons the hero and leaves a bone-forged weapon."
+    assert_select ".tracker-form", 0
+  end
+
   test "the GM story-change form collects and publishes Spellblade's earned spell choices" do
     character = create_commander_story_character
     sign_in(@player)
@@ -419,6 +481,24 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       character.finalize_creation!
       character.update_columns(level: 3, status: "playable", subclass_name: "Champion of the Bulwark")
       character.skill_set.update!(might: 9)
+      character
+    end
+
+    def create_shadowmancer
+      Rails.application.load_seed unless CharacterClass.exists?(name: "Shadowmancer")
+      character = Character.create!(
+        name: "Shared Reaver Candidate",
+        account: @player,
+        character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        language_choices: [ "Elvish", "Draconic" ],
+        skill_set_attributes: { stealth: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(level: 3, status: "playable", subclass_name: "Pact of the Red Dragon")
+      character.skill_set.update!(stealth: 9)
       character
     end
 
