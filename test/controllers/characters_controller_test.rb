@@ -559,9 +559,11 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
     assert_equal 1, reaver.reload.trait_set.current_actions
     get character_url(reaver)
+    assert_select ".field-hint", /Grim Harrow: divide the Bonescythe's damage dice among any number of adjacent targets within Reach/
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Critical Hit · shatter + Reap"
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Kill · shatter + Reap"
     assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']", count: 0
+    assert_empty css_select(".field-hint").select { |hint| hint.text.include?("Otherworldly Might") }
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }
     assert_redirected_to character_url(reaver)
@@ -578,9 +580,20 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     reaver.update_column(:level, 11)
     get character_url(reaver)
     assert_response :success
+    assert_select ".field-hint", /Otherworldly Might: you have advantage on concentration checks while you have any Shadow Minions/
     assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']"
     assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Trap']"
     assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Blast']", count: 0
+
+    tracks_without_minions = reaver.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "shadow_minions" ? track.merge("current" => 0) : track
+    end
+    reaver.trait_set.update!(resource_tracks: tracks_without_minions)
+    get character_url(reaver)
+    assert_empty css_select(".field-hint").select { |hint| hint.text.include?("Otherworldly Might") }
+    reaver.trait_set.update!(resource_tracks: reaver.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "shadow_minions" ? track.merge("current" => 1) : track
+    end)
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "my_blood_my_power", spell_name: "Shadow Trap" } }
     assert_redirected_to character_url(reaver)

@@ -168,6 +168,7 @@
               <% if bonescythe.fetch(:summoned) %>
                 <p><%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. The next hit shatters it.</p>
                 <% if @character.story_subclass_feature_unlocked?("Reap") %>
+                  <p class="field-hint">Grim Harrow: divide the Bonescythe's damage dice among any number of adjacent targets within Reach; resolve target selection at the table. (Heroes 2.0.1, p. 78)</p>
                   <p class="field-hint">Reap can summon one minion on a critical hit or kill, if you are below your limit. (Heroes 2.0.1, p. 78)</p>
                   <%= button_to "Record Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
                   <%= button_to "Record Critical Hit · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }, class: "button button-secondary button-full" %>
@@ -191,6 +192,9 @@
             <div class="safe-rest-action">
               <p class="eyebrow">Shadow Minions · <%= minion_count %> / <%= minion_capacity %></p>
               <p>Summon Shadows costs 1 action. Minions abandon you when combat ends; the count resets with the encounter.</p>
+              <% if reaver && minion_count.positive? && @character.story_subclass_feature_unlocked?("Otherworldly Might") %>
+                <p class="field-hint">Otherworldly Might: you have advantage on concentration checks while you have any Shadow Minions. (Heroes 2.0.1, p. 78)</p>
+              <% end %>
               <% if minion_count < minion_capacity && @character.trait_set&.current_actions.to_i.positive? %>
                 <%= button_to "Summon Shadow Minion · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
               <% end %>
