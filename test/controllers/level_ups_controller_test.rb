@@ -106,9 +106,11 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Death Blow" ], @character.reload.recorded_feature_choices.fetch("Savage Arsenal")
   end
 
-  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-4 S-09:AC-1 S-09:AC-3
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-09:AC-1 S-09:AC-3
   test "level-nineteen finalization requires and records a source-defined Epic Boon" do
     level_eighteen_berserker!
+    starting_speed = @character.trait_set.speed
+    starting_initiative = @character.trait_set.initiative
 
     get new_character_level_up_url(@character)
 
@@ -142,11 +144,61 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to character_url(@character)
     assert_equal 19, @character.reload.level
     assert_equal [ "Epic Speed" ], @character.recorded_feature_choices.fetch("Epic Boon")
+    assert_equal starting_speed + 4, @character.trait_set.speed
+    assert_equal starting_initiative + 4, @character.trait_set.initiative
 
     get character_url(@character)
     assert_select ".progression-entry-choice", /Epic Speed/
     assert_select ".progression-entry-choice", /\+4 Speed and \+4 Initiative/
     assert_select ".progression-entry-choice", /Gamemaster's Guide 2\.0, p\. 23/
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-09:AC-1 S-09:AC-3
+  test "Epic Stats requires three different stat picks and applies them on level-up" do
+    level_eighteen_berserker!
+    starting_stats = @character.stat_set.attributes.slice("strength", "dexterity", "intelligence", "will").transform_values(&:to_i)
+    starting_skills = @character.skill_set.attributes.slice(*Character::SKILL_NAMES).transform_values(&:to_i)
+
+    post character_level_ups_url(@character), params: {
+      level_up: {
+        from_level: 18,
+        to_level: 19,
+        skill_name: "might",
+        feature_choices: { "Epic Boon" => [ "Epic Stats" ] }
+      },
+      finalize: "1"
+    }
+
+    assert_response :unprocessable_entity
+    assert_select ".blocked-choice-list .blocked-choice strong", text: "Choose 3 Epic Stats · stat increases options at level 19."
+    assert_select ".feature-choice-field", /Epic Stats · stat increases/
+    assert_select ".feature-choice-field option[value='strength']", text: "Strength"
+
+    post character_level_ups_url(@character), params: {
+      level_up: {
+        from_level: 18,
+        to_level: 19,
+        skill_name: "might",
+        feature_choices: {
+          "Epic Boon" => [ "Epic Stats" ],
+          "Epic Stats · stat increases" => %w[strength dexterity will]
+        }
+      },
+      finalize: "1"
+    }
+
+    assert_redirected_to character_url(@character)
+    @character.reload
+    assert_equal starting_stats.fetch("strength") + 1, @character.stat_set.strength
+    assert_equal starting_stats.fetch("dexterity") + 1, @character.stat_set.dexterity
+    assert_equal starting_stats.fetch("will") + 1, @character.stat_set.will
+    assert_equal starting_stats.fetch("intelligence"), @character.stat_set.intelligence
+    assert_equal %w[strength dexterity will], @character.feature_choice_ledger.fetch("Epic Stats · stat increases").fetch("19")
+    Character::SKILL_NAMES.each do |skill|
+      expected_increase = %w[strength dexterity will].include?(Character::SKILL_TO_STAT.fetch(skill)) ? 1 : 0
+      expected_increase += 1 if skill == "might"
+      assert_equal starting_skills.fetch(skill) + expected_increase, @character.skill_set.public_send(skill), "#{skill} reflects the source-defined stat and skill increases"
+    end
   end
 
   test "level-three Mage page exposes the utility-school choice" do

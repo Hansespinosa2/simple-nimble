@@ -1087,6 +1087,69 @@ shared_choice_pools:
       "Epic Speed": "+4 Speed and +4 Initiative."
       "Epic Stamina": "Rolling 4 or higher on a Hit Die during a Field Rest heals 1 Wound."
       "Epic Stats": "Increase 3 different stats by 1."
+    option_effects:
+      "Epic Defense":
+        derived_modifiers: {armor_per_shield_modifier: 3}
+      "Epic Foresight":
+        derived_modifiers: {initiative_modifier: 5}
+      "Epic Mind":
+        resource_max_modifiers: {mana: 8}
+      "Epic Speed":
+        derived_modifiers: {initiative_modifier: 4, speed_modifier: 4}
+      "Epic Stamina":
+        field_rest_effects: {wound_healing_threshold: 4}
+    option_resource_pools:
+      "Epic Agility":
+        - key: epic_agility
+          name: Epic Agility · extra action
+          max_formula: "1"
+          initial_current: 1
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Gamemaster's Guide 2.0, p. 23
+          source_quote: "Epic Agility. Gain 1 action. 1/encounter."
+      "Epic Knowledge":
+        - key: epic_knowledge
+          name: Epic Knowledge · uses
+          max_formula: "1"
+          initial_current: 1
+          reset: Daily (reset manually)
+          source_ref: Gamemaster's Guide 2.0, p. 23
+          source_quote: "Epic Knowledge. 1/day, you can call upon a moment of profound insight to gain hidden knowledge about a legendary person or object."
+      "Epic Mind":
+        - key: mana
+          name: Mana
+          max_formula: "0"
+          reset: Safe Rest
+          reset_events: [safe_rest]
+          source_ref: Gamemaster's Guide 2.0, p. 23
+          source_quote: "Epic Mind. +8 mana."
+      "Epic Resistance":
+        - key: epic_resistance
+          name: Epic Resistance · uses
+          max_formula: "1"
+          initial_current: 1
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Gamemaster's Guide 2.0, p. 23
+          source_quote: "Epic Resistance. 1/encounter. Whenever you would suffer damage or fail a save you can choose not to instead."
+
+  "Epic Stats · stat increases":
+    source_ref: Gamemaster's Guide 2.0, p. 23
+    source_quote: "Epic Stats. Increase 3 different stats by 1."
+    choices: {19: 3}
+    requires_feature_choice: {pool: "Epic Boon", option: "Epic Stats"}
+    stat_increase_amount: 1
+    allow_exceeding_typical_stat_max: true
+    options: [strength, dexterity, intelligence, will]
+    option_labels: {strength: Strength, dexterity: Dexterity, intelligence: Intelligence, will: Will}
+
+  "Epic Senses · vision":
+    source_ref: Gamemaster's Guide 2.0, p. 23
+    source_quote: "Epic Senses. Gain Blindsight 6 or Darkvision 16."
+    choices: {19: 1}
+    requires_feature_choice: {pool: "Epic Boon", option: "Epic Senses"}
+    options: ["Blindsight 6", "Darkvision 16"]
 
 choice_pools:
   Berserker:

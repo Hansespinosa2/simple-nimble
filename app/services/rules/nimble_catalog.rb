@@ -213,6 +213,15 @@ module Rules
         end
       end
 
+      def feature_choice_resource_pools_for(class_name, selections_by_pool)
+        selections_by_pool.to_h.flat_map do |pool_name, selections|
+          resource_pools = choice_pool_for(class_name, pool_name).to_h.fetch("option_resource_pools", {})
+          Array(selections).flat_map do |selection|
+            Array(resource_pools.fetch(selection.to_s, [])).map(&:to_h)
+          end
+        end
+      end
+
       def spell_choice_pools_for(class_name, level)
         data.fetch("spell_choice_pools", {}).fetch(class_name.to_s, {}).filter_map do |pool_name, definition|
           count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)

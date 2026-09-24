@@ -304,8 +304,13 @@ class Character < ApplicationRecord
     end
   end
 
-  def feature_choice_pools_for(level, subclass_name: self.subclass_name)
+  def feature_choice_pools_for(level, subclass_name: self.subclass_name, selected_feature_choices: recorded_feature_choices)
     pools = character_class&.feature_choice_pools_for(level).to_a
+    selected_choices = selected_feature_choices.to_h.stringify_keys.transform_values { |selections| Array(selections).map(&:to_s) }
+    pools.reject! do |pool|
+      requirement = pool.fetch("requires_feature_choice", {})
+      requirement.present? && !selected_choices.fetch(requirement.fetch("pool"), []).include?(requirement.fetch("option"))
+    end
     story_pools = Rules::NimbleCatalog.story_subclass_feature_choice_pools_for(character_class&.name, subclass_name, level)
     replaced_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character_class&.name, subclass_name)
     pools.reject! { |pool| replaced_pools.include?(pool.fetch("name")) }
@@ -548,6 +553,7 @@ class Character < ApplicationRecord
         level: pool.fetch("level"),
         name: pool.fetch("name"),
         selected: pool.fetch("selected"),
+        selected_labels: pool.fetch("option_labels", {}).slice(*pool.fetch("selected")),
         selected_descriptions: pool.fetch("option_descriptions", {}).slice(*pool.fetch("selected")),
         source_refs: source_refs.uniq
       }
@@ -953,27 +959,36 @@ class Character < ApplicationRecord
     end
     actual_healing = [ healing, trait_set.max_hp.to_i - trait_set.current_hp.to_i ].min
     new_hp = trait_set.current_hp.to_i + actual_healing
+    field_rest_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, recorded_feature_choices).fetch("field_rest_effects", {})
+    wound_threshold = field_rest_effects.fetch("wound_healing_threshold", 0).to_i
+    wounds_recovered = if hit_die_result == "rolled" && wound_threshold.positive?
+      [ results.count { |roll| roll >= wound_threshold }, trait_set.current_wounds.to_i ].min
+    else
+      0
+    end
     tracks = normalized_resource_tracks(trait_set.resource_tracks, current_hp: new_hp)
     resource_values = resource_tracker_values_for(tracks)
 
     transaction do
       trait_set.update!(
         current_hp: new_hp,
+        current_wounds: trait_set.current_wounds.to_i - wounds_recovered,
         current_hit_dice: trait_set.current_hit_dice.to_i - count,
         current_mana: resource_values.fetch(:current_mana) || trait_set.current_mana,
         current_resource: resource_values.fetch(:current_resource) || trait_set.current_resource,
         resource_tracks: tracks
       )
       method_name = mode == "make_camp" ? "Make Camp" : "Catch Breath"
+      wound_summary = wounds_recovered.positive? ? "; healed #{wounds_recovered} Wound#{'s' unless wounds_recovered == 1}" : ""
       record_revision!(
         event_type: "field_rest",
-        summary: "#{method_name}: spent #{count} Hit Die#{'s' if count != 1}, recovered #{actual_healing} HP",
+        summary: "#{method_name}: spent #{count} Hit Die#{'s' if count != 1}, recovered #{actual_healing} HP#{wound_summary}",
         from_level: level,
         to_level: level
       )
     end
 
-    { mode:, hit_dice_spent: count, hp_recovered: actual_healing }
+    { mode:, hit_dice_spent: count, hp_recovered: actual_healing, wounds_recovered: }
   end
 
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)
@@ -986,32 +1001,32 @@ class Character < ApplicationRecord
     derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die || "1d6")
   end
 
-  def max_hit_dice_for(level: self.level, subclass_name: self.subclass_name)
+  def max_hit_dice_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
     progression = Rules::NimbleCatalog.hit_dice_progression
     level_one_maximum = progression.fetch("level_one_maximum").to_i
     increase_per_level = progression.fetch("increase_per_level").to_i
     level_based_maximum = level_one_maximum + [ level.to_i - 1, 0 ].max * increase_per_level
-    level_based_maximum + derived_modifier_for(:max_hit_dice_modifier, level:, subclass_name:)
+    level_based_maximum + derived_modifier_for(:max_hit_dice_modifier, level:, subclass_name:, feature_choices:)
   end
 
-  def max_actions_for(level: self.level, subclass_name: self.subclass_name)
-    DEFAULT_MAX_ACTIONS + derived_modifier_for(:max_actions_modifier, level:, subclass_name:)
+  def max_actions_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
+    DEFAULT_MAX_ACTIONS + derived_modifier_for(:max_actions_modifier, level:, subclass_name:, feature_choices:)
   end
 
   def hit_die_sides
     trait_set&.hit_die.to_s[/d(\d+)/i, 1]&.to_i
   end
 
-  def initiative_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
+  def initiative_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
     values = stat_values || current_stat_values
     level_value = level.to_i.positive? ? level.to_i : 1
     level_bonus = derived_feature_effects(level:, subclass_name:)["initiative_level_bonus"] ? level_value : 0
     initiative_stat = Rules::NimbleCatalog.stat_name_for_abbreviation(Rules::NimbleCatalog.derived_values.fetch("initiative_formula"))
-    value_for_stat(values, initiative_stat) + derived_modifier_for(:initiative_modifier, level:, subclass_name:) + level_bonus
+    value_for_stat(values, initiative_stat) + derived_modifier_for(:initiative_modifier, level:, subclass_name:, feature_choices:) + level_bonus
   end
 
-  def speed_for(level: self.level, subclass_name: self.subclass_name)
-    BASE_SPEED + derived_modifier_for(:speed_modifier, level:, subclass_name:)
+  def speed_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
+    BASE_SPEED + derived_modifier_for(:speed_modifier, level:, subclass_name:, feature_choices:)
   end
 
   def save_dc_for(stat_values = nil)
@@ -1048,7 +1063,7 @@ class Character < ApplicationRecord
     inventory_profiles + starting_profiles
   end
 
-  def armor_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name)
+  def armor_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
     return nil if character_class.blank?
 
     values = stat_values || current_stat_values
@@ -1066,7 +1081,8 @@ class Character < ApplicationRecord
     else
       dexterity
     end
-    armor += shields.sum { |item| item.fetch("rules").fetch("armor_value").to_i }
+    per_shield_bonus = derived_modifier_for(:armor_per_shield_modifier, level:, subclass_name:, feature_choices:)
+    armor += shields.sum { |item| item.fetch("rules").fetch("armor_value").to_i + per_shield_bonus }
     effects = derived_feature_effects(level:, subclass_name:)
     armor *= effects.fetch("armor_multiplier", 1).to_i unless body_armor
     armor += value_for_stat(values, effects["armor_stat_addition"]) if effects["armor_stat_addition"].present?
@@ -1121,6 +1137,9 @@ class Character < ApplicationRecord
     story_pools = Rules::NimbleCatalog.story_subclass_resource_pools_for(character_class&.name, subclass_name)
     pools = class_pools + ancestry_pools + story_pools + story_subclass_companion_resource_pools(level:, subclass_name:)
     choice_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices)
+    choice_resource_pools = Rules::NimbleCatalog.feature_choice_resource_pools_for(character_class&.name, feature_choices)
+    existing_pool_keys = pools.map { |pool| pool.to_h["key"] }
+    pools += choice_resource_pools.reject { |pool| existing_pool_keys.include?(pool.fetch("key")) }
     derived_resource_modifiers = derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
     choice_resource_modifiers = choice_effects.fetch("resource_max_modifiers", {})
     resource_keys = derived_resource_modifiers.keys | choice_resource_modifiers.keys
@@ -1531,11 +1550,12 @@ class Character < ApplicationRecord
     )
   end
 
-  def derived_modifier_for(attribute, level: self.level, subclass_name: self.subclass_name)
+  def derived_modifier_for(attribute, level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
     origin_modifier = [ ancestry, background ].compact.sum do |origin|
       origin.respond_to?(attribute) ? origin.public_send(attribute).to_i : 0
     end
-    origin_modifier + derived_feature_effects(level:, subclass_name:).fetch(attribute.to_s, 0).to_i
+    choice_modifiers = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices).fetch("derived_modifiers", {})
+    origin_modifier + derived_feature_effects(level:, subclass_name:).fetch(attribute.to_s, 0).to_i + choice_modifiers.fetch(attribute.to_s, 0).to_i
   end
 
   def ensure_defaults

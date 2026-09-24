@@ -452,9 +452,12 @@ Chosen at level 19 (Epic Boon). Minor and Major Boons are optionally used as que
 All classes grant one Epic Boon at level 19. The level-up flow requires one of
 the 12 options on Gamemaster's Guide 2.0, p. 23, records the choice with the
 Heroes 2.0.1 progression citation, and displays its source-described effect on
-the character sheet. The chosen boon and its text are tracked; passive boon
-bonuses are not yet fully applied to derived values, and the tactical effects
-are not resolved by the game-state tracker.
+the character sheet. Epic Stats is interpreted as an explicit exception to the
+Core Rules' *typical* +5 stat maximum because the boon grants +1 without stating
+a cap. Epic Speed, Epic Foresight, Epic Defense, Epic Mind, Epic Stats, and Epic
+Stamina update the corresponding derived values; Epic Agility, Epic Knowledge,
+and Epic Resistance have use counters. Situational attack/save effects and
+mana-for-healing substitution remain reference-only.
 
 ---
 

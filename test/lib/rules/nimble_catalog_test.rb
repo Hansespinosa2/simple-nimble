@@ -449,15 +449,26 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     @catalog.classes.each_key do |class_name|
       pools = @catalog.choice_pools_for(class_name, 19)
-      assert_equal [ "Epic Boon" ], pools.map { |pool| pool.fetch("name") }, "#{class_name} level 19 should require the shared boon choice"
-      assert_equal 1, pools.sole.fetch("count"), "#{class_name} should choose exactly one boon"
-      assert_equal expected_options, pools.sole.fetch("options")
-      assert_equal expected_descriptions, pools.sole.fetch("option_descriptions")
-      assert_match(/Heroes 2\.0\.1, level 19.*Gamemaster's Guide 2\.0, p\. 23/, pools.sole.fetch("source_ref"))
-      assert_includes pools.sole.fetch("source_quote"), "Choose an Epic Boon"
+      assert_equal [ "Epic Boon", "Epic Stats · stat increases", "Epic Senses · vision" ], pools.map { |pool| pool.fetch("name") }, "#{class_name} should expose the boon and its conditional follow-up choices"
+      boon_pool = pools.first
+      assert_equal 1, boon_pool.fetch("count"), "#{class_name} should choose exactly one boon"
+      assert_equal expected_options, boon_pool.fetch("options")
+      assert_equal expected_descriptions, boon_pool.fetch("option_descriptions")
+      assert_match(/Heroes 2\.0\.1, level 19.*Gamemaster's Guide 2\.0, p\. 23/, boon_pool.fetch("source_ref"))
+      assert_includes boon_pool.fetch("source_quote"), "Choose an Epic Boon"
     end
 
     assert_empty @catalog.choice_pools_for("Berserker", 18)
+    assert @catalog.choice_pools_for("Berserker", 19).find { |pool| pool.fetch("name") == "Epic Stats · stat increases" }.fetch("allow_exceeding_typical_stat_max")
+
+    effects = @catalog.feature_choice_effects_for("Mage", "Epic Boon" => [ "Epic Speed", "Epic Foresight", "Epic Mind" ])
+    assert_equal({
+      "derived_modifiers" => { "initiative_modifier" => 9, "speed_modifier" => 4 },
+      "resource_max_modifiers" => { "mana" => 8 }
+    }, effects)
+
+    resources = @catalog.feature_choice_resource_pools_for("Berserker", "Epic Boon" => [ "Epic Agility", "Epic Knowledge", "Epic Resistance", "Epic Mind" ])
+    assert_equal %w[epic_agility epic_knowledge epic_resistance mana], resources.map { |pool| pool.fetch("key") }
   end
 
   test "Academy Dropout's starting Utility Spell is source-backed" do

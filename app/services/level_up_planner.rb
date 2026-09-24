@@ -147,7 +147,7 @@ class LevelUpPlanner
     return [] if character.character_class.blank?
 
     feature_choices_by_name = feature_choices
-    character.feature_choice_pools_for(target_level).map do |pool|
+    character.feature_choice_pools_for(target_level, selected_feature_choices: feature_choices).map do |pool|
       pool_name = pool.fetch("name")
       selected = feature_choices_by_name.fetch(pool_name, [])
       pool.merge("options" => available_feature_options(pool, selected), "selected" => selected)
@@ -172,6 +172,14 @@ class LevelUpPlanner
     stats = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
     [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
       stats[stat_name] += stat_increase_amount if stat_options.include?(stat_name)
+    end
+    character.feature_choice_pools_for(target_level, selected_feature_choices: feature_choices).each do |pool|
+      amount = pool.fetch("stat_increase_amount", 0).to_i
+      next unless amount.positive?
+
+      feature_choices.fetch(pool.fetch("name"), []).each do |stat_name|
+        stats[stat_name] += amount if stats.key?(stat_name)
+      end
     end
     stats
   end
@@ -372,19 +380,19 @@ class LevelUpPlanner
       traits["max_hp"] += hp_gain
       current_level = character.level.to_i.positive? ? character.level.to_i : 1
       current_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: current_level, subclass_name: character.subclass_name)
-      target_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: target_level, subclass_name: selected_subclass_name)
+      target_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
       traits["max_hp"] += target_max_hp_modifier - current_max_hp_modifier
       traits["current_hp"] = traits["max_hp"] if character.trait_set.current_hp.to_i >= character.trait_set.max_hp.to_i
       hit_dice_progression = Rules::NimbleCatalog.hit_dice_progression
       hit_dice_gain = hit_dice_progression.fetch("increase_per_level").to_i
-      traits["max_hit_dice"] = character.max_hit_dice_for(level: target_level, subclass_name: selected_subclass_name)
+      traits["max_hit_dice"] = character.max_hit_dice_for(level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
       traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + hit_dice_gain, traits["max_hit_dice"] ].min
-      traits["initiative"] = character.initiative_for(stats, level: target_level, subclass_name: selected_subclass_name)
-      traits["max_actions"] = character.max_actions_for(level: target_level, subclass_name: selected_subclass_name)
-      traits["speed"] = character.speed_for(level: target_level, subclass_name: selected_subclass_name)
+      traits["initiative"] = character.initiative_for(stats, level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
+      traits["max_actions"] = character.max_actions_for(level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
+      traits["speed"] = character.speed_for(level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
       traits["hit_die"] = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
-      traits["armor"] = character.armor_for(stats, level: target_level, subclass_name: selected_subclass_name).to_i + character.derived_modifier_for(:armor_modifier, level: target_level, subclass_name: selected_subclass_name)
-      traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier, level: target_level, subclass_name: selected_subclass_name)
+      traits["armor"] = character.armor_for(stats, level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices).to_i + character.derived_modifier_for(:armor_modifier, level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
+      traits["max_wounds"] = Character::DEFAULT_MAX_WOUNDS + character.derived_modifier_for(:max_wounds_modifier, level: target_level, subclass_name: selected_subclass_name, feature_choices: projected_feature_choices)
       traits["current_wounds"] = preserved_tracker_value(character.trait_set.current_wounds, character.trait_set.max_wounds, traits["max_wounds"])
       traits["inventory_slots"] = Character::BASE_INVENTORY_SLOTS + stats.fetch("strength")
       resource_values = character.derived_resource_values_for(
@@ -484,12 +492,22 @@ class LevelUpPlanner
     def projected_skill_values(include_skill_grant: true, include_skill_transfer: true)
       skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
       selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
+      stat_bonuses = Hash.new(0)
       selected_stats.each do |stat_name|
         next unless stat_options.include?(stat_name)
 
-        Character::SKILL_NAMES.each do |skill|
-          skills[skill] += stat_increase_amount if Character::SKILL_TO_STAT.fetch(skill) == stat_name
+        stat_bonuses[stat_name] += stat_increase_amount
+      end
+      character.feature_choice_pools_for(target_level, selected_feature_choices: feature_choices).each do |pool|
+        amount = pool.fetch("stat_increase_amount", 0).to_i
+        next unless amount.positive?
+
+        feature_choices.fetch(pool.fetch("name"), []).each do |stat_name|
+          stat_bonuses[stat_name] += amount if Character::STAT_NAMES.include?(stat_name)
         end
+      end
+      Character::SKILL_NAMES.each do |skill|
+        skills[skill] += stat_bonuses.fetch(Character::SKILL_TO_STAT.fetch(skill), 0)
       end
       if include_skill_grant && level_up.skill_name.present? && skills.key?(level_up.skill_name)
         skills[level_up.skill_name] += skill_points_per_level
@@ -509,7 +527,7 @@ class LevelUpPlanner
     end
 
     def validate_feature_choices(result)
-      pools = character.feature_choice_pools_for(target_level)
+      pools = character.feature_choice_pools_for(target_level, selected_feature_choices: feature_choices)
       known_pool_names = pools.map { |pool| pool.fetch("name") }
 
       feature_choices.each_key do |pool_name|
@@ -593,6 +611,18 @@ class LevelUpPlanner
             pool.fetch("source_ref"),
             "Meet the prerequisite printed beside that option before selecting it."
           )
+        end
+
+        if pool.fetch("stat_increase_amount", 0).to_i.positive? && !pool.fetch("allow_exceeding_typical_stat_max", false)
+          selections.select { |stat_name| option_names.include?(stat_name) }.each do |stat_name|
+            next if character.stat_value(stat_name) < max_stat_value
+
+            result << issue(
+              "#{stat_name.humanize} is already at the +#{max_stat_value} stat maximum.",
+              max_stat_source_ref,
+              max_stat_source_quote
+            )
+          end
         end
       end
 
