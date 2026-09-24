@@ -21,7 +21,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     end
   end
 
-  test "registered source ranges cover the pages cited by the rules catalog" do
+  test "every page citation used by the catalog fits its registered source range" do
     core_rules = @catalog.source("core_rules")
     heroes = @catalog.source("heroes")
     gamemasters_guide = @catalog.source("gamemasters_guide")
@@ -29,11 +29,21 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Core Rules, pp. 6-37, 44-60", core_rules.fetch("reference")
     assert_equal "Heroes, pp. 7-80", heroes.fetch("reference")
     assert_equal "Gamemaster's Guide, pp. 23, 43", gamemasters_guide.fetch("reference")
-    assert_match(/pp\. 20, 23-26/, @catalog.language_rules.fetch("source_ref"))
-    assert_equal "Core Rules 2.0.1, pp. 21, 33-37", @catalog.data.fetch("starting_gear_inventory").fetch("source_ref")
-    beastmaster_pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole
-    assert_equal "Heroes 2.0.1, p. 80", beastmaster_pool.fetch("source_ref")
-    assert_equal "Heroes 2.0.1, p. 78", @catalog.data.fetch("story_subclass_weapon_rules").fetch("Shadowmancer").fetch("Reaver").fetch("Bonescythe").fetch("source_ref")
+
+    source_references = catalog_source_references(@catalog.data)
+    assert_includes source_references, "Core Rules 2.0.1, pp. 21, 33-37"
+    assert_includes source_references, "Heroes 2.0.1, p. 80"
+    assert_includes source_references, "Heroes 2.0.1, p. 78"
+
+    source_references.each do |reference|
+      source_key = registered_source_key(reference)
+      next unless source_key
+
+      cited_pages = page_numbers(reference)
+      registered_pages = page_numbers(@catalog.source(source_key).fetch("reference"))
+      uncovered_pages = cited_pages - registered_pages
+      assert_empty uncovered_pages, "#{reference} cites pages outside #{@catalog.source(source_key).fetch('reference')}"
+    end
   end
 
   test "spell unlocks are read from canonical class schedules" do
@@ -563,4 +573,47 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       assert_equal choice_levels.first, @catalog.subclass_choice_level_for(class_name), class_name
     end
   end
+
+  private
+    def catalog_source_references(value)
+      case value
+      when Hash
+        value.flat_map do |key, nested|
+          references = if key.to_s.end_with?("source_ref") && nested.is_a?(String)
+            nested.split(/\s*;\s*/)
+          else
+            []
+          end
+          references + catalog_source_references(nested)
+        end
+      when Array
+        value.flat_map { |nested| catalog_source_references(nested) }
+      else
+        []
+      end
+    end
+
+    def registered_source_key(reference)
+      case reference
+      when /\ACore Rules 2\.0\.1, / then "core_rules"
+      when /\AHeroes 2\.0\.1, / then "heroes"
+      when /\AGamemaster's Guide(?: 2\.0)?, / then "gamemasters_guide"
+      end
+    end
+
+    def page_numbers(reference)
+      page_list = reference.match(/,\s*pp?\.\s*(.+)\z/)&.captures&.first
+      return [] unless page_list
+
+      page_list.split(/,\s*/).flat_map do |page_range|
+        range = page_range.match(/\A\s*(\d+)\s*[-–]\s*(\d+)\s*\z/)
+        if range
+          (range[1].to_i..range[2].to_i).to_a
+        elsif page_range.match?(/\A\s*\d+\s*\z/)
+          [ page_range.to_i ]
+        else
+          []
+        end
+      end
+    end
 end
