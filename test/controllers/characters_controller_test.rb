@@ -268,6 +268,17 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "a playable character's level is read-only in the general editor" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Level-Up Only Hero"))
+    character.finalize_creation!
+
+    get edit_character_url(character)
+
+    assert_response :success
+    assert_select "#character_level[disabled]"
+    assert_includes response.body, "Level changes happen through the explicit Level up flow."
+  end
+
   test "should update character" do
     patch character_url(@character), params: { character: { legacy_background_text: "Updated story", description: "Now with a real plan.", languages: "Common, Dwarvish", level: 2, name: "Updated Hero", nimble_class: "Guardian", race: "Dwarf" } }
 
@@ -278,6 +289,26 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated story", @character.legacy_background_text
     assert_equal 2, @character.level
     assert_equal "Edited", @character.character_revisions.order(:id).last.event_label
+  end
+
+  # S-04:AC-3 S-06:AC-6 S-09:AC-1 S-09:AC-3
+  test "should reject a direct level edit even when skill points are supplied" do
+    character = Character.create!(canonical_character_attributes.merge(name: "No Shortcut Hero"))
+    character.finalize_creation!
+    original_revisions = character.character_revisions.count
+
+    patch character_url(character), params: {
+      character: {
+        level: 2,
+        skill_set_attributes: { id: character.skill_set.id, might: 8 }
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "can only change through a finalized level-up"
+    assert_equal 1, character.reload.level
+    assert_equal 7, character.skill_set.might
+    assert_equal original_revisions, character.character_revisions.count
   end
 
   test "should not permit direct derived-field edits outside the explicit flows" do

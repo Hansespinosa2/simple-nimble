@@ -78,6 +78,7 @@ class Character < ApplicationRecord
   validate :stat_assignments_match_array
   validate :playable_state_is_legal, if: :playable?
   validate :starting_equipment_choice_only_changes_while_draft
+  validate :level_changes_require_level_up_transition
 
   before_create :ensure_defaults
   before_validation :assign_default_ruleset
@@ -793,6 +794,13 @@ class Character < ApplicationRecord
     playable? && level.to_i < 20 && creation_issues.empty?
   end
 
+  def apply_level_up_transition!(new_level)
+    @applying_level_up_transition = true
+    update!(level: new_level, status: "playable")
+  ensure
+    @applying_level_up_transition = false
+  end
+
   def skill_point_budget
     4 + [ level.to_i - 1, 0 ].max
   end
@@ -1010,6 +1018,14 @@ class Character < ApplicationRecord
       return unless persisted? && starting_equipment_choice_changed? && !draft?
 
       errors.add(:starting_equipment_choice, "can only be changed while the character is a draft")
+    end
+
+    def level_changes_require_level_up_transition
+      return unless persisted? && will_save_change_to_level?
+      return if @applying_level_up_transition
+      return if attribute_in_database("status") == "draft"
+
+      errors.add(:level, "can only change through a finalized level-up")
     end
 
     def canonical_choices_changed?

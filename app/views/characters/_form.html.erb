@@ -45,8 +45,9 @@
           </div>
           <div class="field">
             <%= form.label :level, "Level" %>
-            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only, data: { character_builder_target: "level", action: "input->character-builder#refresh change->character-builder#refresh" } %>
-            <span class="field-hint">New heroes start at level 1.</span>
+            <% level_editable = character.new_record? || character.draft? %>
+            <%= form.number_field :level, id: "character_level", min: 1, max: 20, disabled: read_only || !level_editable, data: { character_builder_target: "level", action: "input->character-builder#refresh change->character-builder#refresh" } %>
+            <span class="field-hint"><%= level_editable ? "New heroes start at level 1; drafts can be adjusted before finalizing." : "Level changes happen through the explicit Level up flow." %></span>
           </div>
           <div class="field field-wide">
             <%= form.label :description, "The short version" %>

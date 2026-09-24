@@ -9,7 +9,7 @@ class LevelUpService
       character.update!(status: "level_up") if character.playable?
       preview = planner.preview
       apply_preview!(character, preview)
-      character.update!(level: preview.fetch("level"), status: "playable")
+      character.apply_level_up_transition!(preview.fetch("level"))
       character.sync_granted_utility_spells!(level: preview.fetch("level"), ledger: character.spell_choice_ledger)
       level_up.update!(status: "finalized", preview: preview, finalized_at: Time.current)
       character.record_revision!(

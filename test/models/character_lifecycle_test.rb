@@ -89,6 +89,27 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
     assert_equal "Ready", revision.snapshot.fetch("character").fetch("name")
   end
 
+  # S-04:AC-3 S-06:AC-6 S-09:AC-1 S-09:AC-3
+  test "a playable character cannot change level outside a level-up transition" do
+    character = Character.create!(
+      name: "Transition Guard",
+      level: 1,
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      ruleset_version: @ruleset,
+      skill_set_attributes: { might: 7 }
+    )
+    character.finalize_creation!
+    revision_count = character.character_revisions.count
+
+    assert_not character.update(level: 2)
+    assert_includes character.errors[:level], "can only change through a finalized level-up"
+    assert_equal 1, character.reload.level
+    assert_equal revision_count, character.character_revisions.count
+  end
+
   test "creation explanations cite a gated background prerequisite" do
     gated_background = Background.create!(
       name: "Only Smart Enough",
