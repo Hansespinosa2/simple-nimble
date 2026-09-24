@@ -190,6 +190,28 @@ module Rules
           end
       end
 
+      def story_subclass_feature_choice_pools_for(class_name, subclass_name, level)
+        data.fetch("story_subclass_feature_choice_pools", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+          .filter_map do |pool_name, definition|
+            count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
+            next if count.nil?
+
+            definition.merge("name" => pool_name.to_s, "level" => level.to_i, "count" => count.to_i, "story_subclass" => subclass_name.to_s)
+          end
+      end
+
+      def story_subclass_companion_rule_for(class_name, subclass_name)
+        data.fetch("story_subclass_companions", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, nil)
+      end
+
+      def story_subclass_companion_abilities_for(class_name, subclass_name)
+        story_subclass_companion_rule_for(class_name, subclass_name).to_h.fetch("abilities", {})
+      end
+
       def background_spell_choice_for(background_name)
         data.fetch("background_spell_choices", {}).fetch(background_name.to_s, nil)
       end

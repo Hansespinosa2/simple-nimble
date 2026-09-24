@@ -239,6 +239,18 @@ in the rules catalog. A story change requires all Deep Knowledge picks already
 earned by the character, stores those choices in both the character's
 progression ledger and the audit record, and exposes later picks in level-up.
 
+Beastmaster also records its source-defined setup at the story change: an animal
+name and Small/Medium/Large size, plus a reconfirmation of the first two Thrill
+of the Hunt choices against the ordinary pool and the two companion options
+Go for the Throat! and Protect Me! The selected options are recorded with both
+their standard-pool and subclass citations. The app does not create companion
+HP or movement trackers because the book explicitly abstracts them. It surfaces
+the selected size's abilities, level-based damage/uses/action costs and passive
+features with a page citation, and creates encounter-use counters only for
+limited abilities actually granted to that companion. The player's Encounter
+End action refreshes only counters whose source says they reset when an encounter
+ends; it does not refill Safe Rest or daily-use resources.
+
 ---
 
 #### 7. Selectable Feature Pools (per class)

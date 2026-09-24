@@ -1255,6 +1255,100 @@ story_subclass_spell_choice_pools:
         choices: {3: 1, 7: 1, 11: 1, 15: 1}
         kind: utility_spell_any
 
+story_subclass_feature_choice_pools:
+  Hunter:
+    Beastmaster:
+      "Thrill of the Hunt":
+        source_ref: Heroes 2.0.1, p. 80
+        source_quote: "Instead of your first 2 Thrill of the Hunt (TotH) abilities, you can select Go for the Throat! and Protect Me! to use with your companion."
+        choices: {2: 2}
+        options: ["Go for the Throat!", "Protect Me!"]
+
+story_subclass_companions:
+  Hunter:
+    Beastmaster:
+      source_ref: Heroes 2.0.1, p. 80
+      source_quote: "Choose a Small, Medium, or Large animal as your companion."
+      behavior_quote: "Your companion’s HP and movement are abstracted; it knows where it is most needed without being told."
+      sizes: [Small, Medium, Large]
+      minimum_level_by_size: {Small: 1, Medium: 3, Large: 3}
+      name_max_length: 80
+      abilities:
+        Keen Eyes:
+          always_granted: true
+          source_quote: "Mark a target for free."
+          variants:
+            Small:
+              effect: "Mark a target for free."
+              uses_by_level: {1: 1, 7: 2, 11: 3}
+              track_key: beastmaster_keen_eyes
+        Protect Me!:
+          requires_choice: true
+          variants:
+            Small:
+              effect: "When you Defend, your companion distracts the attacker so the attack misses; then move up to half your Speed away."
+              source_quote: "Whenever you Defend, your companion distracts the attacker, causing the attack to miss, and you move up to half your speed away."
+              uses_by_level: {1: 1, 7: 2}
+              track_key: beastmaster_protect_me
+            Medium:
+              minimum_level: 3
+              effect: "When you Defend, your companion may first attack that creature for 1d4 + your level damage, ignoring armor."
+              source_quote: "When you Defend, your companion may first attack that creature for 1d4+LVL damage."
+            Large:
+              minimum_level: 3
+              effect_by_level:
+                3: "After you gain a Wound, your companion can whisk you up to 12 spaces to safety."
+                7: "Your companion whisks you away before you gain the Wound."
+              source_quote: "After you gain a Wound, your companion can whisk you away to safety up to 12 spaces."
+              uses_by_level: {3: 1, 15: 2}
+              track_key: beastmaster_protect_me
+        Go for the Throat!:
+          requires_choice: true
+          variants:
+            Small:
+              effect: "Your companion attacks your quarry for 1d4 + your level damage, ignoring armor, for free."
+              source_quote: "Costs 1 TotH charge: Your companion attacks your quarry for 1d4+LVL damage for free (ignoring armor)."
+              action_cost: Free
+              cost: "1 Thrill of the Hunt charge"
+              uses_by_level: {1: 1, 11: 2, 15: 3}
+              uses_per_round_by_level: {11: 1}
+              track_key: beastmaster_go_for_the_throat
+            Medium:
+              minimum_level: 3
+              effect: "Action: your companion attacks your quarry for 1d8 + (3 × your level) damage, ignoring armor."
+              source_quote: "Costs 1 TotH charge, action: Your companion attacks your quarry for 1d8+(3×LVL) damage (ignoring armor)."
+              action_cost: "1 action"
+              cost: "1 Thrill of the Hunt charge"
+              uses_by_level: {3: 1, 11: 2}
+              track_key: beastmaster_go_for_the_throat
+            Large:
+              minimum_level: 3
+              effect: "2 actions: your companion attacks your quarry for 1d12 + (4 × your level) damage, ignoring armor; if it dies, deal half as much to another creature within Reach 4."
+              source_quote: "Costs 2 TotH charges, 2 actions: Your companion attacks your quarry for 1d12+(4×LVL) damage (ignoring armor)."
+              action_cost: "2 actions"
+              cost: "2 Thrill of the Hunt charges"
+              uses_by_level: {3: 1, 11: 2}
+              track_key: beastmaster_go_for_the_throat
+        Ferocious:
+          always_granted: true
+          source_quote: "Whenever you or your companion crit your quarry, your companion attacks again for level damage, ignoring armor."
+          variants:
+            Medium:
+              minimum_level: 3
+              effect_by_level:
+                3: "When you or your companion crit your quarry, your companion attacks again for your level damage (ignoring armor) and you move up to 2 spaces for free."
+                7: "The free movement increases to 4 spaces."
+                15: "The free movement increases to 6 spaces."
+              source_quote: "Whenever you or your companion crit your quarry, your companion attacks again for LVL damage (ignoring armor), and you can move up to 2 spaces for free."
+        Alpha Protector:
+          always_granted: true
+          source_quote: "Damage from the first attack against you each round is halved."
+          variants:
+            Large:
+              minimum_level: 3
+              effect: "Damage from the first attack against you each round is halved."
+      general_note: "At the GM’s discretion, the companion can use its base-animal abilities. Complex actions such as Grapple or Help require you to spend 1 action to command it."
+
 spell_choice_auto_grants:
   Shepherd:
     11: [Necrotic, Radiant]

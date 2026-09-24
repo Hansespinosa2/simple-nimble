@@ -10,6 +10,7 @@ class CharacterRevision < ApplicationRecord
     "created" => "Created",
     "finalized" => "Finalized as playable",
     "level_up" => "Leveled up",
+    "encounter_end" => "Encounter ended",
     "safe_rest" => "Safe Rest",
     "field_rest" => "Field Rest",
     "inventory_update" => "Inventory update",

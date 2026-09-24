@@ -432,6 +432,34 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Smoldering", @character.character_revisions.order(:id).last.snapshot.fetch("character").fetch("conditions")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet exposes an encounter end action that refreshes only encounter counters" do
+    Rails.application.load_seed
+    hunter = Character.create!(
+      name: "Encounter Tracker",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Gnome"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    hunter.trait_set.update!(resource_tracks: hunter.trait_set.resource_tracks.map { |track| track.merge("current" => 0) })
+
+    get character_url(hunter)
+
+    assert_response :success
+    assert_select "form[action='#{end_encounter_character_path(hunter)}'] button[type='submit']", text: "End Encounter · refresh uses"
+
+    patch end_encounter_character_url(hunter)
+
+    assert_redirected_to character_url(hunter)
+    assert_equal "Encounter ended. Encounter-reset counters were refreshed.", flash[:notice]
+    tracks = hunter.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 0, tracks.fetch("thrill_of_the_hunt").fetch("current")
+    assert_equal 0, tracks.fetch("ancestry_gnome_optimistic").fetch("current")
+    assert hunter.character_revisions.exists?(event_type: "encounter_end")
+  end
+
   test "should track a keyed class resource and reject a value above its maximum" do
     Rails.application.load_seed
     mage = Character.create!(

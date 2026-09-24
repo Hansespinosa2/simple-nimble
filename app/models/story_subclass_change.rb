@@ -13,6 +13,34 @@ class StorySubclassChange < ApplicationRecord
   validate :revision_records_this_character_change
   validate :subclass_is_replaced
 
+  def subclass_choice_entries
+    choices = subclass_choices.to_h.stringify_keys
+    source_refs = choices.fetch("source_refs", {}).to_h.stringify_keys
+    entries = []
+    companion = choices.fetch("companion", {}).to_h.stringify_keys
+    if companion.present?
+      entries << {
+        label: "Companion",
+        value: [ companion["size"], companion["name"] ].compact_blank.join(" "),
+        source_refs: Array(source_refs.fetch("companion", source_ref))
+      }
+    end
+
+    %w[feature_choices spell_choices].each do |choice_kind|
+      choices.fetch(choice_kind, {}).to_h.each do |pool_name, choices_by_level|
+        choices_by_level.to_h.each do |level, selections|
+          entries << {
+            label: "Level #{level} · #{pool_name}",
+            value: Array(selections).join(", "),
+            source_refs: Array(source_refs.fetch(choice_kind, {}).to_h.fetch(pool_name, source_ref))
+          }
+        end
+      end
+    end
+
+    entries
+  end
+
   private
     def subclass_is_a_story_option_for_character_class
       rule = character&.character_class&.story_based_subclass_rule(to_subclass)

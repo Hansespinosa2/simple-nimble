@@ -345,6 +345,36 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_empty @catalog.story_subclass_spell_choice_pools_for("Commander", "Champion of the Bulwark", 3)
   end
 
+  # S-02:AC-1 S-02:AC-2
+  test "Beastmaster companion and alternate Hunt choices are catalog-backed" do
+    pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole
+    assert_equal "Thrill of the Hunt", pool.fetch("name")
+    assert_equal 2, pool.fetch("count")
+    assert_equal [ "Go for the Throat!", "Protect Me!" ], pool.fetch("options")
+    assert_equal "Heroes 2.0.1, p. 80", pool.fetch("source_ref")
+    assert_match(/first 2 Thrill of the Hunt/, pool.fetch("source_quote"))
+    assert_empty @catalog.story_subclass_feature_choice_pools_for("Hunter", "Shadowpath", 2)
+
+    companion = @catalog.story_subclass_companion_rule_for("Hunter", "Beastmaster")
+    assert_equal [ "Small", "Medium", "Large" ], companion.fetch("sizes")
+    assert_equal({ "Small" => 1, "Medium" => 3, "Large" => 3 }, companion.fetch("minimum_level_by_size"))
+    assert_equal "Heroes 2.0.1, p. 80", companion.fetch("source_ref")
+    assert_match(/Choose a Small, Medium, or Large animal/, companion.fetch("source_quote"))
+
+    abilities = @catalog.story_subclass_companion_abilities_for("Hunter", "Beastmaster")
+    assert_equal({ 1 => 1, 7 => 2, 11 => 3 }, abilities.fetch("Keen Eyes").fetch("variants").fetch("Small").fetch("uses_by_level"))
+    assert_equal({ 1 => 1, 7 => 2 }, abilities.fetch("Protect Me!").fetch("variants").fetch("Small").fetch("uses_by_level"))
+    assert_equal "When you Defend, your companion may first attack that creature for 1d4+LVL damage.", abilities.fetch("Protect Me!").fetch("variants").fetch("Medium").fetch("source_quote")
+    assert_match(/before you gain the Wound/, abilities.fetch("Protect Me!").fetch("variants").fetch("Large").fetch("effect_by_level").fetch(7))
+    assert_equal({ 1 => 1, 11 => 2, 15 => 3 }, abilities.fetch("Go for the Throat!").fetch("variants").fetch("Small").fetch("uses_by_level"))
+    assert_equal({ 11 => 1 }, abilities.fetch("Go for the Throat!").fetch("variants").fetch("Small").fetch("uses_per_round_by_level"))
+    assert_equal "2 Thrill of the Hunt charges", abilities.fetch("Go for the Throat!").fetch("variants").fetch("Large").fetch("cost")
+    assert_equal "2 actions: your companion attacks your quarry for 1d12 + (4 × your level) damage, ignoring armor; if it dies, deal half as much to another creature within Reach 4.", abilities.fetch("Go for the Throat!").fetch("variants").fetch("Large").fetch("effect")
+    assert_match(/6 spaces/, abilities.fetch("Ferocious").fetch("variants").fetch("Medium").fetch("effect_by_level").fetch(15))
+    assert_match(/halved/, abilities.fetch("Alpha Protector").fetch("variants").fetch("Large").fetch("effect"))
+    assert_nil @catalog.story_subclass_companion_rule_for("Hunter", "Shadowpath")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "published classes distinguish level-three choices from story-based subclasses" do
     expected = {

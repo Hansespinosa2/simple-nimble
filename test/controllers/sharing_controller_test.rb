@@ -187,6 +187,51 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".spell-chip", text: "Flame Dart"
   end
 
+  test "the GM story-change form records Beastmaster's companion and first two Hunt choices" do
+    character = create_hunter_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select "select[name='story_subclass_change[companion_size]'][required] option", text: "Small"
+    assert_select "input[name='story_subclass_change[companion_name]'][required][maxlength='80']"
+    assert_select "select[name='story_subclass_change[feature_choices][Thrill of the Hunt][2][]'][multiple][required] option[value='Go for the Throat!']"
+    assert_select "select[name='story_subclass_change[feature_choices][Thrill of the Hunt][2][]'][multiple][required] option[value='Protect Me!']"
+
+    post shared_story_subclass_changes_url(share.share_token), params: {
+      story_subclass_change: {
+        current_subclass: "Shadowpath",
+        to_subclass: "Beastmaster",
+        story_note: "A rescued hawk refuses to leave the hunter's side.",
+        companion_size: "Small",
+        companion_name: "Ember",
+        feature_choices: {
+          "Thrill of the Hunt" => { "2" => [ "Go for the Throat!", "Protect Me!" ] }
+        }
+      }
+    }
+
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_equal "Beastmaster", character.reload.subclass_name
+    assert_equal [ "Go for the Throat!", "Protect Me!" ], character.recorded_feature_choices.fetch("Thrill of the Hunt")
+    assert_equal({ "size" => "Small", "name" => "Ember" }, character.subclass_choices.fetch("companion"))
+
+    sign_in(@player)
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_select ".story-subclass-choice", /Companion: Small Ember.*Heroes 2\.0\.1, p\. 80/
+    assert_select ".story-subclass-choice", /Go for the Throat!.*Protect Me!.*Heroes 2\.0\.1, p\. 28.*Heroes 2\.0\.1, p\. 80/
+    assert_select ".progression-entry", /Companion.*Ember.*Small animal.*Heroes 2\.0\.1, p\. 80/
+    assert_select ".progression-entry", /Keen Eyes.*Mark a target for free.*1 \/ 1 per encounter/
+    assert_select ".progression-entry", /Go for the Throat!.*1 Thrill of the Hunt charge.*Heroes 2\.0\.1, p\. 80/
+    assert_select ".resource-summary-item", /Protect Me! · uses.*1.*Encounter ends/
+    assert_select ".tracker-form", 0
+  end
+
   test "shared players and global GMs without GM membership cannot approve story subclass changes" do
     character = create_story_character
     sign_in(@player)
@@ -374,6 +419,28 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       character.finalize_creation!
       character.update_columns(level: 3, status: "playable", subclass_name: "Champion of the Bulwark")
       character.skill_set.update!(might: 9)
+      character
+    end
+
+    def create_hunter_story_character
+      Rails.application.load_seed unless CharacterClass.exists?(name: "Hunter")
+      character = Character.create!(
+        name: "Shared Beastmaster Candidate",
+        account: @player,
+        character_class: CharacterClass.find_by!(name: "Hunter"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        skill_set_attributes: { finesse: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(
+        level: 3,
+        status: "playable",
+        subclass_name: "Shadowpath",
+        feature_choices: { "Thrill of the Hunt" => { "2" => [ "Fleet Feet", "Wild Instinct" ] } }
+      )
+      character.skill_set.update!(finesse: 9)
       character
     end
 

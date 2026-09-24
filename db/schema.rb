@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_130000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -153,6 +153,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_120000) do
     t.string "stat_array"
     t.text "stat_assignments"
     t.string "status", default: "draft", null: false
+    t.text "subclass_choices", default: "{}", null: false
     t.string "subclass_name"
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_characters_on_account_id"

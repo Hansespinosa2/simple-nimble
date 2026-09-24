@@ -64,7 +64,7 @@ class LevelUpPlanner
     return [] if character.character_class.blank?
 
     feature_choices_by_name = feature_choices
-    character.character_class.feature_choice_pools_for(target_level).map do |pool|
+    character.feature_choice_pools_for(target_level).map do |pool|
       pool_name = pool.fetch("name")
       selected = feature_choices_by_name.fetch(pool_name, [])
       pool.merge("options" => available_feature_options(pool, selected), "selected" => selected)
@@ -387,7 +387,7 @@ class LevelUpPlanner
     end
 
     def validate_feature_choices(result)
-      pools = character.character_class&.feature_choice_pools_for(target_level).to_a
+      pools = character.feature_choice_pools_for(target_level)
       known_pool_names = pools.map { |pool| pool.fetch("name") }
 
       feature_choices.each_key do |pool_name|

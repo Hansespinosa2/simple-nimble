@@ -33,6 +33,38 @@
             <% end %>
           </fieldset>
         <% end %>
+        <% if @story_subclass_companion_rule.present? %>
+          <fieldset class="field feature-choice-field">
+            <legend>Beastmaster companion</legend>
+            <div class="field">
+              <%= label_tag "story_subclass_change[companion_size]", "Animal size" %>
+              <% size_options = @story_subclass_companion_rule.fetch("sizes").map do |size|
+                minimum_level = @story_subclass_companion_rule.fetch("minimum_level_by_size", {}).fetch(size, 1).to_i
+                [ size, size, { disabled: @character.level.to_i < minimum_level } ]
+              end %>
+              <%= select_tag "story_subclass_change[companion_size]", options_for_select(size_options), include_blank: "Choose a size", required: true, class: "choice-select" %>
+            </div>
+            <div class="field">
+              <%= label_tag "story_subclass_change[companion_name]", "Companion animal" %>
+              <%= text_field_tag "story_subclass_change[companion_name]", nil, maxlength: @story_subclass_companion_rule.fetch("name_max_length"), placeholder: "For example, a hawk named Ember", required: true, class: "choice-input" %>
+            </div>
+            <span class="field-hint"><%= @story_subclass_companion_rule.fetch("source_quote") %> <%= @story_subclass_companion_rule.fetch("behavior_quote") %> Medium and Large companions require level 3. (<%= @story_subclass_companion_rule.fetch("source_ref") %>)</span>
+          </fieldset>
+        <% end %>
+        <% if @story_subclass_feature_choice_pools.any? %>
+          <fieldset class="field feature-choice-field">
+            <legend>Reconcile earned feature choices</legend>
+            <p class="field-hint">The subclass changes the options for the first two Thrill of the Hunt choices. Confirm the two choices that remain on the sheet.</p>
+            <% @story_subclass_feature_choice_pools.each do |pool| %>
+              <% field_name = "story_subclass_change[feature_choices][#{pool.fetch('name')}][#{pool.fetch('level')}][]" %>
+              <div class="field">
+                <%= label_tag field_name, "Level #{pool.fetch('level')} · choose #{pool.fetch('count')} #{pool.fetch('name')} abilities" %>
+                <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, pool.fetch("selected")), multiple: true, required: true, size: [ pool.fetch("count").to_i + 2, 5 ].max, class: "choice-select" %>
+                <span class="field-hint"><%= pool.fetch("story_source_quote") %> (<%= pool.fetch("story_source_ref") %>)</span>
+              </div>
+            <% end %>
+          </fieldset>
+        <% end %>
         <%= form.submit "Approve story change", class: "button button-primary" %>
       <% end %>
     <% end %>
@@ -43,10 +75,8 @@
           <article class="story-subclass-entry">
             <div><strong><%= change.from_subclass %> → <%= change.to_subclass %></strong><span><%= change.approved_by_account.display_name %> · <%= change.campaign.name %> · <%= change.source_ref %></span></div>
             <p><%= change.story_note %></p>
-            <% change.subclass_choices.to_h.each do |pool_name, choices_by_level| %>
-              <% choices_by_level.to_h.each do |level, choices| %>
-                <p class="story-subclass-choice">Level <%= level %> · <%= pool_name %>: <%= Array(choices).join(", ") %></p>
-              <% end %>
+            <% change.subclass_choice_entries.each do |entry| %>
+              <p class="story-subclass-choice"><%= entry.fetch(:label) %>: <%= entry.fetch(:value) %> · <%= entry.fetch(:source_refs).join("; ") %></p>
             <% end %>
             <time datetime="<%= change.created_at.iso8601 %>"><%= l(change.created_at, format: :short) %></time>
           </article>

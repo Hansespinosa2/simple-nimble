@@ -147,6 +147,13 @@
           <div class="field"><%= tracker_form.label :game_notes, "Session notes" %><%= tracker_form.text_area :game_notes, rows: 3, placeholder: "Remember this for next time…" %></div>
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
+        <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
+          <div class="safe-rest-action">
+            <p class="eyebrow">Encounter End</p>
+            <p>Refresh only the counters whose rules reset when an encounter ends. Safe Rest and daily-use counters are left alone.</p>
+            <%= button_to "End Encounter · refresh uses", end_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
+          </div>
+        <% end %>
         <div class="safe-rest-action">
           <p class="eyebrow">Safe Rest</p>
           <p>At a GM-designated safe location: recover all HP and Hit Dice, heal 1 Wound, clear Temp HP, and refresh tracked rest resources.</p>

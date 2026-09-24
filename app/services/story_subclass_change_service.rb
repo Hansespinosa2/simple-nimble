@@ -1,7 +1,7 @@
 class StorySubclassChangeService
   MAX_STORY_NOTE_LENGTH = 1_000
 
-  def self.call(character:, share:, approved_by:, current_subclass:, to_subclass:, story_note:, spell_choices: {})
+  def self.call(character:, share:, approved_by:, current_subclass:, to_subclass:, story_note:, spell_choices: {}, feature_choices: {}, companion_name: nil, companion_size: nil)
     note = story_note.to_s.strip
     raise ArgumentError, "Add a story note explaining why the subclass changes." if note.blank?
     raise ArgumentError, "Story notes must be #{MAX_STORY_NOTE_LENGTH} characters or fewer." if note.length > MAX_STORY_NOTE_LENGTH
@@ -19,11 +19,27 @@ class StorySubclassChangeService
       raise ArgumentError, "#{to_subclass} is not a story-based subclass for this character's class." unless story_rule
 
       approved_spell_choices = validate_spell_choices!(character, to_subclass, spell_choices)
+      approved_feature_choices = validate_feature_choices!(character, to_subclass, feature_choices)
+      approved_companion = validate_companion!(character, to_subclass, companion_name:, companion_size:)
+      choice_sources = story_choice_source_refs(character, to_subclass, approved_spell_choices, approved_feature_choices, approved_companion)
+      approved_subclass_choices = {
+        "spell_choices" => approved_spell_choices,
+        "feature_choices" => approved_feature_choices,
+        "companion" => approved_companion,
+        "source_refs" => choice_sources
+      }.reject { |_key, value| value.blank? }
+
       from_subclass = character.subclass_name
       spell_choice_ledger = character.spell_choice_ledger
       approved_spell_choices.each do |pool_name, selections_by_level|
         spell_choice_ledger[pool_name] ||= {}
         spell_choice_ledger[pool_name].merge!(selections_by_level)
+      end
+      feature_choice_ledger = character.feature_choice_ledger
+      approved_feature_choices.each do |pool_name, selections_by_level|
+        feature_choice_ledger[pool_name] ||= {}
+        feature_choice_ledger[pool_name].delete("legacy")
+        feature_choice_ledger[pool_name].merge!(selections_by_level)
       end
 
       character.with_approved_story_subclass_change(
@@ -35,6 +51,8 @@ class StorySubclassChangeService
       ) do
         character.subclass_name = to_subclass
         character.spell_choices = spell_choice_ledger
+        character.feature_choices = feature_choice_ledger if approved_feature_choices.present?
+        character.subclass_choices = approved_subclass_choices
         character.save!
 
         revision = character.record_revision!(
@@ -50,7 +68,7 @@ class StorySubclassChangeService
           from_subclass:,
           to_subclass:,
           story_note: note,
-          subclass_choices: approved_spell_choices,
+          subclass_choices: approved_subclass_choices,
           source_ref: story_rule.fetch("source_ref")
         )
       end
@@ -58,6 +76,104 @@ class StorySubclassChangeService
 
     change
   end
+
+  def self.validate_feature_choices!(character, subclass_name, raw_choices)
+    expected_pools = character.story_subclass_feature_choice_pools_through(subclass_name:, level: character.level)
+    submitted = raw_choices.respond_to?(:to_unsafe_h) ? raw_choices.to_unsafe_h : raw_choices.to_h
+    submitted = submitted.stringify_keys
+    allowed_pool_names = expected_pools.map { |pool| pool.fetch("name") }.uniq
+    unexpected_pools = submitted.keys - allowed_pool_names
+    if unexpected_pools.any?
+      raise ArgumentError, "#{unexpected_pools.join(', ')} is not a choice granted by #{subclass_name}."
+    end
+
+    expected_pools.group_by { |pool| pool.fetch("name") }.each_with_object({}) do |(pool_name, pools), normalized|
+      level_values = submitted.fetch(pool_name, {}).to_h.stringify_keys
+      expected_levels = pools.map { |pool| pool.fetch("level").to_s }
+      unexpected_levels = level_values.keys - expected_levels
+      if unexpected_levels.any?
+        raise ArgumentError, "#{pool_name} is not granted at level #{unexpected_levels.join(', ')}."
+      end
+
+      selections_by_level = pools.to_h do |pool|
+        level = pool.fetch("level").to_s
+        selections = Array(level_values[level]).compact_blank.map(&:to_s)
+        count = pool.fetch("count").to_i
+        if selections.length != count
+          raise ArgumentError, "Choose #{count} option#{count == 1 ? '' : 's'} for #{pool_name} at level #{level}."
+        end
+
+        invalid = selections - Array(pool.fetch("options"))
+        if invalid.any?
+          raise ArgumentError, "#{invalid.join(', ')} is not a legal #{pool_name} choice at level #{level}."
+        end
+
+        prior_by_level = character.feature_choice_ledger.fetch(pool_name, {})
+        replaced_levels = expected_levels + [ "legacy" ]
+        prior_other_levels = prior_by_level.reject { |prior_level, _| replaced_levels.include?(prior_level) }.values.flatten
+        repeated = selections & prior_other_levels
+        if repeated.any?
+          raise ArgumentError, "#{repeated.join(', ')} is already selected at another #{pool_name} level."
+        end
+
+        [ level, selections ]
+      end
+
+      repeated = selections_by_level.values.flatten.tally.select { |_selection, count| count > 1 }.keys
+      if repeated.any?
+        raise ArgumentError, "Choose distinct options for #{pool_name}."
+      end
+
+      normalized[pool_name] = selections_by_level
+    end
+  end
+  private_class_method :validate_feature_choices!
+
+  def self.validate_companion!(character, subclass_name, companion_name:, companion_size:)
+    rule = character.story_subclass_companion_rule(subclass_name)
+    name = companion_name.to_s.strip
+    size = companion_size.to_s
+    if rule.blank?
+      raise ArgumentError, "This story-based subclass does not grant a companion choice." if name.present? || size.present?
+
+      return {}
+    end
+
+    if size.blank? || !Array(rule.fetch("sizes")).include?(size)
+      raise ArgumentError, "Choose a companion size from #{Array(rule.fetch('sizes')).to_sentence}."
+    end
+    minimum_level = rule.fetch("minimum_level_by_size", {}).fetch(size, 1).to_i
+    if character.level.to_i < minimum_level
+      raise ArgumentError, "A #{size} companion requires level #{minimum_level}."
+    end
+    raise ArgumentError, "Name the animal companion." if name.blank?
+    if name.length > rule.fetch("name_max_length").to_i
+      raise ArgumentError, "The companion name must be #{rule.fetch('name_max_length')} characters or fewer."
+    end
+
+    { "size" => size, "name" => name }
+  end
+  private_class_method :validate_companion!
+
+  def self.story_choice_source_refs(character, subclass_name, spell_choices, feature_choices, companion)
+    source_refs = {}
+    unless spell_choices.empty?
+      pools = character.story_subclass_spell_choice_pools_through(subclass_name:).index_by { |pool| pool.fetch("name") }
+      source_refs["spell_choices"] = spell_choices.keys.index_with { |pool_name| pools.fetch(pool_name).fetch("source_ref") }
+    end
+    unless feature_choices.empty?
+      pools = character.story_subclass_feature_choice_pools_through(subclass_name:).index_by { |pool| pool.fetch("name") }
+      source_refs["feature_choices"] = feature_choices.keys.index_with do |pool_name|
+        pool = pools.fetch(pool_name)
+        [ pool.fetch("source_ref"), pool.fetch("story_source_ref") ].compact.uniq
+      end
+    end
+    if companion.present?
+      source_refs["companion"] = [ character.story_subclass_companion_rule(subclass_name).fetch("source_ref") ]
+    end
+    source_refs
+  end
+  private_class_method :story_choice_source_refs
 
   def self.validate_spell_choices!(character, subclass_name, raw_choices)
     expected_pools = character.story_subclass_spell_choice_pools_through(subclass_name:, level: character.level)

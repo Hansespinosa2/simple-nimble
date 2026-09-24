@@ -1,6 +1,6 @@
 class CharactersController < ApplicationController
-  before_action :set_character, only: %i[ show edit update destroy finalize tracker safe_rest field_rest history ]
-  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker safe_rest field_rest history ]
+  before_action :set_character, only: %i[ show edit update destroy finalize tracker end_encounter safe_rest field_rest history ]
+  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker end_encounter safe_rest field_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -119,6 +119,11 @@ class CharactersController < ApplicationController
   def safe_rest
     @character.take_safe_rest!
     redirect_to @character, notice: "Safe Rest completed. HP, Hit Dice, and tracked resources were refreshed."
+  end
+
+  def end_encounter
+    @character.end_encounter!
+    redirect_to @character, notice: "Encounter ended. Encounter-reset counters were refreshed."
   end
 
   def field_rest

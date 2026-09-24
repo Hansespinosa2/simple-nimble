@@ -2,6 +2,7 @@ class Character < ApplicationRecord
   serialize :stat_assignments, coder: JSON
   serialize :feature_choices, coder: JSON
   serialize :spell_choices, coder: JSON
+  serialize :subclass_choices, coder: JSON
   serialize :language_choices, coder: JSON
   serialize :feature_language_choices, coder: JSON
 
@@ -281,6 +282,72 @@ class Character < ApplicationRecord
     end
   end
 
+  def feature_choice_pools_for(level, subclass_name: self.subclass_name)
+    pools = character_class&.feature_choice_pools_for(level).to_a
+    story_pools = Rules::NimbleCatalog.story_subclass_feature_choice_pools_for(character_class&.name, subclass_name, level)
+
+    story_pools.each do |story_pool|
+      base_pool = pools.find { |pool| pool.fetch("name") == story_pool.fetch("name") }
+      next unless base_pool
+
+      story_options = Array(story_pool.fetch("options", []))
+      base_pool.merge!(
+        "options" => (Array(base_pool.fetch("options", [])) + story_options).uniq,
+        "story_options" => story_options,
+        "story_source_ref" => story_pool.fetch("source_ref"),
+        "story_source_quote" => story_pool.fetch("source_quote")
+      )
+    end
+
+    pools
+  end
+
+  def story_subclass_feature_choice_pools_through(subclass_name:, level: self.level, ledger: feature_choice_ledger)
+    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+      feature_choice_pools_for(choice_level, subclass_name:).select { |pool| pool["story_source_ref"].present? }.map do |pool|
+        pool.merge(
+          "level" => choice_level,
+          "selected" => feature_choice_selections_for(pool.fetch("name"), choice_level, ledger)
+        )
+      end
+    end
+  end
+
+  def story_subclass_companion_rule(subclass_name = self.subclass_name)
+    Rules::NimbleCatalog.story_subclass_companion_rule_for(character_class&.name, subclass_name)
+  end
+
+  def story_subclass_companion_ability_entries(level: self.level, subclass_name: self.subclass_name)
+    rule = story_subclass_companion_rule(subclass_name)
+    companion = subclass_choices.to_h.stringify_keys.fetch("companion", {}).to_h.stringify_keys
+    return [] if rule.blank? || companion.blank?
+
+    size = companion.fetch("size", "")
+    selected_choices = feature_choice_selections_for("Thrill of the Hunt", 2)
+    tracks = Array(trait_set&.resource_tracks).index_by { |track| track.to_h["key"] }
+
+    Rules::NimbleCatalog.story_subclass_companion_abilities_for(character_class&.name, subclass_name).filter_map do |name, ability|
+      next if ability["requires_choice"] && !selected_choices.include?(name)
+
+      variant = ability.to_h.fetch("variants", {}).fetch(size, nil)
+      next if variant.blank? || level.to_i < variant.fetch("minimum_level", 1).to_i
+
+      track = tracks[variant["track_key"]]
+      maximum = uses_per_encounter_for(variant, level)
+      uses_per_round = level_value_for(variant.fetch("uses_per_round_by_level", {}), level)
+      {
+        name:,
+        effect: level_effect_for(variant, level),
+        action_cost: variant["action_cost"],
+        cost: variant["cost"],
+        uses: track.present? ? "#{track.fetch('current')} / #{maximum} per encounter" : nil,
+        uses_per_round: uses_per_round.present? ? "#{uses_per_round} per round" : nil,
+        source_ref: rule.fetch("source_ref"),
+        source_quote: variant["source_quote"] || ability["source_quote"] || rule.fetch("source_quote")
+      }.compact
+    end
+  end
+
   def feature_choice_pools_through(level = self.level)
     return [] if character_class.blank?
 
@@ -288,7 +355,7 @@ class Character < ApplicationRecord
     ledger = feature_choice_ledger
 
     1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
-      character_class.feature_choice_pools_for(feature_level).map do |pool|
+      feature_choice_pools_for(feature_level).map do |pool|
         pool.merge(
           "level" => feature_level,
           "selected" => feature_choice_selections_for(pool.fetch("name"), feature_level, ledger)
@@ -301,11 +368,14 @@ class Character < ApplicationRecord
     feature_choice_pools_through(level).filter_map do |pool|
       next if pool.fetch("selected").empty?
 
+      source_refs = [ pool.fetch("source_ref") ]
+      source_refs << pool.fetch("story_source_ref") if (Array(pool.fetch("story_options", [])) & pool.fetch("selected")).any?
+
       {
         level: pool.fetch("level"),
         name: pool.fetch("name"),
         selected: pool.fetch("selected"),
-        source_ref: pool.fetch("source_ref")
+        source_refs: source_refs.uniq
       }
     end
   end
@@ -316,7 +386,7 @@ class Character < ApplicationRecord
     return [] unless selections_by_level.key?("legacy")
 
     first_level = 1.upto([ level.to_i, 20 ].min).find do |candidate_level|
-      character_class.feature_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
+      feature_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
     end
     level.to_i == first_level ? selections_by_level.fetch("legacy") : []
   end
@@ -467,6 +537,19 @@ class Character < ApplicationRecord
         resource_tracks: tracks
       )
       record_revision!(event_type: "safe_rest", summary: "Safe Rest completed", from_level: level, to_level: level)
+    end
+  end
+
+  def end_encounter!
+    transaction do
+      tracks = resource_tracks_after_encounter_end
+      resource_values = resource_tracker_values_for(tracks)
+      trait_set.update!(
+        resource_tracks: tracks,
+        current_mana: resource_values.fetch(:current_mana) || trait_set.current_mana,
+        current_resource: resource_values.fetch(:current_resource) || trait_set.current_resource
+      )
+      record_revision!(event_type: "encounter_end", summary: "Encounter ended; encounter-reset resources refreshed", from_level: level, to_level: level)
     end
   end
 
@@ -648,7 +731,7 @@ class Character < ApplicationRecord
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     class_pools = Array(character_class&.resource_rules.to_h["pools"])
     ancestry_pools = Rules::NimbleCatalog.ancestry_resource_pools_for(ancestry&.name)
-    pools = class_pools + ancestry_pools
+    pools = class_pools + ancestry_pools + story_subclass_companion_resource_pools(level:, subclass_name:)
     choice_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices)
     derived_resource_modifiers = derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
     choice_resource_modifiers = choice_effects.fetch("resource_max_modifiers", {})
@@ -680,6 +763,51 @@ class Character < ApplicationRecord
         "source_quote" => pool["source_quote"]
       }.compact
     end
+  end
+
+  def story_subclass_companion_resource_pools(level:, subclass_name:)
+    rule = story_subclass_companion_rule(subclass_name)
+    companion = subclass_choices.to_h.stringify_keys.fetch("companion", {}).to_h.stringify_keys
+    return [] if rule.blank? || companion.blank?
+
+    selected_choices = feature_choice_selections_for("Thrill of the Hunt", 2)
+    Rules::NimbleCatalog.story_subclass_companion_abilities_for(character_class&.name, subclass_name).filter_map do |name, ability|
+      next if ability["requires_choice"] && !selected_choices.include?(name)
+
+      variant = ability.to_h.fetch("variants", {}).fetch(companion.fetch("size", ""), nil)
+      next if variant.blank? || variant["track_key"].blank?
+
+      maximum = uses_per_encounter_for(variant, level)
+      next if maximum.nil?
+
+      {
+        "key" => variant.fetch("track_key"),
+        "name" => "#{name} · uses",
+        "max_formula" => maximum.to_s,
+        "initial_current" => maximum,
+        "reset" => "Encounter ends",
+        "reset_events" => [ "encounter_end" ],
+        "source_ref" => rule.fetch("source_ref"),
+        "source_quote" => variant["source_quote"] || ability["source_quote"] || rule.fetch("source_quote")
+      }
+    end
+  end
+
+  def uses_per_encounter_for(variant, level)
+    value_for_level = level_value_for(variant.fetch("uses_by_level", {}), level)
+    value_for_level&.to_i
+  end
+
+  def level_effect_for(variant, level)
+    effect = level_value_for(variant.fetch("effect_by_level", {}), level)
+    effect.presence || variant["effect"]
+  end
+
+  def level_value_for(values, level)
+    values.to_h
+      .select { |unlock_level, _value| level.to_i >= unlock_level.to_i }
+      .max_by { |unlock_level, _value| unlock_level.to_i }
+      &.last
   end
 
   def derived_resource_values_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
@@ -951,7 +1079,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "language_choices", "feature_language_choices", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
+        "name", "race", "nimble_class", "level", "subclass_name", "subclass_choices", "legacy_background_text", "description", "languages", "language_choices", "feature_language_choices", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots", "equipped") },
@@ -1144,7 +1272,28 @@ class Character < ApplicationRecord
       new_record? ||
         (will_save_change_to_status? && playable?) ||
         character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || level_changed? ||
-        language_choices_changed? || feature_language_choices_changed? || languages_changed? || feature_choices_changed?
+        language_choices_changed? || feature_language_choices_changed? || languages_changed? || language_granting_feature_selection_changed?
+    end
+
+    def language_granting_feature_selection_changed?
+      return false unless feature_choices_changed?
+
+      language_feature_names = Rules::NimbleCatalog.language_rules.fetch("feature_language_choices", {}).keys
+      previous_features = selected_feature_names(attribute_in_database("feature_choices"))
+      current_features = selected_feature_names(feature_choices)
+      changed_features = (previous_features - current_features) | (current_features - previous_features)
+      changed_features.any? { |feature_name| language_feature_names.include?(feature_name) }
+    end
+
+    def selected_feature_names(selections)
+      selections = selections.is_a?(Hash) ? selections : {}
+      selections.values.flat_map do |pool_selections|
+        if pool_selections.is_a?(Hash)
+          pool_selections.values.flatten
+        else
+          Array(pool_selections)
+        end
+      end.compact_blank.map(&:to_s).uniq
     end
 
     def story_based_subclass_requires_approved_change
@@ -1443,6 +1592,21 @@ class Character < ApplicationRecord
 
         track = track.merge("reset_events" => reset_events) if reset_events.present?
         refreshed_value.nil? ? track : track.merge("current" => refreshed_value.to_i)
+      end
+    end
+
+    def resource_tracks_after_encounter_end
+      baseline = derived_resource_tracks_for(stat_values: current_stat_values).index_by { |track| track.fetch("key") }
+
+      Array(trait_set&.resource_tracks).map do |track|
+        track = track.to_h.stringify_keys
+        reset_events = Array(track["reset_events"].presence || baseline.dig(track.fetch("key"), "reset_events"))
+        next track unless reset_events.include?("encounter_end")
+
+        initial_current = track["initial_current"] || baseline.dig(track.fetch("key"), "initial_current")
+        next track if initial_current.nil?
+
+        track.merge("current" => initial_current.to_i, "reset_events" => reset_events)
       end
     end
 

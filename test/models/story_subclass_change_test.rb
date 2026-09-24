@@ -149,7 +149,8 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     )
 
     assert_equal "Spellblade", commander.reload.subclass_name
-    assert_equal spell_choices.transform_values { |by_level| by_level.transform_values { |spell| [ spell ] } }, change.subclass_choices
+    assert_equal spell_choices.transform_values { |by_level| by_level.transform_values { |spell| [ spell ] } }, change.subclass_choices.fetch("spell_choices")
+    assert_includes change.subclass_choice_entries.map { |entry| entry.fetch(:source_refs) }.flatten, "Heroes 2.0.1, p. 76"
     assert_includes commander.recorded_spell_choices.fetch(tiered_pool.fetch("name")), tiered_spell.name
     assert_includes commander.recorded_spell_choices.fetch(utility_pool.fetch("name")), utility_spell.name
     assert tiered_spell.available_to?(commander)
@@ -195,6 +196,184 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_match(/not a legal Deep Knowledge/, error.message)
     assert_equal "Champion of the Bulwark", commander.reload.subclass_name
     assert_empty commander.story_subclass_changes
+  end
+
+  test "Beastmaster approval records the companion and reselects the first two Hunt abilities" do
+    hunter = create_hunter
+    hunter.update_columns(feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet", "Wild Instinct" ] })
+    hunter.update_columns(
+      stat_array: "balanced",
+      stat_assignments: { "strength" => 0, "dexterity" => 2, "intelligence" => 1, "will" => 1 },
+      language_choices: [],
+      languages: "Common, Dwarvish"
+    )
+    hunter.stat_set.update!(strength: 0, dexterity: 2, intelligence: 1, will: 1)
+    skill_values = Character::SKILL_NAMES.index_with { |skill| hunter.skill_initial_value(skill) }
+    skill_values["finesse"] += 6
+    hunter.skill_set.update!(skill_values)
+    share = hunter.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    feature_pool = hunter.story_subclass_feature_choice_pools_through(subclass_name: "Beastmaster").sole
+    assert_equal [ "Go for the Throat!", "Protect Me!" ], feature_pool.fetch("story_options")
+    assert_equal 2, feature_pool.fetch("count")
+    feature_choices = { "Thrill of the Hunt" => { "2" => [ "Go for the Throat!", "Protect Me!" ] } }
+
+    incomplete_choices = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: hunter,
+        share:,
+        approved_by: @gm,
+        current_subclass: "Shadowpath",
+        to_subclass: "Beastmaster",
+        story_note: "The story grants a companion.",
+        feature_choices: { "Thrill of the Hunt" => { "2" => [ "Go for the Throat!" ] } },
+        companion_name: "Ember",
+        companion_size: "Small"
+      )
+    end
+    assert_match(/choose 2 options/i, incomplete_choices.message)
+
+    illegal_choice = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: hunter,
+        share:,
+        approved_by: @gm,
+        current_subclass: "Shadowpath",
+        to_subclass: "Beastmaster",
+        story_note: "The story grants a companion.",
+        feature_choices: { "Thrill of the Hunt" => { "2" => [ "Fleet Feet", "Fake Ability" ] } },
+        companion_name: "Ember",
+        companion_size: "Small"
+      )
+    end
+    assert_match(/Fake Ability is not a legal Thrill of the Hunt choice/, illegal_choice.message)
+
+    bad_size = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: hunter,
+        share:,
+        approved_by: @gm,
+        current_subclass: "Shadowpath",
+        to_subclass: "Beastmaster",
+        story_note: "The rescued hawk chooses to stay.",
+        feature_choices:,
+        companion_name: "Ember",
+        companion_size: "Tiny"
+      )
+    end
+    assert_match(/companion size/i, bad_size.message)
+    assert_equal "Shadowpath", hunter.reload.subclass_name
+    assert_empty hunter.story_subclass_changes
+
+    change = StorySubclassChangeService.call(
+      character: hunter,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Shadowpath",
+      to_subclass: "Beastmaster",
+      story_note: "The rescued hawk chooses to stay.",
+      feature_choices:,
+      companion_name: "Ember",
+      companion_size: "Small"
+    )
+
+    hunter.reload
+    assert_equal "Beastmaster", hunter.subclass_name
+    assert_equal [], hunter.language_choices
+    assert_equal "Common, Dwarvish", hunter.languages
+    assert_equal [ "Go for the Throat!", "Protect Me!" ], hunter.recorded_feature_choices.fetch("Thrill of the Hunt")
+    assert_equal({ "size" => "Small", "name" => "Ember" }, hunter.subclass_choices.fetch("companion"))
+    assert_equal({ "size" => "Small", "name" => "Ember" }, change.subclass_choices.fetch("companion"))
+    assert_equal [ "Heroes 2.0.1, p. 28", "Heroes 2.0.1, p. 80" ], hunter.feature_choice_entries_through.first.fetch(:source_refs)
+    companion_entry = change.subclass_choice_entries.find { |entry| entry.fetch(:label) == "Companion" }
+    assert_equal "Small Ember", companion_entry.fetch(:value)
+    assert_equal hunter.subclass_choices, change.character_revision.snapshot.dig("character", "subclass_choices")
+
+    tracks = hunter.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal [ "thrill_of_the_hunt", "beastmaster_keen_eyes", "beastmaster_protect_me", "beastmaster_go_for_the_throat" ], tracks.keys
+    assert_equal [ 1, 1, 1 ], %w[beastmaster_keen_eyes beastmaster_protect_me beastmaster_go_for_the_throat].map { |key| tracks.fetch(key).fetch("max") }
+    assert tracks.fetch("beastmaster_go_for_the_throat").fetch("source_quote").include?("1d4+LVL")
+
+    ability_entries = hunter.story_subclass_companion_ability_entries.index_by { |entry| entry.fetch(:name) }
+    assert_equal "Mark a target for free.", ability_entries.fetch("Keen Eyes").fetch(:effect)
+    assert_equal "1 / 1 per encounter", ability_entries.fetch("Keen Eyes").fetch(:uses)
+    assert_equal "1 Thrill of the Hunt charge", ability_entries.fetch("Go for the Throat!").fetch(:cost)
+    assert_equal "Heroes 2.0.1, p. 80", ability_entries.fetch("Protect Me!").fetch(:source_ref)
+    level_eleven_tracks = hunter.derived_resource_tracks_for(stat_values: {}, level: 11).index_by { |track| track.fetch("key") }
+    assert_equal 3, level_eleven_tracks.fetch("beastmaster_keen_eyes").fetch("max")
+    assert_equal 2, level_eleven_tracks.fetch("beastmaster_protect_me").fetch("max")
+    assert_equal 2, level_eleven_tracks.fetch("beastmaster_go_for_the_throat").fetch("max")
+    level_fifteen_tracks = hunter.derived_resource_tracks_for(stat_values: {}, level: 15).index_by { |track| track.fetch("key") }
+    assert_equal 3, level_fifteen_tracks.fetch("beastmaster_go_for_the_throat").fetch("max")
+
+    spent_tracks = hunter.trait_set.resource_tracks.map { |track| track.merge("current" => 0) }
+    hunter.trait_set.update!(resource_tracks: spent_tracks)
+    hunter.end_encounter!
+    refreshed_tracks = hunter.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal [ 1, 1, 1 ], %w[beastmaster_keen_eyes beastmaster_protect_me beastmaster_go_for_the_throat].map { |key| refreshed_tracks.fetch(key).fetch("current") }
+    assert_equal 0, refreshed_tracks.fetch("thrill_of_the_hunt").fetch("current")
+    assert hunter.character_revisions.exists?(event_type: "encounter_end")
+
+    medium_hunter = create_hunter
+    medium_share = medium_hunter.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    StorySubclassChangeService.call(
+      character: medium_hunter,
+      share: medium_share,
+      approved_by: @gm,
+      current_subclass: "Shadowpath",
+      to_subclass: "Beastmaster",
+      story_note: "A wolf joins the hunt.",
+      feature_choices:,
+      companion_name: "Fang",
+      companion_size: "Medium"
+    )
+    medium_hunter.reload
+    medium_abilities = medium_hunter.story_subclass_companion_ability_entries.index_by { |entry| entry.fetch(:name) }
+    assert_includes medium_abilities.fetch("Ferocious").fetch(:effect), "2 spaces"
+    assert_includes medium_abilities.fetch("Protect Me!").fetch(:effect), "1d4 + your level"
+    assert_equal "1 action", medium_abilities.fetch("Go for the Throat!").fetch(:action_cost)
+    assert_equal "1 Thrill of the Hunt charge", medium_abilities.fetch("Go for the Throat!").fetch(:cost)
+    assert_equal [ "thrill_of_the_hunt", "beastmaster_go_for_the_throat" ], medium_hunter.trait_set.resource_tracks.map { |track| track.fetch("key") }
+    assert_includes medium_hunter.story_subclass_companion_ability_entries(level: 15).find { |entry| entry.fetch(:name) == "Ferocious" }.fetch(:effect), "6 spaces"
+
+    large_hunter = create_hunter
+    large_share = large_hunter.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    StorySubclassChangeService.call(
+      character: large_hunter,
+      share: large_share,
+      approved_by: @gm,
+      current_subclass: "Shadowpath",
+      to_subclass: "Beastmaster",
+      story_note: "A drake accepts the oath.",
+      feature_choices:,
+      companion_name: "Cinder",
+      companion_size: "Large"
+    )
+    large_hunter.reload
+    large_abilities = large_hunter.story_subclass_companion_ability_entries.index_by { |entry| entry.fetch(:name) }
+    assert_includes large_abilities.fetch("Alpha Protector").fetch(:effect), "halved"
+    assert_equal "2 actions", large_abilities.fetch("Go for the Throat!").fetch(:action_cost)
+    assert_equal "2 Thrill of the Hunt charges", large_abilities.fetch("Go for the Throat!").fetch(:cost)
+    assert_includes large_abilities.fetch("Protect Me!").fetch(:effect), "After you gain a Wound"
+    assert_equal [ "thrill_of_the_hunt", "beastmaster_protect_me", "beastmaster_go_for_the_throat" ], large_hunter.trait_set.resource_tracks.map { |track| track.fetch("key") }
+
+    below_minimum = create_hunter
+    below_minimum.update_columns(level: 2)
+    below_minimum_share = below_minimum.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    error = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: below_minimum,
+        share: below_minimum_share,
+        approved_by: @gm,
+        current_subclass: "Shadowpath",
+        to_subclass: "Beastmaster",
+        story_note: "The drake joins before the hunter is ready.",
+        feature_choices:,
+        companion_name: "Cinder",
+        companion_size: "Large"
+      )
+    end
+    assert_match(/Large companion requires level 3/, error.message)
+    assert_equal "Shadowpath", below_minimum.reload.subclass_name
   end
 
   test "the approval service rejects blank, overlong, stale, same, and non-story choices without changing the sheet" do
@@ -260,6 +439,27 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
       character.finalize_creation!
       character.update_columns(level: 3, status: "playable", subclass_name: "Champion of the Bulwark")
       character.skill_set.update!(might: 9)
+      character
+    end
+
+    def create_hunter
+      character = Character.create!(
+        name: "Beastmaster Candidate",
+        account: @owner,
+        character_class: CharacterClass.find_by!(name: "Hunter"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        skill_set_attributes: { finesse: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(
+        level: 3,
+        status: "playable",
+        subclass_name: "Shadowpath",
+        feature_choices: { "Thrill of the Hunt" => { "2" => [ "Fleet Feet", "Wild Instinct" ] } }
+      )
+      character.skill_set.update!(finesse: 9)
       character
     end
 end

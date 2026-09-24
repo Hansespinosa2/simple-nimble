@@ -11,6 +11,12 @@ class SharedCharactersController < ApplicationController
     @story_subclass_spell_choice_pools = @story_subclass_options.flat_map do |subclass_name|
       @character.story_subclass_spell_choice_pools_through(subclass_name:)
     end
+    @story_subclass_feature_choice_pools = @story_subclass_options.flat_map do |subclass_name|
+      @character.story_subclass_feature_choice_pools_through(subclass_name:)
+    end
+    @story_subclass_companion_rule = @story_subclass_options.filter_map do |subclass_name|
+      @character.story_subclass_companion_rule(subclass_name)
+    end.first
     @story_subclass_changes = @character.story_subclass_changes.includes(:approved_by_account, :character_revision).order(created_at: :desc)
   end
 end
