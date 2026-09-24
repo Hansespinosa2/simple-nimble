@@ -1,6 +1,108 @@
 require "test_helper"
 
 class CharacterTest < ActiveSupport::TestCase
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2
+  test "positive INT creates explicit language slots rather than guessed languages" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Language Choice Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+
+    assert character.valid?
+    assert_equal 2, character.stat_set.intelligence
+    assert_equal "Common", character.languages
+    assert_includes character.language_issues_for(stat_values: { intelligence: 2 }, choices: []).first.fetch(:message), "Choose 2 more languages"
+
+    character.language_choices = [ "Elvish", "Draconic" ]
+    assert character.valid?
+    assert_equal 2, character.stat_set.intelligence, "saving language choices must not reset derived stats"
+    assert_equal "Common, Elvish, Draconic", character.languages
+    assert_empty character.language_issues_for(stat_values: { intelligence: 2 }, choices: character.language_choices)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1
+  test "ancestry languages unlock at INT zero but not at negative INT" do
+    Rails.application.load_seed
+    character = Character.new(
+      name: "Dwarven Language Threshold",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Dwarf"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      stat_assignments: { strength: 2, dexterity: 0, intelligence: -1, will: 2 }
+    )
+    character.valid?
+
+    assert_equal(-1, character.stat_set.intelligence)
+    assert_equal [ "Common" ], character.known_language_names
+
+    character.stat_assignments = { strength: 2, dexterity: 2, intelligence: 0, will: -1 }
+    character.valid?
+
+    assert_equal 0, character.stat_set.intelligence
+    assert_includes character.known_language_names, "Dwarvish"
+    assert_equal 0, character.language_choice_count
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2
+  test "published class and feature language grants are tracked without duplicating INT choices" do
+    Rails.application.load_seed
+    cheat = Character.new(
+      name: "Cheat's Cant",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "The Cheat"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ]
+    )
+    cheat.valid?
+    assert_includes cheat.known_language_names, "Thieves' Cant"
+    assert_equal "Heroes 2.0.1, p. 14", Rules::NimbleCatalog.class_language_rules_for("The Cheat").first.fetch("source_ref")
+
+    shadowmancer = Character.new(
+      name: "Devoted Acolyte",
+      character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      language_choices: [ "Elvish", "Goblin" ]
+    )
+    selections = { "Devoted Acolyte" => [ "Celestial", "Deep Speak" ] }
+    feature_choices = { "Lesser Shadow Invocation" => [ "Devoted Acolyte" ] }
+
+    assert_empty shadowmancer.language_issues_for(
+      stat_values: { intelligence: 2 },
+      choices: shadowmancer.language_choices,
+      feature_choices:,
+      feature_selections: selections,
+      level: 3
+    )
+    known = shadowmancer.known_language_names(
+      { intelligence: 2 },
+      choices: shadowmancer.language_choices,
+      level: 3,
+      feature_choices:,
+      feature_language_choices: selections
+    )
+    assert_equal %w[Common Elvish Goblin Celestial], known.first(4)
+    assert_includes known, "Deep Speak"
+
+    incomplete = shadowmancer.language_issues_for(
+      stat_values: { intelligence: 2 },
+      choices: shadowmancer.language_choices,
+      feature_choices:,
+      feature_selections: { "Devoted Acolyte" => [ "Celestial" ] },
+      level: 3
+    )
+    assert_includes incomplete.map { |issue| issue.fetch(:message) }, "Choose 1 more language for Devoted Acolyte."
+    assert_equal "Heroes 2.0.1, p. 46", incomplete.find { |issue| issue.fetch(:message).include?("Devoted Acolyte") }.fetch(:source_ref)
+  end
+
   # S-02:AC-1 S-05:AC-1 S-09:AC-3
   test "starting equipment choice is limited to source-defined options and gold cannot be negative" do
     character = Character.new(starting_equipment_choice: "free_legendary_gear", current_gold: -1)
@@ -541,6 +643,24 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 2, zephyr.trait_set.armor
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "Songweaver's additional school must be a different school from Wind" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Songweaver")
+    songweaver = CharacterClass.find_by!(name: "Songweaver")
+    character = Character.new(character_class: songweaver, spell_school_choice: "Fire")
+
+    assert_includes character.known_spell_schools, "Wind"
+    assert_includes character.known_spell_schools, "Fire"
+    assert_empty character.creation_issues.select { |issue| issue.fetch(:message).include?("additional spell school") }
+
+    character.spell_school_choice = "Wind"
+    issue = character.creation_issues.find { |entry| entry.fetch(:message).include?("not a legal additional spell school") }
+
+    assert_equal "Wind is not a legal additional spell school for Songweaver.", issue.fetch(:message)
+    assert_equal "Heroes 2.0.1, p. 55", issue.fetch(:source_ref)
+    assert_match(/1 other school/, issue.fetch(:quote))
+  end
+
   test "creation preserves a freely placed stat array and derives from that placement" do
     Rails.application.load_seed
     character = Character.create!(
@@ -717,6 +837,7 @@ class CharacterTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Academy Dropout"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     missing_choice = character.creation_issues.find { |issue| issue.fetch(:message).include?("Academy Dropout requires") }
@@ -996,16 +1117,6 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal "1d10", wild_heart.trait_set.hit_die
     assert_equal 6, wild_heart.trait_set.armor
     assert_equal "1d10", wild_heart.snapshot_payload.fetch("progression").fetch("derived_effects").fetch("hit_die")
-
-    oathbreaker = Character.create!(
-      level: 3,
-      character_class: CharacterClass.find_by!(name: "Oathsworn"),
-      subclass_name: "Oathbreaker",
-      ancestry:,
-      background:,
-      stat_array: "standard"
-    )
-    assert_equal 8, oathbreaker.trait_set.max_wounds
 
     zephyr = Character.create!(
       level: 13,

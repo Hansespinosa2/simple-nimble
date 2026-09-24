@@ -786,6 +786,7 @@ demo_character.assign_attributes(
   level: 1,
   description: "A bright-eyed Mage carrying a map that was never meant to be found.",
   languages: "Common, Elvish",
+  language_choices: [ "Elvish", "Draconic" ],
   character_class: CharacterClass.find_by!(name: "Mage"),
   ancestry: Ancestry.find_by!(name: "Human"),
   background: Background.find_by!(name: "Academy Dropout"),

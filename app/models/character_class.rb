@@ -37,6 +37,14 @@ class CharacterClass < ApplicationRecord
     rules_entry.to_h.fetch("spell_schools", [])
   end
 
+  def spell_school_choice_rule
+    Rules::NimbleCatalog.spell_school_choice_for(name)
+  end
+
+  def spell_school_choice_options
+    Array(spell_school_choice_rule.to_h.fetch("allowed_schools", []))
+  end
+
   def starting_gear
     Array(rules_entry.to_h.fetch("starting_gear", []))
   end
@@ -58,7 +66,19 @@ class CharacterClass < ApplicationRecord
   end
 
   def stat_increase_type_for(level)
-    Rules::NimbleCatalog.stat_increase_for(name, level) || fallback_stat_increase_type_for(level)
+    if rules_entry.present?
+      Rules::NimbleCatalog.stat_increase_for(name, level)
+    else
+      fallback_stat_increase_type_for(level)
+    end
+  end
+
+  def stat_increase_levels_for(type)
+    if rules_entry.present?
+      Rules::NimbleCatalog.stat_increase_levels_for(name, type)
+    else
+      Array(FALLBACK_STAT_INCREASES[type.to_s])
+    end
   end
 
   def stat_options_for(type)
@@ -76,6 +96,24 @@ class CharacterClass < ApplicationRecord
 
   def subclass_options
     Array(rules_entry.to_h.fetch("subclasses", []))
+  end
+
+  def story_based_subclass_options
+    Rules::NimbleCatalog.story_based_subclasses_for(name)
+  end
+
+  def story_based_subclass_rules
+    Rules::NimbleCatalog.story_based_subclass_records_for(name)
+  end
+
+  def story_based_subclass_rule(subclass_name)
+    story_based_subclass_rules.find do |subclass|
+      subclass.fetch("name") == subclass_name.to_s
+    end
+  end
+
+  def known_subclass_options
+    (subclass_options + story_based_subclass_options).uniq
   end
 
   def progression_rules

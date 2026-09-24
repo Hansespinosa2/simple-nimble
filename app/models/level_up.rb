@@ -6,9 +6,11 @@ class LevelUp < ApplicationRecord
   serialize :preview, coder: JSON
   serialize :feature_choices, coder: JSON
   serialize :spell_choices, coder: JSON
+  serialize :language_choices, coder: JSON
+  serialize :feature_language_choices, coder: JSON
 
-  STAT_NAMES = %w[strength dexterity intelligence will].freeze
-  SKILL_NAMES = %w[arcana examination finesse influence insight lore might naturecraft perception stealth].freeze
+  STAT_NAMES = Character::STAT_NAMES
+  SKILL_NAMES = Character::SKILL_NAMES
 
   validates :from_level, :to_level, numericality: { only_integer: true, greater_than: 0 }
   validates :status, inclusion: { in: %w[draft finalized] }

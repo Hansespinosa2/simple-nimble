@@ -25,6 +25,35 @@ module Rules
         data.fetch("derived_values")
       end
 
+      def language_rules
+        data.fetch("languages")
+      end
+
+      def class_language_grants_for(class_name, level)
+        entries = class_language_rules_for(class_name)
+        entries.select { |entry| level.to_i >= entry.fetch("level").to_i }.flat_map { |entry| entry.fetch("languages") }.uniq
+      end
+
+      def class_language_rules_for(class_name)
+        language_rules.fetch("class_grants", {}).fetch(class_name.to_s, [])
+      end
+
+      def language_feature_choice(feature_name)
+        language_rules.fetch("feature_language_choices", {})[feature_name.to_s]
+      end
+
+      def stats
+        data.fetch("stats")
+      end
+
+      def skills
+        data.fetch("skills")
+      end
+
+      def stat_arrays
+        data.fetch("stat_arrays")
+      end
+
       def condition_tracking
         data.fetch("condition_tracking")
       end
@@ -60,6 +89,14 @@ module Rules
         data.fetch("classes")[name.to_s]
       end
 
+      def story_based_subclasses_for(class_name)
+        story_based_subclass_records_for(class_name).map { |subclass| subclass.fetch("name") }
+      end
+
+      def story_based_subclass_records_for(class_name)
+        Array(class_for(class_name).to_h.fetch("story_based_subclasses", []))
+      end
+
       def spell_tier_for(class_name, level)
         unlocks = class_for(class_name).to_h.fetch("spell_tier_unlocks", {})
         unlocks.select { |unlock_level, _tier| level.to_i >= unlock_level.to_i }.values.map(&:to_i).max.to_i
@@ -72,6 +109,14 @@ module Rules
         end
 
         nil
+      end
+
+      def stat_increase_levels_for(class_name, type)
+        Array(class_for(class_name).to_h.fetch("stat_increases", {}).fetch(type.to_s, [])).map(&:to_i)
+      end
+
+      def spell_school_choice_for(class_name)
+        class_for(class_name).to_h.fetch("spell_school_choice", nil)
       end
 
       def progression_for(class_name)

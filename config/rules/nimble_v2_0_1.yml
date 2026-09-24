@@ -18,13 +18,50 @@ derived_values:
   base_speed: 6
   default_max_wounds: 6
   base_inventory_slots: 10
-  language_formula: "1 + max(INT, 0) + ancestry/background grants"
+  save_dc_base: 10
+  skill_points_at_level_one: 4
+  skill_points_per_level: 1
+  skill_point_source_ref: "Core Rules 2.0.1, p. 20"
+  skill_point_source_quote: "At level 1 ... may place 4 additional skill points wherever you like."
   armor_unarmored_formula: "DEX"
   initiative_formula: "DEX"
   max_stat: 5
   max_skill: 12
   hp_level_up_formula: "roll Hit Die with advantage"
   hit_dice_formula: "current level"
+
+languages:
+  source_ref: "Core Rules 2.0.1, pp. 20, 23-26"
+  default_language: Common
+  source_quote: "All heroes speak Common by default. Each point of INT grants you an additional language known."
+  languages:
+    - Common
+    - Dwarvish
+    - Elvish
+    - Goblin
+    - Infernal
+    - "Thieves' Cant"
+    - Celestial
+    - Draconic
+    - Primordial
+    - Deep Speak
+  intelligence_choices_per_point: 1
+  ancestry_grant_minimum_intelligence: 0
+  ancestry_grant_source_quote: "You know Dwarvish if your INT is not negative."
+  origin_grant_source_ref: "Rules canon, §11 Languages"
+  selection_note: "Each positive INT point requires a player-chosen language; do not assign one automatically. Origin grants are additional to INT choices."
+  class_grants:
+    The Cheat:
+      - level: 3
+        languages: ["Thieves' Cant"]
+        source_ref: "Heroes 2.0.1, p. 14"
+        source_quote: "Thieves' Cant. You learn the secret language of rogues and scoundrels."
+  feature_language_choices:
+    Devoted Acolyte:
+      count: 2
+      options: [Celestial, Draconic, "Deep Speak", Infernal, Primordial]
+      source_ref: "Heroes 2.0.1, p. 46"
+      source_quote: "Learn 2 of the following languages: Celestial, Draconic, Deep Speak, Infernal, or Primordial."
 
 condition_tracking:
   source_ref: "Core Rules 2.0.1, p. 11"
@@ -247,7 +284,11 @@ classes:
           initial_current: 0
           reset: Encounter ends
           reset_events: [encounter_end]
-    subclasses: [Champion of the Bulwark, Champion of the Vanguard, Spellblade]
+    subclasses: [Champion of the Bulwark, Champion of the Vanguard]
+    story_based_subclasses:
+      - name: Spellblade
+        source_ref: "Heroes 2.0.1, p. 73"
+        source_quote: "At your GM's discretion, these can be chosen at any point in a campaign when a story demands it, replacing your existing subclass."
 
   Hunter:
     source_ref: Heroes 2.0.1, pp. 25-29
@@ -277,7 +318,11 @@ classes:
           initial_current: 0
           reset: Encounter ends
           reset_events: [encounter_end]
-    subclasses: [Shadowpath, Wild Heart, Beastmaster]
+    subclasses: [Shadowpath, Wild Heart]
+    story_based_subclasses:
+      - name: Beastmaster
+        source_ref: "Heroes 2.0.1, p. 73"
+        source_quote: "At your GM's discretion, these can be chosen at any point in a campaign when a story demands it, replacing your existing subclass."
 
   Mage:
     source_ref: Heroes 2.0.1, pp. 31-35
@@ -351,7 +396,11 @@ classes:
           die_by_level: {1: 2d6, 3: d8, 5: d10, 8: d12, 10: d20}
           initial_current: 0
           reset: When attacked with no dice
-    subclasses: [Oath of Vengeance, Oath of Refuge, Oathbreaker]
+    subclasses: [Oath of Vengeance, Oath of Refuge]
+    story_based_subclasses:
+      - name: Oathbreaker
+        source_ref: "Heroes 2.0.1, p. 73"
+        source_quote: "At your GM's discretion, these can be chosen at any point in a campaign when a story demands it, replacing your existing subclass."
 
   Shadowmancer:
     source_ref: Heroes 2.0.1, pp. 43-47
@@ -380,7 +429,11 @@ classes:
           max_formula: DEX
           reset: Safe Rest
           reset_events: [safe_rest]
-    subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths, Reaver]
+    subclasses: [Pact of the Red Dragon, Pact of the Abyssal Depths]
+    story_based_subclasses:
+      - name: Reaver
+        source_ref: "Heroes 2.0.1, p. 73"
+        source_quote: "At your GM's discretion, these can be chosen at any point in a campaign when a story demands it, replacing your existing subclass."
 
   Shepherd:
     source_ref: Heroes 2.0.1, pp. 49-53
@@ -426,6 +479,10 @@ classes:
     armor: {unarmored_formula: dexterity, source_ref: "Core Rules 2.0.1, p. 33"}
     starting_gear: ["Adventurer's Garb", Instrument, Dagger, Mirror]
     spell_schools: [Wind, choice]
+    spell_school_choice:
+      allowed_schools: [Fire, Ice, Lightning, Radiant, Necrotic]
+      source_ref: "Heroes 2.0.1, p. 55"
+      source_quote: "You know cantrips from the Wind school and 1 other school of your choice."
     spell_tier_unlocks: {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8, 18: 9}
     stat_increases:
       key: [4, 8, 12, 16]

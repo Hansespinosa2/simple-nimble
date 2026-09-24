@@ -4,6 +4,7 @@ class Campaign < ApplicationRecord
   has_many :accounts, through: :campaign_memberships
   has_many :character_shares, dependent: :destroy
   has_many :characters, through: :character_shares
+  has_many :story_subclass_changes, dependent: :restrict_with_error
 
   before_validation :ensure_invite_code, on: :create
 
@@ -11,6 +12,12 @@ class Campaign < ApplicationRecord
 
   def member?(account)
     account.present? && (owner_account_id == account.id || campaign_memberships.exists?(account_id: account.id))
+  end
+
+  def gm?(account)
+    account.present? && (
+      owner_account_id == account.id || campaign_memberships.exists?(account_id: account.id, role: "gm")
+    )
   end
 
   private

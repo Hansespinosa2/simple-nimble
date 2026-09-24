@@ -104,6 +104,120 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, shared_character_path(share.share_token)
   end
 
+  # S-02:AC-4 S-08:AC-4
+  test "only the shared campaign GM can replace a subclass with a story-based option and the sheet records it" do
+    character = create_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_includes response.body, "Shared sheet · limited GM action"
+    assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}'] select[name='story_subclass_change[to_subclass]'] option", text: "Oathbreaker"
+    assert_select "textarea[name='story_subclass_change[story_note]'][required]"
+    assert_select ".story-subclass-panel form", 1
+    assert_select ".tracker-form", 0
+    assert_select ".inventory-item-row form", 0
+
+    assert_difference("StorySubclassChange.count", 1) do
+      assert_difference("CharacterRevision.where(event_type: 'story_subclass_change').count", 1) do
+        post shared_story_subclass_changes_url(share.share_token), params: {
+          story_subclass_change: {
+            current_subclass: "Oath of Refuge",
+            to_subclass: "Oathbreaker",
+            story_note: "She breaks the oath to save the refugees."
+          }
+        }
+      end
+    end
+
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_equal "Oathbreaker", character.reload.subclass_name
+    assert_equal "read", share.reload.permission
+    change = character.story_subclass_changes.sole
+    assert_equal @gm, change.approved_by_account
+    assert_equal @campaign, change.campaign
+    assert_includes response.location, share.share_token
+
+    sign_in(@player)
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_select ".story-subclass-history", /Oath of Refuge → Oathbreaker/
+    assert_select ".story-subclass-entry", /She breaks the oath to save the refugees\./
+    assert_select ".story-subclass-entry", /Heroes 2\.0\.1, p\. 73/
+    assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}']", 0
+  end
+
+  test "shared players and global GMs without GM membership cannot approve story subclass changes" do
+    character = create_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}']", 0
+
+    assert_no_difference("StorySubclassChange.count") do
+      post shared_story_subclass_changes_url(share.share_token), params: {
+        story_subclass_change: {
+          current_subclass: "Oath of Refuge",
+          to_subclass: "Oathbreaker",
+          story_note: "Unauthorized."
+        }
+      }
+    end
+    assert_response :forbidden
+    assert_equal "Oath of Refuge", character.reload.subclass_name
+
+    campaign_player_with_global_gm_role = Account.create!(display_name: "Wrong Campaign Role", email: "wrong-role-#{SecureRandom.hex(4)}@example.com", role: "gm")
+    @campaign.campaign_memberships.create!(account: campaign_player_with_global_gm_role, role: "player")
+    sign_in(campaign_player_with_global_gm_role)
+    post shared_story_subclass_changes_url(share.share_token), params: {
+      story_subclass_change: {
+        current_subclass: "Oath of Refuge",
+        to_subclass: "Oathbreaker",
+        story_note: "A global role is not campaign approval."
+      }
+    }
+
+    assert_response :forbidden
+    assert_equal "Oath of Refuge", character.reload.subclass_name
+  end
+
+  test "a GM cannot approve a blank story note or target a non-story subclass" do
+    character = create_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+    sign_in(@gm)
+
+    assert_no_difference("StorySubclassChange.count") do
+      post shared_story_subclass_changes_url(share.share_token), params: {
+        story_subclass_change: {
+          current_subclass: "Oath of Refuge",
+          to_subclass: "Oathbreaker",
+          story_note: "   "
+        }
+      }
+    end
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_match(/story note/i, flash[:alert])
+
+    assert_no_difference("StorySubclassChange.count") do
+      post shared_story_subclass_changes_url(share.share_token), params: {
+        story_subclass_change: {
+          current_subclass: "Oath of Refuge",
+          to_subclass: "Oath of Vengeance",
+          story_note: "A normal subclass is not eligible."
+        }
+      }
+    end
+    assert_equal "Oath of Refuge", character.reload.subclass_name
+  end
+
   test "a shared rules-backed sheet includes unlocked class progression" do
     Rails.application.load_seed
     progression_character = Character.create!(
@@ -191,6 +305,23 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+    def create_story_character
+      Rails.application.load_seed unless CharacterClass.exists?(name: "Oathsworn")
+      character = Character.create!(
+        name: "Shared Oathbound Hero",
+        account: @player,
+        character_class: CharacterClass.find_by!(name: "Oathsworn"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        skill_set_attributes: { might: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(level: 3, status: "playable", subclass_name: "Oath of Refuge")
+      character.skill_set.update!(might: 9)
+      character
+    end
+
     def sign_in(account)
       post sessions_url, params: { account: { display_name: account.display_name, email: account.email, role: account.role } }
       assert_redirected_to characters_url

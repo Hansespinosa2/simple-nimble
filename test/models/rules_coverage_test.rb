@@ -26,6 +26,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
         spell_school_choice: character_class.spell_schools.include?("choice") ? "Fire" : nil,
         ruleset_version: @ruleset
       )
+      assign_required_languages(character)
       skill = Character::SKILL_TO_STAT.find { |_name, stat| character_class.key_stats.include?(stat) }.first
       character.skill_set.public_send("#{skill}=", character.skill_initial_value(skill) + 4)
       character.finalize_creation!
@@ -59,6 +60,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
         ruleset_version: @ruleset
       )
 
+      assign_required_languages(character)
       character.skill_set.update!(might: character.skill_initial_value("might") + 4)
       assert character.legal_for_creation?, "#{ancestry.name} should produce a legal draft"
       character.finalize_creation!
@@ -79,4 +81,12 @@ class RulesCoverageTest < ActiveSupport::TestCase
 
     assert_equal canonical_spells.map(&:id), character.reload.spells.order(:tier, :name).pluck(:id)
   end
+
+  private
+    def assign_required_languages(character)
+      count = character.language_choice_count
+      return if count.zero?
+
+      character.update!(language_choices: character.language_choice_options_for.first(count))
+    end
 end

@@ -27,6 +27,10 @@ class LevelUpPlanner
     character.subclass_options
   end
 
+  def story_based_subclass_rules
+    character.character_class&.story_based_subclass_rules || []
+  end
+
   def subclass_selection_required?
     target_level == 3 && character.subclass_name.blank? && subclass_options.present?
   end
@@ -81,6 +85,50 @@ class LevelUpPlanner
     end
   end
 
+  def projected_stats
+    stats = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
+    [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
+      stats[stat_name] += 1 if stat_options.include?(stat_name)
+    end
+    stats
+  end
+
+  def language_choices_needed
+    [ character.language_choice_count(projected_stats) - Array(character.language_choices).compact_blank.length, 0 ].max
+  end
+
+  def language_choice_options
+    character.language_choice_options_for(
+      projected_stats,
+      excluding: character.language_choices,
+      level: target_level,
+      feature_choices: projected_feature_choices,
+      feature_language_choices: projected_feature_language_choices
+    )
+  end
+
+  def feature_language_choice_rules
+    eligible_features = feature_choice_pools.flat_map { |pool| Array(pool.fetch("options")) + Array(pool.fetch("selected")) } + projected_feature_choices.values.flatten
+    Rules::NimbleCatalog.language_rules.fetch("feature_language_choices", {}).select do |feature_name, _rule|
+      eligible_features.include?(feature_name)
+    end
+  end
+
+  def feature_language_choice_options(feature_name)
+    rule = Rules::NimbleCatalog.language_feature_choice(feature_name)
+    return [] unless rule
+
+    selected = Array(level_up.feature_language_choices.to_h.stringify_keys[feature_name]).compact_blank.map(&:to_s)
+    known = character.known_language_names(
+      projected_stats,
+      choices: projected_language_choices,
+      level: target_level,
+      feature_choices: projected_feature_choices,
+      feature_language_choices: projected_feature_language_choices
+    )
+    (Array(rule.fetch("options")) - known + selected).uniq
+  end
+
   def hit_die_size
     hit_die = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
     hit_die.to_s.split("d").last.to_i.nonzero? || 6
@@ -98,7 +146,14 @@ class LevelUpPlanner
     if subclass_selection_required? && level_up.subclass_name.blank?
       result << issue("Choose a subclass for #{character.character_class.name}.", character.character_class.source_reference, "At level 3, choose a subclass for your class.")
     elsif level_up.subclass_name.present?
-      if target_level != 3 || character.subclass_name.present?
+      story_rule = character.character_class&.story_based_subclass_rule(level_up.subclass_name)
+      if story_rule
+        result << issue(
+          "#{level_up.subclass_name} is story-based and requires a GM-approved story change, not an ordinary level-up choice.",
+          story_rule.fetch("source_ref"),
+          story_rule.fetch("source_quote")
+        )
+      elsif target_level != 3 || character.subclass_name.present?
         result << issue("A subclass can only be chosen once at level 3.", character.character_class&.source_reference || "Heroes 2.0.1, Subclasses", "Subclass selection is a level-3 class feature.")
       elsif !subclass_options.include?(level_up.subclass_name)
         result << issue("#{level_up.subclass_name} is not a legal subclass for #{character.character_class.name}.", character.character_class.source_reference, "Choose one of the subclasses listed for the class.")
@@ -128,23 +183,23 @@ class LevelUpPlanner
       selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
       if stat_increase_type == "any_two"
         if selected_stats.length != 2 || selected_stats.uniq.length != 2
-          result << issue("Choose two different stats to increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+          result << issue("Choose two different stats to increase.", stat_increase_source_ref, stat_increase_quote)
         end
       elsif level_up.second_stat_name.present?
-        result << issue("Only one stat can increase at this level.", "Chapter 3, Stat Increases", stat_increase_quote)
+        result << issue("Only one stat can increase at this level.", stat_increase_source_ref, stat_increase_quote)
       elsif level_up.stat_name.blank?
-        result << issue("Choose a #{stat_increase_type} stat to increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+        result << issue("Choose a #{stat_increase_type} stat to increase.", stat_increase_source_ref, stat_increase_quote)
       end
 
       selected_stats.each do |stat_name|
         if !stat_options.include?(stat_name)
-          result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", "Chapter 3, Stat Increases", stat_increase_quote)
+          result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", stat_increase_source_ref, stat_increase_quote)
         elsif character.stat_value(stat_name) >= 5
           result << issue("#{stat_name.to_s.humanize} is already at the +5 stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +5.")
         end
       end
     elsif level_up.stat_name.present? || level_up.second_stat_name.present?
-      result << issue("No stat increase is scheduled at level #{target_level}.", "Chapter 3, Stat Increases", "Stat increases occur at scheduled class progression levels.")
+      result << issue("No stat increase is scheduled at level #{target_level}.", character.character_class&.source_reference || "Heroes 2.0.1, Class Progression", "Stat increases occur at scheduled class progression levels.")
     end
 
     if level_up.hit_die_roll_one.blank? || level_up.hit_die_roll_two.blank?
@@ -161,6 +216,16 @@ class LevelUpPlanner
       result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +12 skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +12.")
     end
 
+    character.language_issues_for(
+      stat_values: projected_stats,
+      choices: projected_language_choices,
+      feature_choices: projected_feature_choices,
+      feature_selections: projected_feature_language_choices,
+      level: target_level
+    ).each do |language_issue|
+      result << issue(language_issue.fetch(:message), language_issue.fetch(:source_ref), language_issue.fetch(:quote))
+    end
+
     result
   end
 
@@ -173,7 +238,7 @@ class LevelUpPlanner
   end
 
   def preview
-    stats = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
+    stats = projected_stats
     skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
     traits = {
       "max_hp" => character.trait_set&.max_hp.to_i,
@@ -202,7 +267,6 @@ class LevelUpPlanner
     selected_stats.each do |stat_name|
       next unless stat_options.include?(stat_name)
 
-      stats[stat_name] += 1
       Character::SKILL_NAMES.each do |skill|
         skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == stat_name
       end
@@ -261,6 +325,15 @@ class LevelUpPlanner
       "subclass" => selected_subclass_name,
       "feature_choices" => feature_choices,
       "spell_choices" => spell_choices,
+      "language_choices" => projected_language_choices,
+      "feature_language_choices" => projected_feature_language_choices,
+      "languages" => character.known_language_names(
+        stats,
+        choices: projected_language_choices,
+        level: target_level,
+        feature_choices: projected_feature_choices,
+        feature_language_choices: projected_feature_language_choices
+      ),
       "spell_tier" => spell_tier_for(target_level),
       "progression" => progression_preview,
       "explanations" => applied_explanations(stats, hp_gain)
@@ -268,6 +341,16 @@ class LevelUpPlanner
   end
 
   private
+    def projected_language_choices
+      (Array(character.language_choices).compact_blank.map(&:to_s) + Array(level_up.language_choices).compact_blank.map(&:to_s)).uniq
+    end
+
+    def projected_feature_language_choices
+      existing = character.feature_language_choices.to_h.stringify_keys.transform_values { |items| Array(items).compact_blank.map(&:to_s) }
+      submitted = level_up.feature_language_choices.to_h.stringify_keys.transform_values { |items| Array(items).compact_blank.map(&:to_s) }
+      existing.merge(submitted)
+    end
+
     def spell_tier_for(level)
       character.character_class&.spell_tier_for(level).to_i
     end
@@ -476,13 +559,20 @@ class LevelUpPlanner
     end
 
     def stat_increase_quote
+      scheduled_levels = character.character_class&.stat_increase_levels_for(stat_increase_type).to_a
+      level_phrase = scheduled_levels.one? ? "level #{scheduled_levels.first}" : "levels #{scheduled_levels.to_sentence}"
+
       if stat_increase_type == "key"
-        "At levels 4, 8, 12, 16, and 20, increase one Key Stat by +1."
+        "At #{level_phrase}, increase one Key Stat by +1 (#{character.character_class.key_stats.map(&:upcase).to_sentence})."
       elsif stat_increase_type == "any_two"
-        "At level 20, increase any 2 different stats by +1."
+        "At #{level_phrase}, increase any 2 different stats by +1."
       else
-        "At levels 5, 9, 13, and 17, increase one Secondary Stat by +1."
+        "At #{level_phrase}, increase one Secondary Stat by +1 (#{character.character_class.secondary_stats.map(&:upcase).to_sentence})."
       end
+    end
+
+    def stat_increase_source_ref
+      character.character_class&.source_reference || "Heroes 2.0.1, Class Progression"
     end
 
     def applied_explanations(stats, hp_gain)
@@ -504,7 +594,7 @@ class LevelUpPlanner
         explanations << {
           type: "applied",
           message: "#{stat_name.humanize} increases to #{stats.fetch(stat_name)}.",
-          source_ref: "Chapter 3, Stat Increases",
+          source_ref: stat_increase_source_ref,
           quote: stat_increase_quote
         }
       end

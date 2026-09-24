@@ -1,5 +1,6 @@
 class CharacterRevision < ApplicationRecord
   belongs_to :character
+  has_one :story_subclass_change, dependent: :restrict_with_error
 
   serialize :snapshot, coder: JSON
 
@@ -13,6 +14,7 @@ class CharacterRevision < ApplicationRecord
     "field_rest" => "Field Rest",
     "inventory_update" => "Inventory update",
     "game_update" => "Game update",
+    "story_subclass_change" => "GM-approved story subclass change",
     "edited" => "Edited"
   }.freeze
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_110000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -135,8 +135,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
     t.integer "current_gold", default: 0, null: false
     t.text "description"
     t.text "feature_choices"
+    t.text "feature_language_choices", default: "{}", null: false
     t.text "game_notes"
     t.text "inventory"
+    t.text "language_choices", default: "[]", null: false
     t.string "languages"
     t.string "legacy_background_text"
     t.integer "level"
@@ -179,10 +181,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
     t.text "feature_choices"
+    t.text "feature_language_choices", default: "{}", null: false
     t.datetime "finalized_at"
     t.integer "from_level", null: false
     t.integer "hit_die_roll_one"
     t.integer "hit_die_roll_two"
+    t.text "language_choices", default: "[]", null: false
     t.text "notes"
     t.text "preview"
     t.string "second_stat_name"
@@ -261,6 +265,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
     t.index ["character_id"], name: "index_stat_sets_on_character_id"
   end
 
+  create_table "story_subclass_changes", force: :cascade do |t|
+    t.integer "approved_by_account_id", null: false
+    t.integer "campaign_id", null: false
+    t.integer "character_id", null: false
+    t.integer "character_revision_id", null: false
+    t.datetime "created_at", null: false
+    t.string "from_subclass", null: false
+    t.string "source_ref", null: false
+    t.text "story_note", null: false
+    t.string "to_subclass", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_account_id"], name: "index_story_subclass_changes_on_approved_by_account_id"
+    t.index ["campaign_id"], name: "index_story_subclass_changes_on_campaign_id"
+    t.index ["character_id", "created_at"], name: "index_story_subclass_changes_on_character_and_created_at"
+    t.index ["character_id"], name: "index_story_subclass_changes_on_character_id"
+    t.index ["character_revision_id"], name: "index_story_subclass_changes_on_character_revision_id"
+  end
+
   create_table "trait_sets", force: :cascade do |t|
     t.integer "armor"
     t.integer "character_id", null: false
@@ -309,5 +331,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_093000) do
   add_foreign_key "level_ups", "characters"
   add_foreign_key "skill_sets", "characters"
   add_foreign_key "stat_sets", "characters"
+  add_foreign_key "story_subclass_changes", "accounts", column: "approved_by_account_id"
+  add_foreign_key "story_subclass_changes", "campaigns"
+  add_foreign_key "story_subclass_changes", "character_revisions"
+  add_foreign_key "story_subclass_changes", "characters"
   add_foreign_key "trait_sets", "characters"
 end

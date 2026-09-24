@@ -183,6 +183,8 @@ class CharactersController < ApplicationController
         :background_id,
         :stat_array,
         { stat_assignments: Character::STAT_NAMES },
+        { language_choices: [] },
+        { feature_language_choices: {} },
         {
           skill_set_attributes: skill_set_params_list
         },
@@ -237,6 +239,10 @@ class CharactersController < ApplicationController
     def builder_rules
       {
         stat_arrays: Character::STAT_ARRAYS,
+        derived_values: Rules::NimbleCatalog.derived_values,
+        stats: Rules::NimbleCatalog.stats,
+        skills: Rules::NimbleCatalog.skills,
+        languages: Rules::NimbleCatalog.language_rules,
         starting_equipment: Rules::NimbleCatalog.starting_equipment_rules,
         equipment_armor: Rules::NimbleCatalog.equipment_armor_items,
         classes: @character_classes.index_by(&:id).transform_values do |character_class|
@@ -248,8 +254,10 @@ class CharactersController < ApplicationController
             save_bonus: character_class.save_bonus_stat,
             save_penalty: character_class.save_penalty_stat,
             spell_schools: character_class.spell_schools,
+            spell_school_choice: character_class.spell_school_choice_rule,
             source_reference: character_class.source_reference,
             starting_gear: character_class.starting_gear,
+            language_grants: Rules::NimbleCatalog.class_language_rules_for(character_class.name),
             armor_proficiencies: character_class.armor_proficiencies,
             weapon_proficiencies: character_class.weapon_proficiencies,
             armor_rules: character_class.armor_rules,

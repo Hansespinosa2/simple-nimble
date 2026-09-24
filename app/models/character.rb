@@ -2,41 +2,21 @@ class Character < ApplicationRecord
   serialize :stat_assignments, coder: JSON
   serialize :feature_choices, coder: JSON
   serialize :spell_choices, coder: JSON
+  serialize :language_choices, coder: JSON
+  serialize :feature_language_choices, coder: JSON
 
-  BASE_SPEED = 6
-  DEFAULT_MAX_WOUNDS = 6
-  BASE_INVENTORY_SLOTS = 10
+  BASE_SPEED = Rules::NimbleCatalog.derived_values.fetch("base_speed").to_i
+  DEFAULT_MAX_WOUNDS = Rules::NimbleCatalog.derived_values.fetch("default_max_wounds").to_i
+  BASE_INVENTORY_SLOTS = Rules::NimbleCatalog.derived_values.fetch("base_inventory_slots").to_i
   STARTING_EQUIPMENT_CHOICES = %w[class_gear starting_gold].freeze
 
   # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The builder
   # recommends placing the highest values in Key Stats, but the rules allow
   # the player to place each array value freely.
-  STAT_ARRAYS = {
-    "standard" => [ 2, 2, 0, -1 ],
-    "balanced" => [ 2, 1, 1, 0 ],
-    "min_max"  => [ 3, 1, -1, -1 ]
-  }.freeze
-
-  STAT_NAMES = %w[strength dexterity intelligence will].freeze
-  SKILL_TO_STAT = {
-    "arcana" => "intelligence",
-    "examination" => "intelligence",
-    "finesse" => "dexterity",
-    "influence" => "will",
-    "insight" => "will",
-    "lore" => "intelligence",
-    "might" => "strength",
-    "naturecraft" => "will",
-    "perception" => "will",
-    "stealth" => "dexterity"
-  }.freeze
+  STAT_ARRAYS = Rules::NimbleCatalog.stat_arrays.transform_values(&:freeze).freeze
+  STAT_NAMES = Rules::NimbleCatalog.stats.keys.freeze
+  SKILL_TO_STAT = Rules::NimbleCatalog.skills.freeze
   SKILL_NAMES = SKILL_TO_STAT.keys.freeze
-
-  STAT_INCREASE_LEVELS = {
-    "key" => [ 4, 8, 12, 16 ],
-    "secondary" => [ 5, 9, 13, 17 ],
-    "any_two" => [ 20 ]
-  }.freeze
 
   STATUS_LABELS = {
     "draft" => "Draft",
@@ -54,6 +34,7 @@ class Character < ApplicationRecord
 
   has_many :character_spells, dependent: :destroy
   has_many :spells, through: :character_spells
+  has_many :story_subclass_changes, dependent: :destroy
   has_many :character_revisions, dependent: :destroy
   has_many :level_ups, dependent: :destroy
   has_many :character_shares, dependent: :destroy
@@ -79,10 +60,12 @@ class Character < ApplicationRecord
   validate :playable_state_is_legal, if: :playable?
   validate :starting_equipment_choice_only_changes_while_draft
   validate :level_changes_require_level_up_transition
+  validate :story_based_subclass_requires_approved_change
 
   before_create :ensure_defaults
   before_validation :assign_default_ruleset
   before_validation :sync_derived_values, if: :should_sync_derived_values?
+  before_validation :sync_languages, if: :should_sync_languages?
   before_validation :sync_starting_equipment, if: :should_sync_starting_equipment?
   after_create :sync_starting_gear_inventory
   after_update :sync_starting_gear_inventory, if: :starting_gear_loadout_changed?
@@ -123,12 +106,75 @@ class Character < ApplicationRecord
   def known_spell_schools
     schools = character_class&.spell_schools || []
     schools = schools.reject { |school| school == "choice" }
-    schools << spell_school_choice if character_class&.spell_schools&.include?("choice") && spell_school_choice.present?
+    schools << spell_school_choice if character_class&.spell_school_choice_rule.present? && spell_school_choice.present?
     schools.uniq
+  end
+
+  def language_choice_count(stat_values = current_stat_values)
+    [ value_for_stat(stat_values, "intelligence").to_i, 0 ].max * Rules::NimbleCatalog.language_rules.fetch("intelligence_choices_per_point").to_i
+  end
+
+  def language_origin_grants(stat_values = current_stat_values)
+    minimum_intelligence = Rules::NimbleCatalog.language_rules.fetch("ancestry_grant_minimum_intelligence").to_i
+    return [] if value_for_stat(stat_values, "intelligence").to_i < minimum_intelligence
+
+    [ ancestry&.language_names, background&.language_names ].flatten.compact.map(&:to_s).uniq
+  end
+
+  def language_choice_options_for(stat_values = current_stat_values, excluding: language_choices, level: self.level, feature_choices: recorded_feature_choices, feature_language_choices: self.feature_language_choices)
+    language_rules = Rules::NimbleCatalog.language_rules
+    automatically_known = [
+      language_rules.fetch("default_language"),
+      *language_origin_grants(stat_values),
+      *Rules::NimbleCatalog.class_language_grants_for(character_class&.name, level),
+      *known_feature_languages(feature_choices, feature_language_choices)
+    ]
+    Array(language_rules.fetch("languages")).map(&:to_s) - automatically_known - Array(excluding).compact_blank.map(&:to_s)
+  end
+
+  def known_language_names(stat_values = current_stat_values, choices: language_choices, level: self.level, feature_choices: recorded_feature_choices, feature_language_choices: self.feature_language_choices)
+    language_rules = Rules::NimbleCatalog.language_rules
+    grants = language_origin_grants(stat_values)
+    class_grants = Rules::NimbleCatalog.class_language_grants_for(character_class&.name, level)
+    selections = Array(choices).compact_blank.map(&:to_s) & language_choice_options_for(
+      stat_values,
+      excluding: [],
+      level:,
+      feature_choices:,
+      feature_language_choices: []
+    )
+    feature_grants = known_feature_languages(feature_choices, feature_language_choices)
+    ([ language_rules.fetch("default_language"), *grants, *class_grants, *selections, *feature_grants ]).uniq
+  end
+
+  def remaining_language_choice_count(stat_values = current_stat_values, choices: language_choices)
+    [ language_choice_count(stat_values) - Array(choices).length, 0 ].max
+  end
+
+  def language_issues_for(stat_values:, choices: language_choices, feature_choices: recorded_feature_choices, feature_selections: feature_language_choices, level: self.level)
+    language_selection_issues(stat_values, choices:, feature_choices:, feature_selections:, level:)
+  end
+
+  def with_approved_story_subclass_change(from_subclass:, to_subclass:, story_note:, campaign:, approved_by:)
+    previous_approval = @approved_story_subclass_change
+    @approved_story_subclass_change = {
+      from_subclass: from_subclass.to_s,
+      to_subclass: to_subclass.to_s,
+      story_note: story_note.to_s,
+      campaign_id: campaign.id,
+      approved_by_account_id: approved_by.id
+    }
+    yield
+  ensure
+    @approved_story_subclass_change = previous_approval
   end
 
   def subclass_options
     character_class&.subclass_options || []
+  end
+
+  def known_subclass_options
+    character_class&.known_subclass_options || []
   end
 
   def available_spells
@@ -476,7 +522,7 @@ class Character < ApplicationRecord
     return nil if character_class.blank?
 
     values = stat_values || current_stat_values
-    10 + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
+    Rules::NimbleCatalog.derived_values.fetch("save_dc_base").to_i + character_class.key_stats.map { |stat| value_for_stat(values, stat) }.max.to_i
   end
 
   def equipped_armor_profiles
@@ -713,25 +759,26 @@ class Character < ApplicationRecord
       )
     end
     issues << rule_issue("Start new characters at level 1.", "Chapter 3, Character Creation", "A starting character begins at level 1.") if level.present? && level != 1 && !playable? && !level_up_in_progress?
+    issues.concat(language_selection_issues) if character_class.present? && stat_array.present? && stat_assignments_valid?
 
-    if character_class&.spell_schools&.include?("choice") && spell_school_choice.blank?
+    spell_school_choice_rule = character_class&.spell_school_choice_rule
+    if spell_school_choice_rule.present? && spell_school_choice.blank?
       issues << rule_issue(
         "Choose one additional spell school for #{character_class.name}.",
-        "Heroes 2.0.1, p. 55",
-        "You know Wind cantrips and one other school of your choice."
+        spell_school_choice_rule.fetch("source_ref"),
+        spell_school_choice_rule.fetch("source_quote")
       )
     end
 
-    valid_additional_schools = %w[Fire Ice Lightning Wind Radiant Necrotic]
-    if character_class&.spell_schools&.include?("choice") && spell_school_choice.present? && !valid_additional_schools.include?(spell_school_choice)
+    if spell_school_choice_rule.present? && spell_school_choice.present? && !Array(spell_school_choice_rule.fetch("allowed_schools", [])).include?(spell_school_choice)
       issues << rule_issue(
         "#{spell_school_choice} is not a legal additional spell school for #{character_class.name}.",
-        "Heroes 2.0.1, p. 55",
-        "Songweaver chooses one additional school alongside Wind."
+        spell_school_choice_rule.fetch("source_ref"),
+        spell_school_choice_rule.fetch("source_quote")
       )
     end
 
-    if subclass_name.present? && !subclass_options.include?(subclass_name)
+    if subclass_name.present? && !known_subclass_options.include?(subclass_name)
       issues << rule_issue(
         "#{subclass_name} is not a legal subclass for #{character_class&.name || 'this class'}.",
         character_class&.source_reference || "Heroes 2.0.1, Subclasses",
@@ -820,7 +867,8 @@ class Character < ApplicationRecord
   end
 
   def skill_point_budget
-    4 + [ level.to_i - 1, 0 ].max
+    rules = Rules::NimbleCatalog.derived_values
+    rules.fetch("skill_points_at_level_one").to_i + [ level.to_i - 1, 0 ].max * rules.fetch("skill_points_per_level").to_i
   end
 
   def skill_points_spent
@@ -864,13 +912,7 @@ class Character < ApplicationRecord
   end
 
   def stat_increase_type_for(level)
-    return character_class.stat_increase_type_for(level) if character_class.present?
-
-    STAT_INCREASE_LEVELS.each do |type, levels|
-      return type if levels.include?(level.to_i)
-    end
-
-    nil
+    character_class&.stat_increase_type_for(level)
   end
 
   def stat_increase_options_for(level)
@@ -881,7 +923,7 @@ class Character < ApplicationRecord
   def snapshot_payload
     {
       "character" => attributes.slice(
-        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
+        "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "language_choices", "feature_language_choices", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
       "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots", "equipped") },
@@ -942,7 +984,16 @@ class Character < ApplicationRecord
     end
 
     def playable_state_is_legal
-      creation_issues.each do |issue|
+      issues = creation_issues
+      unless language_state_must_be_validated?
+        language_source_refs = [
+          Rules::NimbleCatalog.language_rules.fetch("source_ref"),
+          *Rules::NimbleCatalog.language_rules.fetch("feature_language_choices", {}).values.map { |rule| rule.fetch("source_ref") }
+        ]
+        issues = issues.reject { |issue| language_source_refs.include?(issue.fetch(:source_ref)) }
+      end
+
+      issues.each do |issue|
         errors.add(:base, issue.fetch(:message))
       end
     end
@@ -956,7 +1007,11 @@ class Character < ApplicationRecord
     end
 
     def should_sync_derived_values?
-      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || starting_equipment_choice_changed?
+      new_record? || character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || starting_equipment_choice_changed? || subclass_name_changed?
+    end
+
+    def should_sync_languages?
+      new_record? || canonical_choices_changed? || language_choices_changed? || feature_language_choices_changed? || languages_changed? || level_changed?
     end
 
     def should_sync_starting_equipment?
@@ -1002,9 +1057,16 @@ class Character < ApplicationRecord
 
       assign_attributes_to_skill_set if stat_set.present?
 
-      assign_attributes_to_trait_set if trait_set.blank? || canonical_choices_changed?
+      assign_attributes_to_trait_set if trait_set.blank? || canonical_choices_changed? || subclass_name_changed?
+    end
 
-      self.languages = derived_languages if languages.blank? || canonical_choices_changed?
+    def sync_languages
+      self.language_choices = Array(language_choices).compact_blank.map(&:to_s)
+      self.feature_language_choices = feature_language_choices.to_h.stringify_keys.transform_values { |items| Array(items).compact_blank.map(&:to_s) }
+
+      return unless languages.blank? || (character_class.present? && stat_array.present?)
+
+      self.languages = known_language_names.join(", ")
     end
 
     def sync_starting_equipment
@@ -1048,6 +1110,29 @@ class Character < ApplicationRecord
 
     def canonical_choices_changed?
       character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || starting_equipment_choice_changed?
+    end
+
+    def language_state_must_be_validated?
+      new_record? ||
+        (will_save_change_to_status? && playable?) ||
+        character_class_id_changed? || ancestry_id_changed? || background_id_changed? || stat_array_changed? || stat_assignments_changed? || level_changed? ||
+        language_choices_changed? || feature_language_choices_changed? || languages_changed? || feature_choices_changed?
+    end
+
+    def story_based_subclass_requires_approved_change
+      return if subclass_name.blank? || character_class&.story_based_subclass_rule(subclass_name).blank?
+      return unless new_record? || will_save_change_to_subclass_name?
+
+      approval = @approved_story_subclass_change
+      approved = approval.present? &&
+        approval.fetch(:from_subclass) == attribute_in_database("subclass_name") &&
+        approval.fetch(:to_subclass) == subclass_name &&
+        approval.fetch(:story_note).present? &&
+        approval.fetch(:campaign_id).present? &&
+        approval.fetch(:approved_by_account_id).present?
+      return if approved
+
+      errors.add(:subclass_name, "requires a GM-approved story change with a story note")
     end
 
     def assign_attributes_to_stat_set(values)
@@ -1150,14 +1235,96 @@ class Character < ApplicationRecord
       [ current, new_max ].compact.min
     end
 
-    def derived_languages
-      languages = [ "Common" ]
-      languages.concat(ancestry.language_names) if ancestry.present? && stat_value("intelligence") >= 0
-      languages.concat(background.language_names) if background.present? && stat_value("intelligence") >= 0
-      (stat_value("intelligence").positive? ? stat_value("intelligence") : 0).times do |index|
-        languages << [ "Dwarvish", "Elvish", "Goblin", "Infernal", "Thieves' Cant", "Celestial", "Draconic", "Primordial", "Deep Speak" ][index] || "Additional language"
+    def language_selection_issues(stat_values = current_stat_values, choices: language_choices, feature_choices: recorded_feature_choices, feature_selections: feature_language_choices, level: self.level)
+      source = Rules::NimbleCatalog.language_rules
+      issues = []
+      selections = Array(choices).map(&:to_s)
+      feature_selections = feature_selections.to_h.stringify_keys.transform_values { |items| Array(items).compact_blank.map(&:to_s) }
+      selected_features = feature_choices.to_h.values.flatten.map(&:to_s)
+      base_grants = [ source.fetch("default_language"), *language_origin_grants(stat_values), *Rules::NimbleCatalog.class_language_grants_for(character_class&.name, level) ]
+      allowed_choices = language_choice_options_for(
+        stat_values,
+        excluding: [],
+        level:,
+        feature_choices:,
+        feature_language_choices: feature_selections
+      )
+      invalid = selections - allowed_choices
+
+      if invalid.any?
+        issues << rule_issue(
+          "#{invalid.join(', ')} is not an available language choice for this character.",
+          source.fetch("source_ref"),
+          source.fetch("selection_note")
+        )
       end
-      languages.uniq.join(", ")
+
+      if selections.uniq.length != selections.length
+        issues << rule_issue("Choose each language only once.", source.fetch("source_ref"), source.fetch("source_quote"))
+      end
+
+      expected = language_choice_count(stat_values)
+      if selections.length != expected
+        difference = (selections.length - expected).abs
+        message = if selections.length < expected
+          "Choose #{difference} more language#{difference == 1 ? '' : 's'} for your INT."
+        else
+          "Remove #{difference} language choice#{difference == 1 ? '' : 's'}; your INT grants #{expected}."
+        end
+        issues << rule_issue(message, source.fetch("source_ref"), source.fetch("source_quote"))
+      end
+
+      language_features = source.fetch("feature_language_choices", {})
+      feature_selections.each do |feature_name, picked_languages|
+        next if language_features.key?(feature_name) && selected_features.include?(feature_name)
+        next if picked_languages.empty?
+
+        issues << rule_issue(
+          "#{feature_name} does not grant language choices for this character.",
+          source.fetch("source_ref"),
+          source.fetch("selection_note")
+        )
+      end
+
+      language_features.each do |feature_name, rule|
+        next unless selected_features.include?(feature_name)
+
+        picked_languages = feature_selections.fetch(feature_name, [])
+        allowed_feature_languages = Array(rule.fetch("options")) - base_grants - selections
+        invalid_languages = picked_languages - allowed_feature_languages
+        if invalid_languages.any?
+          issues << rule_issue(
+            "#{invalid_languages.join(', ')} is not available for #{feature_name}.",
+            rule.fetch("source_ref"),
+            rule.fetch("source_quote")
+          )
+        end
+        if picked_languages.uniq.length != picked_languages.length
+          issues << rule_issue("Choose each language only once for #{feature_name}.", rule.fetch("source_ref"), rule.fetch("source_quote"))
+        end
+        expected_count = rule.fetch("count").to_i
+        if picked_languages.length != expected_count
+          difference = (picked_languages.length - expected_count).abs
+          message = picked_languages.length < expected_count ? "Choose #{difference} more language#{difference == 1 ? '' : 's'} for #{feature_name}." : "Remove #{difference} extra language choice#{difference == 1 ? '' : 's'} for #{feature_name}."
+          issues << rule_issue(message, rule.fetch("source_ref"), rule.fetch("source_quote"))
+        end
+      end
+
+      additions = selections + feature_selections.values.flatten
+      if additions.uniq.length != additions.length
+        issues << rule_issue("A language cannot be selected more than once, including language grants from features.", source.fetch("source_ref"), source.fetch("source_quote"))
+      end
+      issues
+    end
+
+    def known_feature_languages(feature_selections, picked_languages)
+      selected_features = feature_selections.to_h.values.flatten.map(&:to_s)
+      picks = picked_languages.to_h.stringify_keys
+      Rules::NimbleCatalog.language_rules.fetch("feature_language_choices", {}).filter_map do |feature_name, rule|
+        next unless selected_features.include?(feature_name)
+
+        Array(picks[feature_name]).map(&:to_s) & Array(rule.fetch("options"))
+      end.flatten.uniq
     end
 
   private

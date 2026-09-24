@@ -56,6 +56,7 @@ class CharactersTest < ApplicationSystemTestCase
     find("select[name='character[stat_assignments][intelligence]'] option[value='1']").select_option
     find("select[name='character[stat_assignments][will]'] option[value='2']").select_option
     assert_selector "[data-character-builder-target='saveDcPreview']", text: "11"
+    check "Elvish"
     fill_in "character_skill_set_attributes_might", with: 5
 
     click_on "Save and mark playable"
@@ -68,6 +69,7 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal @character_class, created.character_class
     assert_equal @ancestry, created.ancestry
     assert_equal @background, created.background
+    assert_equal [ "Elvish" ], created.language_choices
     assert_equal 4, created.inventory_slots_used
     assert_text "Starting kit carried"
     assert_text "4 slots · included in total"
@@ -89,6 +91,18 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-skill-base='might']", text: "base +2"
     assert_selector "[data-character-builder-target='languagesPreview']", text: "Common, Goblin"
     assert_selector "[data-character-builder-target='armorPreview']", text: "2"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "the builder only offers Songweaver's source-defined other spell schools" do
+    visit new_character_url
+    select "Songweaver", from: "Class"
+
+    assert_selector "[data-character-builder-target='spellSchoolChoiceField']", visible: true
+    assert_selector "select[name='character[spell_school_choice]'] option", text: "Fire"
+    assert_selector "select[name='character[spell_school_choice]'] option", text: "Wind", count: 0
+    assert_text "You know cantrips from the Wind school and 1 other school of your choice."
+    assert_text "Heroes 2.0.1, p. 55"
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1 S-09:AC-3

@@ -1,0 +1,37 @@
+<% if @story_subclass_changes.any? || (@can_approve_story_subclass && @story_subclass_options.any?) %>
+  <section class="panel story-subclass-panel">
+    <div class="panel-heading compact">
+      <div><p class="eyebrow">Story milestone</p><h2>Subclass changes</h2></div>
+      <span class="mini-label">GM-approved · audited</span>
+    </div>
+    <% if @can_approve_story_subclass && @story_subclass_options.any? %>
+      <p class="muted">This is the only edit available to a GM on a shared sheet. It replaces the current subclass; the story note and rules source are recorded with the change.</p>
+      <%= form_with scope: :story_subclass_change, url: shared_story_subclass_changes_path(@share.share_token), class: "story-subclass-form" do |form| %>
+        <%= form.hidden_field :current_subclass, value: @character.subclass_name %>
+        <div class="field">
+          <%= form.label :to_subclass, "Story-based replacement" %>
+          <%= form.select :to_subclass, @story_subclass_options.map { |subclass| [ subclass, subclass ] }, { include_blank: "Choose a story subclass" }, class: "choice-select", required: true %>
+        </div>
+        <div class="field">
+          <%= form.label :story_note, "Why does the story call for this change?" %>
+          <%= form.text_area :story_note, rows: 3, maxlength: StorySubclassChangeService::MAX_STORY_NOTE_LENGTH, placeholder: "Record the story moment and why this subclass replaces the current path…", class: "choice-textarea", required: true %>
+          <% story_subclass_rule = @character.character_class.story_based_subclass_rule(@story_subclass_options.first) %>
+          <span class="field-hint">Required audit note · up to <%= StorySubclassChangeService::MAX_STORY_NOTE_LENGTH %> characters · “<%= story_subclass_rule.fetch("source_quote") %>” (<%= story_subclass_rule.fetch("source_ref") %>)</span>
+        </div>
+        <%= form.submit "Approve story change", class: "button button-primary" %>
+      <% end %>
+    <% end %>
+
+    <% if @story_subclass_changes.any? %>
+      <div class="story-subclass-history" aria-label="Story subclass change history">
+        <% @story_subclass_changes.each do |change| %>
+          <article class="story-subclass-entry">
+            <div><strong><%= change.from_subclass %> → <%= change.to_subclass %></strong><span><%= change.approved_by_account.display_name %> · <%= change.campaign.name %> · <%= change.source_ref %></span></div>
+            <p><%= change.story_note %></p>
+            <time datetime="<%= change.created_at.iso8601 %>"><%= l(change.created_at, format: :short) %></time>
+          </article>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+<% end %>

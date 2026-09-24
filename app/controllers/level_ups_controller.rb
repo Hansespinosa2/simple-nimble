@@ -48,7 +48,7 @@ class LevelUpsController < ApplicationController
     end
 
     def level_up_params
-      params.expect(level_up: [ :from_level, :to_level, :skill_name, :skill_from, :stat_name, :second_stat_name, :subclass_name, :hit_die_roll_one, :hit_die_roll_two, :notes, { feature_choices: {}, spell_choices: {} } ])
+      params.expect(level_up: [ :from_level, :to_level, :skill_name, :skill_from, :stat_name, :second_stat_name, :subclass_name, :hit_die_roll_one, :hit_die_roll_two, :notes, { feature_choices: {}, spell_choices: {}, language_choices: [], feature_language_choices: {} } ])
     end
 
     def save_level_up

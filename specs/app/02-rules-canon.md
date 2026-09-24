@@ -225,6 +225,12 @@ Non-casters (Berserker, The Cheat, Commander, Hunter, Zephyr): no mana or tier u
 
 Each subclass grants features at levels 3, 7, 11, and 15.
 
+The four story-based subclasses are not level-3 picks. A GM may grant the listed
+story-based subclass at a story moment, replacing the character's current
+subclass. In the app, that exception is available only to the GM of a campaign
+where the sheet is shared, requires a story note, and records the old/new
+subclass, GM, campaign, and rules citation in the audit history.
+
 ---
 
 #### 7. Selectable Feature Pools (per class)

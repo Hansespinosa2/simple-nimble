@@ -101,8 +101,9 @@
           </div>
           <div class="field field-wide" data-character-builder-target="spellSchoolChoiceField">
             <%= form.label :spell_school_choice, "Additional spell school" %>
-            <%= form.select :spell_school_choice, %w[Fire Ice Lightning Wind Radiant Necrotic].map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: read_only, data: { character_builder_target: "spellSchoolChoice" } %>
-            <span class="field-hint">Songweaver knows Wind plus one other school.</span>
+            <%= form.select :spell_school_choice, (character.character_class&.spell_school_choice_options || []).map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: read_only, data: { character_builder_target: "spellSchoolChoice" } %>
+            <% school_choice_rule = character.character_class&.spell_school_choice_rule %>
+            <span class="field-hint" data-character-builder-target="spellSchoolChoiceHint"><%= "#{school_choice_rule.fetch('source_quote')} (#{school_choice_rule.fetch('source_ref')})" if school_choice_rule.present? %></span>
           </div>
           <% academy_choice = Rules::NimbleCatalog.background_spell_choice_for("Academy Dropout") %>
           <% utility_spell_options = Spell.where(tier: -1).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
@@ -162,6 +163,21 @@
           <div class="derived-item"><span>Saves</span><strong data-character-builder-target="savesPreview"><%= save_summary %></strong></div>
           <div class="derived-item"><span>Mana</span><strong data-character-builder-target="manaPreview"><%= character.trait_set&.max_mana || "—" %></strong></div>
         </div>
+        <% language_rules = Rules::NimbleCatalog.language_rules %>
+        <fieldset class="language-choice-panel">
+          <legend>Languages</legend>
+          <p class="field-hint"><%= language_rules.fetch("source_quote") %> Origin grants apply automatically when their INT requirement is met; choose one distinct language for each positive INT point.</p>
+          <div class="language-choice-grid">
+            <%= hidden_field_tag "character[language_choices][]", "" if character.new_record? || Array(character.language_choices).any? %>
+            <% language_rules.fetch("languages").reject { |language| language == language_rules.fetch("default_language") }.each do |language| %>
+              <label class="language-choice-option" data-language-choice-option="<%= language %>">
+                <%= check_box_tag "character[language_choices][]", language, Array(character.language_choices).include?(language), disabled: read_only, data: { language_choice: true, action: "change->character-builder#refresh" } %>
+                <span><%= language %></span>
+              </label>
+            <% end %>
+          </div>
+          <span class="field-hint" data-character-builder-target="languageChoiceHint"><%= character.language_choice_count %> INT language choice(s) required · <%= language_rules.fetch("source_ref") %></span>
+        </fieldset>
       </section>
 
       <section class="panel">

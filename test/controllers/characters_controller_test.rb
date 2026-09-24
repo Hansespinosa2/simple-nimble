@@ -268,6 +268,19 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "editing a legacy character does not erase its languages before the player confirms explicit choices" do
+    get edit_character_url(@character)
+
+    assert_response :success
+    assert_select "input[type='hidden'][name='character[language_choices][]']", 0
+
+    patch character_url(@character), params: { character: { name: "Legacy Hero, Remembered" } }
+
+    assert_redirected_to character_url(@character)
+    assert_equal "Common, Elvish", @character.reload.languages
+    assert_empty @character.language_choices
+  end
+
   test "a playable character's level is read-only in the general editor" do
     character = Character.create!(canonical_character_attributes.merge(name: "Level-Up Only Hero"))
     character.finalize_creation!
@@ -613,6 +626,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
         background_id: @background.id,
         stat_array: "balanced",
         level: 1,
+        language_choices: [ "Draconic" ],
         skill_set_attributes: { might: 7 }
       }
     end

@@ -25,6 +25,11 @@
           <%= form.label :subclass_name, "Subclass" %>
           <%= form.select :subclass_name, @planner.subclass_options.map { |subclass| [ subclass, subclass ] }, { include_blank: "Choose a subclass" }, class: "choice-select" %>
           <span class="field-hint"><%= @character.character_class.source_reference %> · Subclass features begin at level 3.</span>
+          <% if @planner.story_based_subclass_rules.any? %>
+            <% story_subclass_names = @planner.story_based_subclass_rules.map { |subclass| subclass.fetch("name") } %>
+            <% story_subclass_rule = @planner.story_based_subclass_rules.first %>
+            <span class="field-hint">Story-based options: <%= story_subclass_names.join(", ") %>. <%= story_subclass_rule.fetch("source_quote") %> (<%= story_subclass_rule.fetch("source_ref") %>)</span>
+          <% end %>
         </div>
       <% end %>
 
@@ -40,6 +45,25 @@
           <% if already_chosen.any? %>
             <span class="field-hint">Already recorded: <%= already_chosen.join(", ") %>. Choose a different option.</span>
           <% end %>
+        </div>
+      <% end %>
+
+      <% if @planner.stat_options.include?("intelligence") %>
+        <% language_rules = Rules::NimbleCatalog.language_rules %>
+        <div class="field feature-choice-field">
+          <%= label_tag "level_up[language_choices][]", "New INT language choice" %>
+          <%= select_tag "level_up[language_choices][]", options_for_select(@planner.language_choice_options.map { |language| [ language, language ] }, Array(level_up.language_choices)), multiple: true, size: 5, class: "choice-select" %>
+          <span class="field-hint">If this level increases INT, choose one new language per positive INT point gained. <%= language_rules.fetch("source_quote") %> (<%= language_rules.fetch("source_ref") %>)</span>
+        </div>
+      <% end %>
+
+      <% @planner.feature_language_choice_rules.each do |feature_name, rule| %>
+        <% field_name = "level_up[feature_language_choices][#{feature_name}][]" %>
+        <% selected_languages = level_up.feature_language_choices.to_h.stringify_keys.fetch(feature_name, []) %>
+        <div class="field feature-choice-field">
+          <%= label_tag field_name, "#{feature_name} · choose #{rule.fetch('count')} languages" %>
+          <%= select_tag field_name, options_for_select(@planner.feature_language_choice_options(feature_name).map { |language| [ language, language ] }, selected_languages), multiple: true, size: [ rule.fetch("count").to_i + 1, 5 ].max, class: "choice-select" %>
+          <span class="field-hint">Only complete this if you choose #{feature_name} in its feature pool. <%= rule.fetch("source_quote") %> (<%= rule.fetch("source_ref") %>)</span>
         </div>
       <% end %>
 
@@ -114,6 +138,7 @@
       <div class="preview-list">
         <div><span>Max HP</span><strong><%= preview.fetch("traits").fetch("max_hp") %> <small>+<%= preview.fetch("hp_gain") %> (rolls <%= preview.fetch("hit_die_rolls").join(" / ") %>)</small></strong></div>
         <div><span>Max Hit Dice</span><strong><%= preview.fetch("traits").fetch("max_hit_dice") %></strong></div>
+        <div><span>Languages</span><strong><%= preview.fetch("languages").join(", ") %></strong></div>
         <div><span>Armor</span><strong><%= preview.fetch("traits").fetch("armor") %></strong></div>
         <div><span>Initiative</span><strong><%= signed_value(preview.fetch("traits").fetch("initiative")) %></strong></div>
         <div><span>Spell tier</span><strong><%= preview.fetch("spell_tier").positive? ? "Tier #{preview.fetch('spell_tier')}" : "None" %></strong></div>

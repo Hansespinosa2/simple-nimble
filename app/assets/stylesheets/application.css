@@ -405,6 +405,17 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .shared-banner strong, .shared-banner span { display: block; }
 .shared-banner strong { font-size: 12px; }
 .shared-banner div span { font-size: 11px; margin-top: 2px; }
+.story-subclass-panel { margin-bottom: 18px; }
+.story-subclass-form { display: grid; gap: 12px; max-width: 680px; }
+.story-subclass-form .field { display: grid; gap: 5px; }
+.story-subclass-form .field label { color: var(--ink); font-size: 12px; font-weight: 700; }
+.story-subclass-form .button { justify-self: start; }
+.story-subclass-history { border-top: 1px solid var(--line); display: grid; gap: 10px; margin-top: 18px; padding-top: 13px; }
+.story-subclass-entry { background: var(--surface-muted); border-radius: 9px; padding: 12px; }
+.story-subclass-entry > div { align-items: start; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+.story-subclass-entry strong { font-size: 12px; }
+.story-subclass-entry span, .story-subclass-entry time { color: var(--ink-soft); font-size: 10px; }
+.story-subclass-entry p { color: var(--ink-soft); font-size: 12px; line-height: 1.5; margin: 8px 0 0; white-space: pre-wrap; }
 
 @media (max-width: 1050px) {
     .character-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

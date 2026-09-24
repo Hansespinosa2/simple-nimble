@@ -41,6 +41,34 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='level_up[subclass_name]'] option", text: "Path of the Mountainheart"
   end
 
+  # S-02:AC-2 S-02:AC-4 S-06:AC-2
+  test "level-three page separates story-based subclasses and explains the GM rule" do
+    commander = Character.create!(
+      name: "Commander Story Choice Hero",
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
+      ruleset_version: RulesetVersion.active.first
+    )
+    creation_skill = Character::SKILL_TO_STAT.find { |_skill, stat| commander.character_class.key_stats.include?(stat) }.first
+    commander.skill_set.update!(creation_skill => commander.skill_initial_value(creation_skill) + 4)
+    commander.finalize_creation!
+    commander.update_columns(level: 2, status: "playable")
+    commander.skill_set.update!(creation_skill => commander.skill_value(creation_skill) + 1)
+    assert commander.reload.level_up_eligible?, commander.creation_issues.map { |issue| issue[:message] }.join(" | ")
+
+    get new_character_level_up_url(commander)
+
+    assert_response :success
+    assert_select "select[name='level_up[subclass_name]'] option", text: "Champion of the Bulwark"
+    assert_select "select[name='level_up[subclass_name]'] option", text: "Spellblade", count: 0
+    assert_select ".field-hint", /Story-based options: Spellblade/
+    assert_select ".field-hint", /At your GM's discretion.*replacing your existing subclass/
+    assert_select ".field-hint", /Heroes 2.0.1, p. 73/
+  end
+
   test "level-four page exposes the source-backed feature choice" do
     @character.update_columns(level: 3, status: "playable", subclass_name: "Path of the Mountainheart")
     @character.skill_set.update!(might: 9)
@@ -82,6 +110,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     mage.finalize_creation!

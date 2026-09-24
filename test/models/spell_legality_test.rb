@@ -11,6 +11,7 @@ class SpellLegalityTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "balanced",
+      language_choices: [ "Elvish", "Draconic" ],
       skill_set_attributes: { might: 6 }
     )
   end

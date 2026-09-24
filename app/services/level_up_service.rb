@@ -10,6 +10,7 @@ class LevelUpService
       preview = planner.preview
       apply_preview!(character, preview)
       character.apply_level_up_transition!(preview.fetch("level"))
+      character.update!(languages: preview.fetch("languages").join(", "))
       character.sync_granted_utility_spells!(level: preview.fetch("level"), ledger: character.spell_choice_ledger)
       level_up.update!(status: "finalized", preview: preview, finalized_at: Time.current)
       character.record_revision!(
@@ -43,6 +44,11 @@ class LevelUpService
       spell_choice_ledger[pool_name][level_key] = Array(selections)
     end
     character.update!(spell_choices: spell_choice_ledger)
+
+    character.update!(
+      language_choices: preview.fetch("language_choices"),
+      feature_language_choices: preview.fetch("feature_language_choices")
+    )
 
     trait_updates = preview.fetch("traits").slice(
       "max_hp", "current_hp", "max_hit_dice", "current_hit_dice", "initiative", "speed", "hit_die", "armor", "inventory_slots",

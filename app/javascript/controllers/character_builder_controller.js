@@ -2,9 +2,9 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [
-    "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
+    "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "spellSchoolChoiceHint", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
     "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment", "startingEquipmentChoice", "startingEquipmentPreview", "backgroundEquipmentNote",
-    "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget"
+    "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget", "languageChoiceHint"
   ]
 
   static values = { rules: Object }
@@ -12,6 +12,7 @@ export default class extends Controller {
   connect() {
     this.spellSchoolChoiceInitialDisabled = this.hasSpellSchoolChoiceTarget && this.spellSchoolChoiceTarget.disabled
     this.backgroundSpellChoiceInitialDisabled = this.hasBackgroundSpellChoiceTarget && this.backgroundSpellChoiceTarget.disabled
+    this.languageChoiceInitialDisabled = new Map([...this.element.querySelectorAll("[data-language-choice]")].map((input) => [input, input.disabled]))
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       input.addEventListener("input", () => {
         input.dataset.touched = "true"
@@ -41,9 +42,18 @@ export default class extends Controller {
   updateSpellSchoolChoice(characterClass) {
     if (!this.hasSpellSchoolChoiceFieldTarget) return
 
-    const enabled = characterClass?.spell_schools?.includes("choice") || false
+    const rule = characterClass?.spell_school_choice
+    const schools = rule?.allowed_schools || []
+    const enabled = schools.length > 0
     this.spellSchoolChoiceFieldTarget.hidden = !enabled
-    if (this.hasSpellSchoolChoiceTarget) this.spellSchoolChoiceTarget.disabled = this.spellSchoolChoiceInitialDisabled || !enabled
+    if (this.hasSpellSchoolChoiceTarget) {
+      const selectedSchool = this.spellSchoolChoiceTarget.value
+      this.spellSchoolChoiceTarget.replaceChildren(new Option("Choose one additional school", ""))
+      schools.forEach((school) => this.spellSchoolChoiceTarget.add(new Option(school, school)))
+      this.spellSchoolChoiceTarget.value = schools.includes(selectedSchool) ? selectedSchool : ""
+      this.spellSchoolChoiceTarget.disabled = this.spellSchoolChoiceInitialDisabled || !enabled
+    }
+    this.setTargetText("spellSchoolChoiceHint", rule ? `${rule.source_quote} (${rule.source_ref})` : "")
   }
 
   updateBackgroundSpellChoice(background) {
@@ -74,7 +84,6 @@ export default class extends Controller {
   updateStats(characterClass, array) {
     const statValues = {}
     const sortedArray = array ? [...array].sort((a, b) => b - a) : []
-    const stats = [ "strength", "dexterity", "intelligence", "will" ]
     const keys = characterClass?.key_stats || []
     const secondaries = characterClass?.secondary_stats || []
 
@@ -133,11 +142,7 @@ export default class extends Controller {
   updateSkills(characterClass, ancestry, background, array) {
     const statValues = this.statValues || {}
     const allSkillsBonus = (ancestry?.all_skills_bonus || 0) + (background?.all_skills_bonus || 0)
-    const mapping = {
-      arcana: "intelligence", examination: "intelligence", finesse: "dexterity", influence: "will",
-      insight: "will", lore: "intelligence", might: "strength", naturecraft: "will",
-      perception: "will", stealth: "dexterity"
-    }
+    const mapping = this.rulesValue.skills || {}
 
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       const skill = input.dataset.skill
@@ -156,19 +161,15 @@ export default class extends Controller {
     const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
     const startingEquipmentChoice = this.hasStartingEquipmentChoiceTarget ? this.startingEquipmentChoiceTarget.value : "class_gear"
     const armor = this.armorValue(characterClass, stats, startingEquipmentChoice, level) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
-    const speed = 6 + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
-    const wounds = 6 + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
+    const derived = this.rulesValue.derived_values || {}
+    const speed = Number(derived.base_speed || 0) + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
+    const wounds = Number(derived.default_max_wounds || 0) + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
-    const saveDc = array && keyStats.length ? 10 + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
+    const saveDc = array && keyStats.length ? Number(derived.save_dc_base || 0) + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
     const saves = characterClass ? `${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : "—"
     const mana = array ? this.manaMax(characterClass?.resource, stats, level) : "—"
-    const languages = [ "Common" ]
-
-    if (intelligence >= 0) {
-      languages.push(...(ancestry?.language_grants || []), ...(background?.language_grants || []))
-    }
-
-    for (let index = 0; index < Math.max(intelligence, 0); index += 1) languages.push("+ language")
+    const languageRules = this.rulesValue.languages || {}
+    const languages = this.updateLanguageChoices(characterClass, ancestry, background, array, languageRules, intelligence, level)
 
     this.setTargetText("hpPreview", characterClass?.starting_hp || "—")
     this.setTargetText("armorPreview", array ? armor : "—")
@@ -177,7 +178,7 @@ export default class extends Controller {
     this.setTargetText("saveDcPreview", saveDc)
     this.setTargetText("savesPreview", saves)
     this.setTargetText("manaPreview", mana)
-    this.setTargetText("languagesPreview", array ? languages.join(", ") : "Common")
+    this.setTargetText("languagesPreview", array ? languages.join(", ") : languageRules.default_language || "Common")
     this.setTargetText("speedPreview", array ? speed : "—")
     this.setTargetText("woundsPreview", array ? wounds : "—")
     this.setTargetText("resourcePreview", characterClass?.resource?.name || "—")
@@ -186,7 +187,7 @@ export default class extends Controller {
   updateHints(characterClass, ancestry, background) {
     const resourceHint = characterClass?.resource?.name ? ` · ${characterClass.resource.name}` : ""
     const savesHint = characterClass ? ` · Saves ${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : ""
-    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map(this.abbreviate).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${savesHint}${resourceHint}` : "Two Key Stats shape your build.")
+    this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map((stat) => this.abbreviate(stat)).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${savesHint}${resourceHint}` : "Two Key Stats shape your build.")
     this.setTargetText("ancestryHint", ancestry?.summary || "Ancestry traits apply automatically.")
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
@@ -210,7 +211,8 @@ export default class extends Controller {
     if (!this.hasSkillBudgetTarget) return
 
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
-    const budget = 4 + Math.max(level - 1, 0)
+    const progression = this.rulesValue.derived_values || {}
+    const budget = Number(progression.skill_points_at_level_one || 0) + Math.max(level - 1, 0) * Number(progression.skill_points_per_level || 0)
     let spent = 0
     this.element.querySelectorAll("[data-skill]").forEach((input) => {
       const baseNode = this.element.querySelector(`[data-skill-base='${input.dataset.skill}']`)
@@ -219,6 +221,41 @@ export default class extends Controller {
     })
     this.skillBudgetTarget.innerHTML = `Spend <strong>${spent}/${budget}</strong> extra points`
     this.skillBudgetTarget.classList.toggle("over-budget", spent > budget)
+  }
+
+  updateLanguageChoices(characterClass, ancestry, background, array, rules, intelligence, level) {
+    const defaultLanguage = rules.default_language || "Common"
+    const minIntelligence = Number(rules.ancestry_grant_minimum_intelligence || 0)
+    const grants = intelligence >= minIntelligence
+      ? [...(ancestry?.language_grants || []), ...(background?.language_grants || [])]
+      : []
+    const classGrants = (characterClass?.language_grants || [])
+      .filter((grant) => level >= Number(grant.level || 1))
+      .flatMap((grant) => grant.languages || [])
+    const automaticallyKnown = [defaultLanguage, ...grants, ...classGrants]
+
+    this.element.querySelectorAll("[data-language-choice]").forEach((input) => {
+      const grant = automaticallyKnown.includes(input.value)
+      if (grant) input.checked = false
+      input.disabled = this.languageChoiceInitialDisabled.get(input) || grant
+    })
+
+    const selected = [...this.element.querySelectorAll("[data-language-choice]:checked")].map((input) => input.value)
+    const required = Math.max(intelligence, 0) * Number(rules.intelligence_choices_per_point || 0)
+    const remaining = Math.max(required - selected.length, 0)
+    const languages = [...new Set([...automaticallyKnown, ...selected])]
+    if (array && remaining > 0) languages.push(`${remaining} language choice${remaining === 1 ? "" : "s"} pending`)
+
+    if (this.hasLanguageChoiceHintTarget) {
+      const countNote = selected.length < required
+        ? `Choose ${required - selected.length} more of the ${required} language${required === 1 ? "" : "s"} granted by INT.`
+        : selected.length > required
+          ? `Remove ${selected.length - required} extra language choice${selected.length - required === 1 ? "" : "s"}; INT grants ${required}.`
+          : `All ${required} INT language choice${required === 1 ? " is" : "s are"} selected.`
+      this.languageChoiceHintTarget.textContent = `${countNote} ${rules.source_ref || ""}`.trim()
+    }
+
+    return array ? languages : [defaultLanguage]
   }
 
   setTargetText(target, text) {
@@ -232,7 +269,8 @@ export default class extends Controller {
     const match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
     if (!match) return "—"
 
-    const stat = { STR: "strength", DEX: "dexterity", INT: "intelligence", WIL: "will" }[match[1].toUpperCase()]
+    const abbreviation = match[1].toUpperCase()
+    const stat = Object.entries(this.rulesValue.stats || {}).find(([_name, rule]) => rule.abbreviation === abbreviation)?.[0]
     const multiplier = Number(match[2] || 1)
     return (stats[stat] || 0) * multiplier + level
   }
@@ -274,7 +312,7 @@ export default class extends Controller {
   }
 
   abbreviate(stat) {
-    return { strength: "STR", dexterity: "DEX", intelligence: "INT", will: "WIL" }[stat] || stat
+    return this.rulesValue.stats?.[stat]?.abbreviation || stat
   }
 
   capitalize(value) {

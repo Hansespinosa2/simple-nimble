@@ -32,15 +32,52 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 1, @catalog.spell_tier_for("Oathsworn", 2)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "Songweaver's additional spell school choices match its cited class rule" do
+    rule = @catalog.spell_school_choice_for("Songweaver")
+
+    assert_equal %w[Fire Ice Lightning Radiant Necrotic], rule.fetch("allowed_schools")
+    assert_equal "Heroes 2.0.1, p. 55", rule.fetch("source_ref")
+    assert_equal "You know cantrips from the Wind school and 1 other school of your choice.", rule.fetch("source_quote")
+    assert_nil @catalog.spell_school_choice_for("Mage")
+    assert_equal rule.fetch("allowed_schools"), CharacterClass.find_by!(name: "Songweaver").spell_school_choice_options
+  end
+
   test "mana unlocks at the source-defined class level" do
     assert_equal 2, CharacterClass.find_by!(name: "Mage").resource_rules.fetch("max_start_level")
     assert_equal 2, CharacterClass.find_by!(name: "Oathsworn").resource_rules.fetch("max_start_level")
   end
 
-  test "class-specific stat schedules include the level twenty any-two rule" do
-    assert_equal "key", @catalog.stat_increase_for("Mage", 4)
-    assert_equal "secondary", @catalog.stat_increase_for("Mage", 5)
-    assert_equal "any_two", @catalog.stat_increase_for("Mage", 20)
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
+  test "every published class follows its source-defined stat schedule at all twenty levels" do
+    expected_schedule = {
+      "key" => [ 4, 8, 12, 16 ],
+      "secondary" => [ 5, 9, 13, 17 ],
+      "any_two" => [ 20 ]
+    }
+    expected_types = expected_schedule.each_with_object({}) do |(type, levels), types|
+      levels.each { |level| types[level] = type }
+    end
+    class_names = %w[
+      Berserker The\ Cheat Commander Hunter Mage Oathsworn Shadowmancer Shepherd Songweaver Stormshifter Zephyr
+    ]
+
+    class_names.each do |class_name|
+      assert_equal expected_schedule, @catalog.class_for(class_name).fetch("stat_increases"), class_name
+      (1..20).each do |level|
+        expected_type = expected_types[level]
+        actual_catalog_type = @catalog.stat_increase_for(class_name, level)
+        actual_model_type = CharacterClass.find_by!(name: class_name).stat_increase_type_for(level)
+        if expected_type.nil?
+          assert_nil actual_catalog_type, "#{class_name} at level #{level}"
+          assert_nil actual_model_type, "#{class_name} model at level #{level}"
+        else
+          assert_equal expected_type, actual_catalog_type, "#{class_name} at level #{level}"
+          assert_equal expected_type, actual_model_type, "#{class_name} model at level #{level}"
+        end
+      end
+    end
+
     assert_equal [ "strength", "dexterity", "intelligence", "will" ], CharacterClass.find_by!(name: "Mage").stat_options_for("any_two")
   end
 
@@ -51,6 +88,25 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 6, derived.fetch("default_max_wounds")
     assert_equal 10, derived.fetch("base_inventory_slots")
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
+    assert_equal 10, derived.fetch("save_dc_base")
+    assert_equal 4, derived.fetch("skill_points_at_level_one")
+    assert_equal 1, derived.fetch("skill_points_per_level")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-06:AC-2
+  test "language options and class-feature grants have exact parsed-source rules" do
+    languages = @catalog.language_rules
+
+    assert_equal %w[Common Dwarvish Elvish Goblin Infernal], languages.fetch("languages").first(5)
+    assert_equal "Thieves' Cant", languages.fetch("languages")[5]
+    assert_equal 10, languages.fetch("languages").length
+    assert_equal "Core Rules 2.0.1, pp. 20, 23-26", languages.fetch("source_ref")
+    assert_equal "All heroes speak Common by default. Each point of INT grants you an additional language known.", languages.fetch("source_quote")
+    assert_equal [ "Thieves' Cant" ], @catalog.class_language_grants_for("The Cheat", 3)
+    assert_empty @catalog.class_language_grants_for("The Cheat", 2)
+    assert_equal [ "Celestial", "Draconic", "Deep Speak", "Infernal", "Primordial" ], @catalog.language_feature_choice("Devoted Acolyte").fetch("options")
+    assert_equal 2, @catalog.language_feature_choice("Devoted Acolyte").fetch("count")
+    assert_equal "Heroes 2.0.1, p. 46", @catalog.language_feature_choice("Devoted Acolyte").fetch("source_ref")
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
@@ -268,23 +324,40 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_not_includes @catalog.choice_pools_for("Commander", 14).map { |pool| pool.fetch("name") }, "Weapon Mastery"
   end
 
-  test "every published class exposes its level-three subclass choices" do
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
+  test "published classes distinguish level-three choices from story-based subclasses" do
     expected = {
       "Berserker" => [ "Path of the Mountainheart", "Path of the Red Mist" ],
       "The Cheat" => [ "Tools of the Silent Blade", "Tools of the Scoundrel" ],
-      "Commander" => [ "Champion of the Bulwark", "Champion of the Vanguard", "Spellblade" ],
-      "Hunter" => [ "Shadowpath", "Wild Heart", "Beastmaster" ],
+      "Commander" => [ "Champion of the Bulwark", "Champion of the Vanguard" ],
+      "Hunter" => [ "Shadowpath", "Wild Heart" ],
       "Mage" => [ "Chaos", "Control" ],
-      "Oathsworn" => [ "Oath of Vengeance", "Oath of Refuge", "Oathbreaker" ],
-      "Shadowmancer" => [ "Pact of the Red Dragon", "Pact of the Abyssal Depths", "Reaver" ],
+      "Oathsworn" => [ "Oath of Vengeance", "Oath of Refuge" ],
+      "Shadowmancer" => [ "Pact of the Red Dragon", "Pact of the Abyssal Depths" ],
       "Shepherd" => [ "Luminary of Mercy", "Luminary of Malice" ],
       "Songweaver" => [ "Herald of Snark", "Herald of Courage" ],
       "Stormshifter" => [ "Circle of Fang & Claw", "Circle of Sky & Storm" ],
       "Zephyr" => [ "Way of Flame", "Way of Pain" ]
     }
+    story_based = {
+      "Commander" => [ "Spellblade" ],
+      "Hunter" => [ "Beastmaster" ],
+      "Oathsworn" => [ "Oathbreaker" ],
+      "Shadowmancer" => [ "Reaver" ]
+    }
 
     expected.each do |class_name, subclasses|
-      assert_equal subclasses, CharacterClass.find_by!(name: class_name).subclass_options
+      character_class = CharacterClass.find_by!(name: class_name)
+      assert_equal subclasses, character_class.subclass_options
+      assert_equal story_based.fetch(class_name, []), character_class.story_based_subclass_options
+      assert_equal subclasses + story_based.fetch(class_name, []), character_class.known_subclass_options
+    end
+
+    story_based.each_key do |class_name|
+      record = Rules::NimbleCatalog.story_based_subclass_records_for(class_name).first
+      assert_equal "Heroes 2.0.1, p. 73", record.fetch("source_ref")
+      assert_match(/GM's discretion/, record.fetch("source_quote"))
+      assert_match(/replacing your existing subclass/, record.fetch("source_quote"))
     end
   end
 end

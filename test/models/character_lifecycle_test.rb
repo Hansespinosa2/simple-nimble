@@ -75,6 +75,7 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
       ancestry: @ancestry,
       background: @background,
       stat_array: "balanced",
+      language_choices: [ "Draconic" ],
       ruleset_version: @ruleset,
       skill_set_attributes: { might: 7 }
     )

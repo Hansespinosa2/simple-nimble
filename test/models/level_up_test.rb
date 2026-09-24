@@ -235,6 +235,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     character.finalize_creation!
@@ -246,6 +247,68 @@ class LevelUpTest < ActiveSupport::TestCase
 
     assert_includes LevelUpPlanner.new(character, missing).explanations.map { |explanation| explanation[:message] }, "Choose a subclass for Mage."
     assert_includes LevelUpPlanner.new(character, invalid).explanations.map { |explanation| explanation[:message] }, "Berserker is not a legal subclass for Mage."
+  end
+
+  # S-02:AC-1 S-02:AC-4 S-06:AC-2 S-06:AC-5
+  test "story-based subclasses are not offered as level-three choices" do
+    Rails.application.load_seed
+    story_subclasses = {
+      "Commander" => "Spellblade",
+      "Hunter" => "Beastmaster",
+      "Oathsworn" => "Oathbreaker",
+      "Shadowmancer" => "Reaver"
+    }
+
+    story_subclasses.each do |class_name, story_subclass|
+      character_class = CharacterClass.find_by!(name: class_name)
+      creation_skill = Character::SKILL_TO_STAT.find { |_skill, stat| character_class.key_stats.include?(stat) }.first
+      character = Character.create!(
+        name: "#{class_name} Story Choice Hero",
+        character_class: character_class,
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        language_choices: character_class.key_stats.include?("intelligence") ? [ "Draconic", "Primordial" ] : []
+      )
+      character.skill_set.update!(creation_skill => character.skill_initial_value(creation_skill) + 4)
+      character.finalize_creation!
+      character.update_columns(level: 2, status: "playable")
+      character.skill_set.update!(creation_skill => character.skill_value(creation_skill) + 1)
+
+      level_up = character.level_ups.build(
+        from_level: 2,
+        to_level: 3,
+        skill_name: "might",
+        subclass_name: story_subclass,
+        hit_die_roll_one: 1,
+        hit_die_roll_two: 1
+      )
+      planner = LevelUpPlanner.new(character, level_up)
+
+      assert_includes character_class.known_subclass_options, story_subclass
+      assert_not_includes planner.subclass_options, story_subclass
+      story_issue = planner.issues.find { |issue| issue.fetch(:message).include?(story_subclass) }
+      assert_equal "#{story_subclass} is story-based and requires a GM-approved story change, not an ordinary level-up choice.", story_issue.fetch(:message)
+      assert_equal "Heroes 2.0.1, p. 73", story_issue.fetch(:source_ref)
+      assert_match(/GM's discretion/, story_issue.fetch(:quote))
+
+      character.update_columns(level: 3, status: "playable", subclass_name: character_class.subclass_options.first)
+      character.skill_set.update!(creation_skill => character.skill_value(creation_skill) + 1)
+      replacement = character.level_ups.build(
+        from_level: 3,
+        to_level: 4,
+        skill_name: creation_skill,
+        subclass_name: story_subclass,
+        hit_die_roll_one: 1,
+        hit_die_roll_two: 1
+      )
+      replacement_issue = LevelUpPlanner.new(character, replacement).issues.find do |issue|
+        issue.fetch(:message).include?(story_subclass)
+      end
+
+      assert_equal "#{story_subclass} is story-based and requires a GM-approved story change, not an ordinary level-up choice.", replacement_issue.fetch(:message)
+      assert_equal "Heroes 2.0.1, p. 73", replacement_issue.fetch(:source_ref)
+    end
   end
 
   test "choosing Wild Heart applies its Hit Die and HP feature at level three" do
@@ -336,6 +399,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     character.finalize_creation!
@@ -356,6 +420,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     character.finalize_creation!
@@ -429,6 +494,82 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal [ "Fleet Feet", "Wild Instinct" ], level_up.reload.preview.fetch("feature_choices").fetch("Thrill of the Hunt")
   end
 
+  # S-02:AC-1 S-06:AC-1 S-06:AC-2 S-06:AC-5
+  test "Shadowmancer level-ups require and persist feature-granted and newly earned languages" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Language Progression Hero",
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Shadowmancer"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ]
+    )
+    character.skill_set.update!(arcana: character.skill_initial_value("arcana") + 4)
+    character.finalize_creation!
+
+    level_two = character.level_ups.create!(
+      from_level: 1,
+      to_level: 2,
+      skill_name: "arcana",
+      hit_die_roll_one: 3,
+      hit_die_roll_two: 2
+    )
+    LevelUpService.finalize!(level_two)
+
+    level_three = character.level_ups.create!(
+      from_level: 2,
+      to_level: 3,
+      skill_name: "arcana",
+      subclass_name: "Pact of the Red Dragon",
+      feature_choices: { "Lesser Shadow Invocation" => [ "Devoted Acolyte" ] },
+      hit_die_roll_one: 3,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_three)
+
+    assert_not planner.valid?
+    feature_language_issue = planner.issues.find { |issue| issue.fetch(:message).include?("Devoted Acolyte") }
+    assert_equal "Choose 2 more languages for Devoted Acolyte.", feature_language_issue.fetch(:message)
+    assert_equal "Heroes 2.0.1, p. 46", feature_language_issue.fetch(:source_ref)
+
+    level_three.update!(feature_language_choices: { "Devoted Acolyte" => [ "Celestial", "Deep Speak" ] })
+    planner = LevelUpPlanner.new(character, level_three)
+    assert planner.valid?, planner.explanations.map { |explanation| explanation.fetch(:message) }.join(" | ")
+    assert_includes planner.preview.fetch("languages"), "Celestial"
+    assert_includes planner.preview.fetch("languages"), "Deep Speak"
+    LevelUpService.finalize!(level_three)
+
+    character.reload
+    assert_equal [ "Celestial", "Deep Speak" ], character.feature_language_choices.fetch("Devoted Acolyte")
+    assert_includes character.known_language_names, "Celestial"
+    assert_includes character.known_language_names, "Deep Speak"
+
+    level_four_without_language = character.level_ups.create!(
+      from_level: 3,
+      to_level: 4,
+      skill_name: "arcana",
+      stat_name: "intelligence",
+      feature_choices: { "Greater Shadow Invocation" => [ "Shadow Magus" ] },
+      hit_die_roll_one: 3,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_four_without_language)
+    int_language_issue = planner.issues.find { |issue| issue.fetch(:message).include?("your INT") }
+    assert_equal "Choose 1 more language for your INT.", int_language_issue.fetch(:message)
+
+    level_four_without_language.update!(language_choices: [ "Elvish" ])
+    planner = LevelUpPlanner.new(character, level_four_without_language)
+    assert planner.valid?, planner.explanations.map { |explanation| explanation.fetch(:message) }.join(" | ")
+    assert_includes planner.preview.fetch("languages"), "Elvish"
+    LevelUpService.finalize!(level_four_without_language)
+
+    character.reload
+    assert_equal [ "Draconic", "Primordial", "Elvish" ], character.language_choices
+    assert_includes character.known_language_names, "Elvish"
+  end
+
   test "Commander combat abilities cannot repeat earlier orders or tactics" do
     character = commander_at_level_five
     options_planner = LevelUpPlanner.new(
@@ -485,6 +626,7 @@ class LevelUpTest < ActiveSupport::TestCase
       to_level: 8,
       skill_name: "lore",
       stat_name: "intelligence",
+      language_choices: [ "Deep Speak" ],
       feature_choices: { "Combat Ability" => [ "+1 max Combat Dice" ] },
       hit_die_roll_one: 4,
       hit_die_roll_two: 2
@@ -532,6 +674,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { finesse: 7 }
     )
     character.finalize_creation!
@@ -563,6 +706,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     character.finalize_creation!
@@ -601,6 +745,7 @@ class LevelUpTest < ActiveSupport::TestCase
       ancestry: Ancestry.find_by!(name: "Human"),
       background: Background.find_by!(name: "Fearless"),
       stat_array: "standard",
+      language_choices: [ "Draconic", "Primordial" ],
       skill_set_attributes: { arcana: 7 }
     )
     character.finalize_creation!
@@ -626,6 +771,7 @@ class LevelUpTest < ActiveSupport::TestCase
         ancestry: Ancestry.find_by!(name: "Human"),
         background: Background.find_by!(name: "Fearless"),
         stat_array: "standard",
+        language_choices: [ "Draconic", "Primordial" ],
         skill_set_attributes: { might: 7 }
       )
       character.finalize_creation!

@@ -22,6 +22,7 @@ Rails.application.routes.draw do
   post "campaigns/join", to: "campaigns#join_by_code", as: :join_campaign_by_code
   resources :sessions, only: %i[new create destroy]
   get "shared/:token", to: "shared_characters#show", as: :shared_character
+  post "shared/:token/story_subclass_changes", to: "story_subclass_changes#create", as: :shared_story_subclass_changes
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

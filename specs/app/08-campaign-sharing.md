@@ -17,11 +17,12 @@ character model that anchors the product.
 ## 2. Outcome statement
 
 **After this spec is executed:**
-An account-owning player can share a character into a campaign so the GM can inspect it, while ownership and permissions remain explicit.
+An account-owning player can share a character into a campaign so the GM can inspect it and make the explicitly approved story-subclass replacement, while ownership and permissions remain explicit.
 
 **Verification method:**
 Create player and GM accounts, share a character into a campaign, and confirm the
-GM can view what is allowed without taking ownership or making unauthorized changes.
+GM can view the sheet and apply only the story-based subclass replacement without
+taking ownership or gaining general edit access.
 
 ## 3. Known decisions
 
@@ -29,7 +30,8 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 |---|---|---|
 | Shared app with party/campaign collaboration matches the next meaningful version | `[Validated]` | Direct user answer |
 | Most important collaboration behavior is players sharing read-only sheets with the GM | `[Validated]` | Direct user answer |
-| GM edit ability is interesting but secondary | `[Assumed: verify]` | User liked it, but not as the first collaboration behavior |
+| General GM sheet editing remains out of scope; only the specific story-subclass approval below is allowed | `[Validated]` | Direct user answer |
+| A campaign GM may make one narrow change to a shared sheet: grant a published story-based subclass in place of the current subclass, with a required story note and audit record | `[Validated]` | Direct user answer; follows the Heroes 2.0.1 GM-discretion rule |
 | GM read access in v1 means read access to the full character sheet | `[Validated]` | Direct user answer |
 | Campaign workspace contains only character visibility for v1; no other shared resources are in scope | `[Validated]` | Direct user answer |
 | A character can belong to multiple campaigns simultaneously | `[Validated]` | Carry-over from 03-domain-model.md |
@@ -75,7 +77,7 @@ GM can view what is allowed without taking ownership or making unauthorized chan
 | AC-1 | Behavioral | A player account can share a character to a campaign without transferring character ownership. | `[Validated]` |
 | AC-2 | Behavioral | A GM account can inspect shared player-linked sheets in a campaign context. | `[Validated]` |
 | AC-3 | Behavioral | Accounts and permissions are required for campaign access. | `[Validated]` |
-| AC-4 | Negative | A GM cannot edit a player-owned sheet unless the permission model explicitly grants that capability. | `[Assumed: verify]` |
+| AC-4 | Negative | A GM cannot otherwise edit a player-owned sheet; the sole shared-sheet exception is an auditable, story-noted replacement with a class-specific story-based subclass by that campaign's GM. | `[Validated]` |
 | AC-5 | Edge case | If a player leaves a campaign, the CampaignShare permission record is deleted and GM access is revoked. No frozen or transferred state exists. | `[Validated]` |
 | AC-6 | Dependency | Campaign sharing depends on an explicit account and role model in the domain spec. | `[Validated]` |
 

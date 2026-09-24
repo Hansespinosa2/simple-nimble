@@ -4,6 +4,7 @@ class Account < ApplicationRecord
   has_many :campaign_memberships, dependent: :destroy
   has_many :campaigns, through: :campaign_memberships
   has_many :created_character_shares, class_name: "CharacterShare", foreign_key: :created_by_account_id, dependent: :nullify
+  has_many :approved_story_subclass_changes, class_name: "StorySubclassChange", foreign_key: :approved_by_account_id, dependent: :restrict_with_error
 
   before_validation :ensure_session_token, on: :create
 
