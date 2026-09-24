@@ -53,9 +53,14 @@ class CampaignsController < ApplicationController
   end
 
   def leave
-    membership = @campaign.campaign_memberships.find_by(account: current_account)
-    membership&.destroy!
-    @campaign.character_shares.joins(:character).where(characters: { account_id: current_account.id }).destroy_all
+    @campaign.with_lock do
+      membership = @campaign.campaign_memberships.find_by(account: current_account)
+      membership&.destroy!
+      @campaign.character_shares.left_joins(:character).where(
+        "character_shares.created_by_account_id = :account_id OR characters.account_id = :account_id",
+        account_id: current_account.id
+      ).destroy_all
+    end
     redirect_to campaigns_path, notice: "You left #{@campaign.name}. Shared access is revoked."
   end
 

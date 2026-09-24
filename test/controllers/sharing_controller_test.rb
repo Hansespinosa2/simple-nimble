@@ -104,6 +104,28 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, shared_character_path(share.share_token)
   end
 
+  test "a share token does not bypass account and campaign membership checks" do
+    share = @character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
+    outsider = Account.create!(display_name: "Uninvited Viewer", email: "uninvited-#{SecureRandom.hex(4)}@example.com")
+
+    get shared_character_url(share.share_token)
+
+    assert_redirected_to new_session_url
+    assert_match(/join this campaign/i, flash[:alert])
+
+    sign_in(outsider)
+    get shared_character_url(share.share_token)
+
+    assert_redirected_to campaigns_url
+    assert_match(/campaign access/i, flash[:alert])
+
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_includes response.body, "Shared Hero"
+  end
+
   # S-02:AC-4 S-08:AC-4
   test "only the shared campaign GM can replace a subclass with a story-based option and the sheet records it" do
     character = create_story_character
@@ -475,6 +497,23 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_not CharacterShare.exists?(share.id)
     assert_not @campaign.campaign_memberships.exists?(account: @player)
 
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+    assert_response :not_found
+  end
+
+  test "leaving revokes sheets shared by the departing player even if the character has no owner" do
+    legacy_character = Character.create!(name: "Unowned Shared Legacy Hero")
+    sign_in(@player)
+    post character_shares_url(legacy_character), params: { campaign_id: @campaign.id }
+    share = legacy_character.character_shares.sole
+
+    assert_difference("CharacterShare.count", -1) do
+      delete leave_campaign_url(@campaign)
+    end
+
+    assert_not @campaign.campaign_memberships.exists?(account: @player)
+    assert_not CharacterShare.exists?(share.id)
     sign_in(@gm)
     get shared_character_url(share.share_token)
     assert_response :not_found
