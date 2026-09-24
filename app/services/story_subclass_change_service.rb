@@ -11,6 +11,7 @@ class StorySubclassChangeService
       current_share = CharacterShare.find_by(id: share.id, character_id: character.id, campaign_id: share.campaign_id)
       raise ArgumentError, "This shared sheet is no longer available." unless current_share&.permission == "read"
       raise ArgumentError, "Only this campaign's GM can approve a story subclass change." unless current_share.campaign.gm?(approved_by)
+      raise ArgumentError, "Only a playable character can receive a story subclass change." unless character.playable?
       raise ArgumentError, "This sheet changed since you opened it. Refresh and try again." unless character.subclass_name == current_subclass.to_s
       raise ArgumentError, "A story-based subclass can only replace an existing subclass." if character.subclass_name.blank?
       raise ArgumentError, "Choose a different subclass from the one currently recorded." if character.subclass_name == to_subclass.to_s

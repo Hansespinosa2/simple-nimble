@@ -368,6 +368,32 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Oath of Refuge", character.reload.subclass_name
   end
 
+  test "a crafted GM request cannot apply a story change to a draft sheet" do
+    character = create_story_character
+    character.update_column(:status, "draft")
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+    sign_in(@gm)
+
+    assert_no_difference("StorySubclassChange.count") do
+      assert_no_difference("CharacterRevision.where(event_type: 'story_subclass_change').count") do
+        post shared_story_subclass_changes_url(share.share_token), params: {
+          story_subclass_change: {
+            current_subclass: "Oath of Refuge",
+            to_subclass: "Oathbreaker",
+            story_note: "This draft should not accept a story change."
+          }
+        }
+      end
+    end
+
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_match(/only a playable character/i, flash[:alert])
+    assert_equal "Oath of Refuge", character.reload.subclass_name
+    assert_equal "draft", character.status
+  end
+
   test "a shared rules-backed sheet includes unlocked class progression" do
     Rails.application.load_seed
     progression_character = Character.create!(
