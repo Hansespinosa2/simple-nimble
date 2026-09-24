@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_120000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -274,6 +274,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_110000) do
     t.string "from_subclass", null: false
     t.string "source_ref", null: false
     t.text "story_note", null: false
+    t.text "subclass_choices", default: "{}", null: false
     t.string "to_subclass", null: false
     t.datetime "updated_at", null: false
     t.index ["approved_by_account_id"], name: "index_story_subclass_changes_on_approved_by_account_id"

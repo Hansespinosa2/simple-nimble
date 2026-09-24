@@ -75,7 +75,7 @@ Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
 6. `Campaign`
 7. `CampaignMembership`
 8. `CharacterShare` or equivalent join model
-9. `StorySubclassChange` — links a character, campaign, approving GM, and resulting character revision; stores the replaced and granted subclasses, required story note, and rule citation. It is an auditable exception, not general edit permission.
+9. `StorySubclassChange` — links a character, campaign, approving GM, and resulting character revision; stores the replaced and granted subclasses, required story note, rule citation, and any structured subclass choices resolved at the change. It is an auditable exception, not general edit permission.
 10. Rule content entities:
    - `Class` (11 classes with full level 1–20 progression tables)
    - `Ancestry` *(formerly "Race")* — 5 common + 14 exotic

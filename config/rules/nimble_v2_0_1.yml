@@ -675,7 +675,7 @@ progression:
         11: ["Survey the Battlefield"]
         15: ["As One!"]
       Spellblade:
-        3: ["Firebrand"]
+        3: ["Firebrand", "Deep Knowledge (1)"]
         7: ["Deep Knowledge (2)"]
         11: ["Deep Knowledge (3)"]
         15: ["Deep Knowledge (4)"]
@@ -1231,6 +1231,29 @@ spell_choice_pools:
       source_ref: Heroes 2.0.1, p. 62
       choices: {4: 1, 7: 1}
       kind: utility_spell_each_known_school
+
+story_subclass_spell_choice_pools:
+  Commander:
+    Spellblade:
+      "Deep Knowledge · tiered spell":
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote_by_level:
+          3: "Choose any tier 1 (or lower) spell and any Utility Spell."
+          7: "Choose any tier 2 (or lower) spell and any Utility Spell."
+          11: "Choose any tier 3 (or lower) spell and any Utility Spell."
+          15: "Choose any tier 4 (or lower) spell and any Utility Spell."
+        choices: {3: 1, 7: 1, 11: 1, 15: 1}
+        kind: spell_up_to_tier
+        maximum_tier_by_level: {3: 1, 7: 2, 11: 3, 15: 4}
+      "Deep Knowledge · Utility Spell":
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote_by_level:
+          3: "Choose any tier 1 (or lower) spell and any Utility Spell."
+          7: "Choose any tier 2 (or lower) spell and any Utility Spell."
+          11: "Choose any tier 3 (or lower) spell and any Utility Spell."
+          15: "Choose any tier 4 (or lower) spell and any Utility Spell."
+        choices: {3: 1, 7: 1, 11: 1, 15: 1}
+        kind: utility_spell_any
 
 spell_choice_auto_grants:
   Shepherd:

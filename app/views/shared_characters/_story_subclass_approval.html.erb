@@ -18,6 +18,21 @@
           <% story_subclass_rule = @character.character_class.story_based_subclass_rule(@story_subclass_options.first) %>
           <span class="field-hint">Required audit note · up to <%= StorySubclassChangeService::MAX_STORY_NOTE_LENGTH %> characters · “<%= story_subclass_rule.fetch("source_quote") %>” (<%= story_subclass_rule.fetch("source_ref") %>)</span>
         </div>
+        <% if @story_subclass_spell_choice_pools.any? %>
+          <fieldset class="field feature-choice-field">
+            <legend>Record choices granted through level <%= @character.level %></legend>
+            <p class="field-hint">The replacement also grants these source-defined spell choices. Every choice already earned by this character must be recorded with the story change.</p>
+            <% @story_subclass_spell_choice_pools.each do |pool| %>
+              <% field_name = "story_subclass_change[spell_choices][#{pool.fetch('name')}][#{pool.fetch('level')}]" %>
+              <% selected_spell = pool.fetch("selected").first %>
+              <div class="field">
+                <%= label_tag field_name, "Level #{pool.fetch('level')} · #{pool.fetch('name')}" %>
+                <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, selected_spell), include_blank: "Choose a spell", required: true, class: "choice-select" %>
+                <span class="field-hint"><%= pool.fetch("source_quote") %> (<%= pool.fetch("source_ref") %>)</span>
+              </div>
+            <% end %>
+          </fieldset>
+        <% end %>
         <%= form.submit "Approve story change", class: "button button-primary" %>
       <% end %>
     <% end %>
@@ -28,6 +43,11 @@
           <article class="story-subclass-entry">
             <div><strong><%= change.from_subclass %> → <%= change.to_subclass %></strong><span><%= change.approved_by_account.display_name %> · <%= change.campaign.name %> · <%= change.source_ref %></span></div>
             <p><%= change.story_note %></p>
+            <% change.subclass_choices.to_h.each do |pool_name, choices_by_level| %>
+              <% choices_by_level.to_h.each do |level, choices| %>
+                <p class="story-subclass-choice">Level <%= level %> · <%= pool_name %>: <%= Array(choices).join(", ") %></p>
+              <% end %>
+            <% end %>
             <time datetime="<%= change.created_at.iso8601 %>"><%= l(change.created_at, format: :short) %></time>
           </article>
         <% end %>

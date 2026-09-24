@@ -324,6 +324,27 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_not_includes @catalog.choice_pools_for("Commander", 14).map { |pool| pool.fetch("name") }, "Weapon Mastery"
   end
 
+  # S-02:AC-1 S-02:AC-2
+  test "Spellblade Deep Knowledge features and spell choices follow each printed level" do
+    assert_includes @catalog.subclass_features_for("Commander", "Spellblade", 3), "Deep Knowledge (1)"
+
+    expected_tiers = { 3 => 1, 7 => 2, 11 => 3, 15 => 4 }
+    expected_tiers.each do |level, max_tier|
+      pools = @catalog.story_subclass_spell_choice_pools_for("Commander", "Spellblade", level)
+      assert_equal [ "Deep Knowledge · tiered spell", "Deep Knowledge · Utility Spell" ], pools.map { |pool| pool.fetch("name") }
+      tiered_pool = pools.first
+      utility_pool = pools.last
+      assert_equal max_tier, tiered_pool.fetch("max_tier")
+      assert_equal level, tiered_pool.fetch("level")
+      assert_equal 1, tiered_pool.fetch("count")
+      assert_includes tiered_pool.fetch("source_quote"), "tier #{max_tier} (or lower)"
+      assert_equal tiered_pool.fetch("source_quote"), utility_pool.fetch("source_quote")
+      assert_equal "Heroes 2.0.1, p. 76", tiered_pool.fetch("source_ref")
+    end
+
+    assert_empty @catalog.story_subclass_spell_choice_pools_for("Commander", "Champion of the Bulwark", 3)
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "published classes distinguish level-three choices from story-based subclasses" do
     expected = {

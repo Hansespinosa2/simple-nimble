@@ -100,8 +100,8 @@
       <section class="panel sheet-panel">
         <div class="panel-heading compact"><div><p class="eyebrow">Magic</p><h2>Spells</h2></div><%= link_to "Browse reference", spells_path, class: "text-link" %></div>
         <div class="spell-chips">
-          <% @character.spells.order(:tier, :name).each do |spell| %><%= link_to spell.name, spell, class: "spell-chip #{color_from_spell_school(spell.school)}" %><% end %>
-          <% if @character.spells.empty? %><span class="muted">No spells on this sheet yet.</span><% end %>
+          <% @character.sheet_spells.order(:tier, :name).each do |spell| %><%= link_to spell.name, spell, class: "spell-chip #{color_from_spell_school(spell.school)}" %><% end %>
+          <% if @character.sheet_spells.empty? %><span class="muted">No spells on this sheet yet.</span><% end %>
         </div>
       </section>
       <%= render "inventory_items", character: @character, editable: true %>

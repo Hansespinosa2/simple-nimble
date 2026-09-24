@@ -170,6 +170,26 @@ module Rules
         end
       end
 
+      def story_subclass_spell_choice_pools_for(class_name, subclass_name, level)
+        data.fetch("story_subclass_spell_choice_pools", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+          .filter_map do |pool_name, definition|
+            count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
+            next if count.nil?
+
+            max_tier = definition.to_h.fetch("maximum_tier_by_level", {}).fetch(level.to_i, nil)
+            definition.merge(
+              "name" => pool_name.to_s,
+              "level" => level.to_i,
+              "count" => count.to_i,
+              "source_quote" => definition.to_h.fetch("source_quote_by_level", {}).fetch(level.to_i, definition.to_h.fetch("source_quote", nil)),
+              "max_tier" => max_tier,
+              "story_subclass" => subclass_name.to_s
+            )
+          end
+      end
+
       def background_spell_choice_for(background_name)
         data.fetch("background_spell_choices", {}).fetch(background_name.to_s, nil)
       end

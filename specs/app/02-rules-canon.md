@@ -231,6 +231,14 @@ subclass. In the app, that exception is available only to the GM of a campaign
 where the sheet is shared, requires a story note, and records the old/new
 subclass, GM, campaign, and rules citation in the audit history.
 
+Spellblade's Deep Knowledge is a level-based spell-choice feature, not just a
+displayed feature name: at levels 3, 7, 11, and 15 it grants one spell of up to
+tiers 1, 2, 3, and 4 respectively, plus one Utility Spell at each milestone.
+Those pools, tier ceilings, counts, source quotes, and citations are structured
+in the rules catalog. A story change requires all Deep Knowledge picks already
+earned by the character, stores those choices in both the character's
+progression ledger and the audit record, and exposes later picks in level-up.
+
 ---
 
 #### 7. Selectable Feature Pools (per class)

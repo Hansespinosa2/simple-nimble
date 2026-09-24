@@ -150,6 +150,43 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{shared_story_subclass_changes_path(share.share_token)}']", 0
   end
 
+  test "the GM story-change form collects and publishes Spellblade's earned spell choices" do
+    character = create_commander_story_character
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    sign_in(@gm)
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select "select[name='story_subclass_change[spell_choices][Deep Knowledge · tiered spell][3]'][required] option[value='Flame Dart']"
+    assert_select "select[name='story_subclass_change[spell_choices][Deep Knowledge · Utility Spell][3]'][required] option[value='Firebrand']"
+    assert_select ".story-subclass-panel", /Heroes 2\.0\.1, p\. 76/
+
+    post shared_story_subclass_changes_url(share.share_token), params: {
+      story_subclass_change: {
+        current_subclass: "Champion of the Bulwark",
+        to_subclass: "Spellblade",
+        story_note: "The commander binds their tactics to a spellblade tradition.",
+        spell_choices: {
+          "Deep Knowledge · tiered spell" => { "3" => "Flame Dart" },
+          "Deep Knowledge · Utility Spell" => { "3" => "Firebrand" }
+        }
+      }
+    }
+
+    assert_redirected_to shared_character_url(share.share_token)
+    assert_equal "Spellblade", character.reload.subclass_name
+    assert_equal [ "Flame Dart" ], character.recorded_spell_choices.fetch("Deep Knowledge · tiered spell")
+
+    sign_in(@player)
+    get shared_character_url(share.share_token)
+    assert_response :success
+    assert_select ".story-subclass-choice", /Level 3 · Deep Knowledge · tiered spell: Flame Dart/
+    assert_select ".spell-chip", text: "Flame Dart"
+  end
+
   test "shared players and global GMs without GM membership cannot approve story subclass changes" do
     character = create_story_character
     sign_in(@player)
@@ -318,6 +355,24 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       )
       character.finalize_creation!
       character.update_columns(level: 3, status: "playable", subclass_name: "Oath of Refuge")
+      character.skill_set.update!(might: 9)
+      character
+    end
+
+    def create_commander_story_character
+      Rails.application.load_seed unless CharacterClass.exists?(name: "Commander")
+      character = Character.create!(
+        name: "Shared Spellblade Candidate",
+        account: @player,
+        character_class: CharacterClass.find_by!(name: "Commander"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        language_choices: [ "Draconic", "Primordial" ],
+        skill_set_attributes: { might: 7 }
+      )
+      character.finalize_creation!
+      character.update_columns(level: 3, status: "playable", subclass_name: "Champion of the Bulwark")
       character.skill_set.update!(might: 9)
       character
     end

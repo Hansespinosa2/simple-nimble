@@ -337,8 +337,9 @@ class Character < ApplicationRecord
     end
   end
 
-  def spell_choice_pools_for(level)
+  def spell_choice_pools_for(level, subclass_name: self.subclass_name)
     pools = character_class&.spell_choice_pools_for(level).to_a
+    pools.concat(Rules::NimbleCatalog.story_subclass_spell_choice_pools_for(character_class&.name, subclass_name, level))
     background_pool = starting_background_spell_choice_pool
     if level.to_i == 1 && background_pool.present?
       pools << background_pool
@@ -351,7 +352,10 @@ class Character < ApplicationRecord
       when "utility_spell"
         [ pool.merge("options" => utility_spell_options(pool.fetch("allowed_schools", []))) ]
       when "utility_spell_any"
-        [ pool ]
+        [ pool.merge("options" => utility_spell_options_from_any_school) ]
+      when "spell_up_to_tier"
+        tier = pool.fetch("max_tier").to_i
+        [ pool.merge("options" => Spell.where(tier: 0..tier).order(:name).pluck(:name)) ]
       when "utility_spell_each_known_school"
         known_spell_schools.map do |school|
           pool.merge(
@@ -363,6 +367,16 @@ class Character < ApplicationRecord
         end
       else
         []
+      end
+    end
+  end
+
+  def story_subclass_spell_choice_pools_through(subclass_name:, level: self.level, ledger: spell_choice_ledger)
+    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+      spell_choice_pools_for(choice_level, subclass_name:).select { |pool| pool["story_subclass"].present? }.map do |pool|
+        pool.merge(
+          "selected" => spell_choice_selections_for(pool.fetch("name"), choice_level, ledger)
+        )
       end
     end
   end
@@ -406,7 +420,10 @@ class Character < ApplicationRecord
 
   def utility_spell_names(level: self.level, ledger: spell_choice_ledger)
     utility_schools = Spell.where(tier: -1).distinct.pluck(:school)
-    selections = spell_choice_pools_through(level, ledger: ledger).flat_map do |pool|
+    utility_pools = spell_choice_pools_through(level, ledger: ledger).select do |pool|
+      %w[utility_school utility_spell utility_spell_any utility_spell_each_known_school].include?(pool.fetch("kind"))
+    end
+    selections = utility_pools.flat_map do |pool|
       pool.fetch("selected") & Array(pool.fetch("options"))
     end
     auto_grants = character_class&.spell_auto_grants_for(level.to_i.positive? ? level : 1) || []
@@ -415,6 +432,17 @@ class Character < ApplicationRecord
     direct_names = selections - utility_schools
 
     Spell.where(tier: -1, school: schools).pluck(:name) + direct_names
+  end
+
+  def story_granted_spell_names(level: self.level)
+    spell_choice_pools_through(level).select do |pool|
+      pool.fetch("kind") == "spell_up_to_tier"
+    end.flat_map { |pool| pool.fetch("selected") & Array(pool.fetch("options")) }.uniq
+  end
+
+  def sheet_spells
+    rule_granted_names = granted_utility_spells.pluck(:name) + story_granted_spell_names
+    Spell.where(id: (spells.ids + Spell.where(name: rule_granted_names).ids).uniq)
   end
 
   def granted_utility_spells(level: self.level, ledger: spell_choice_ledger)
@@ -951,7 +979,7 @@ class Character < ApplicationRecord
         "armor", "save_dc", "max_mana", "current_mana", "resource_name", "resource_formula", "resource_die", "max_resource", "current_resource", "resource_tracks",
         "temp_hp", "current_hp", "max_hp", "current_wounds", "max_wounds", "inventory_slots"
       ),
-      "spells" => spells.order(:name).pluck(:name)
+      "spells" => sheet_spells.order(:name).pluck(:name)
     }
   end
 

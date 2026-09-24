@@ -8,6 +8,9 @@ class SharedCharactersController < ApplicationController
     else
       []
     end
+    @story_subclass_spell_choice_pools = @story_subclass_options.flat_map do |subclass_name|
+      @character.story_subclass_spell_choice_pools_through(subclass_name:)
+    end
     @story_subclass_changes = @character.story_subclass_changes.includes(:approved_by_account, :character_revision).order(created_at: :desc)
   end
 end

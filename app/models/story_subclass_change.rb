@@ -1,4 +1,6 @@
 class StorySubclassChange < ApplicationRecord
+  serialize :subclass_choices, coder: JSON
+
   belongs_to :character
   belongs_to :campaign
   belongs_to :approved_by_account, class_name: "Account"

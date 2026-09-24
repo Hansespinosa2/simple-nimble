@@ -527,13 +527,14 @@ class LevelUpPlanner
         selections = spell_choices.fetch(pool_name, [])
         expected_count = pool.fetch("count").to_i
         option_names = Array(pool.fetch("options", []))
+        choice_quote = pool.fetch("source_quote", "Choose only a listed option from this level's spell-choice pool.")
 
         if selections.length != expected_count
           plural = expected_count == 1 ? "option" : "options"
           result << issue(
             "Choose #{expected_count} #{pool_name} #{plural} at level #{target_level}.",
             pool.fetch("source_ref"),
-            "Choose #{expected_count} utility spell#{expected_count == 1 ? '' : 's'} from the granted list."
+            choice_quote
           )
         end
 
@@ -542,7 +543,7 @@ class LevelUpPlanner
           result << issue(
             "#{invalid_options.join(', ')} is not a legal #{pool_name} choice.",
             pool.fetch("source_ref"),
-            "Choose only utility spells or schools listed for this feature."
+            choice_quote
           )
         end
 
@@ -552,7 +553,7 @@ class LevelUpPlanner
           result << issue(
             "#{repeated_options.join(', ')} has already been chosen for #{pool_name}.",
             pool.fetch("source_ref"),
-            "Choose a new utility spell or school at each scheduled choice."
+            choice_quote
           )
         end
       end
