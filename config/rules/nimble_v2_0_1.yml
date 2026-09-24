@@ -482,6 +482,9 @@ classes:
           max_formula: "MIN(INT, LVL)"
           minimum_max: 0
           initial_current: 0
+          summon_amount: 1
+          summon_action_cost: 1
+          summon_source_quote: "Action: Summon a shadow minion within Reach 1."
           reset: Encounter ends
           reset_events: [encounter_end]
           source_ref: Heroes 2.0.1, p. 43
@@ -1331,6 +1334,7 @@ story_subclass_resource_pools:
         initial_current: 1
         reset: Encounter ends
         reset_events: [encounter_end]
+        increment_per_cast: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Sacrifice a shadow minion to cast a spell at the highest tier you have unlocked. Each subsequent spell you cast in this encounter costs 1 additional minion."
 
@@ -1435,6 +1439,7 @@ story_subclass_feature_notes:
       - name: Martyr Spawn
         unlock_level: 3
         effect: Whenever you Defend, you may sacrifice a shadow minion to take no damage.
+        shadow_minions_spent: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Whenever you Defend, you can sacrifice a shadow minion to take no damage."
       - name: Grim Harrow
@@ -1445,11 +1450,13 @@ story_subclass_feature_notes:
       - name: Reap
         unlock_level: 7
         effect: When the Bonescythe crits or kills a creature, summon a shadow minion for free.
+        shadow_minions_gained: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "When your Bonescythe crits, or kills a creature, summon a shadow minion for free."
       - name: My Blood, My Power
         unlock_level: 11
         effect: Take 1 Wound to cast a tiered spell you know at the highest tier you have unlocked.
+        wounds_to_take: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "You may take 1 Wound to cast a tiered spell you know at the highest tier you have unlocked."
       - name: Otherworldly Might

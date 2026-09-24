@@ -418,6 +418,102 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_not shadowmancer.bonescythe_summoned?
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
+  test "Reaver combat costs and minion gains follow the source catalog" do
+    reaver = create_shadowmancer
+    share = reaver.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    tiered_spell = Spell.where(school: "Necrotic", tier: 1).where.not(name: "Shadow Blast").first!
+    reaver.spells << tiered_spell
+    StorySubclassChangeService.call(
+      character: reaver,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Pact of the Red Dragon",
+      to_subclass: "Reaver",
+      story_note: "The patron leaves a weapon of bone."
+    )
+    reaver.reload
+
+    summon_rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
+    exploit_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost")
+    martyr_rule = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Martyr Spawn")
+    reap_rule = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Reap")
+    my_blood_rule = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "My Blood, My Power")
+    weapon_rules = Rules::NimbleCatalog.data.dig("story_subclass_weapon_rules", "Shadowmancer", "Reaver")
+    original_rules = {
+      summon: summon_rule.dup,
+      exploit: exploit_rule.dup,
+      martyr: martyr_rule.dup,
+      reap: reap_rule.dup,
+      my_blood: my_blood_rule.dup,
+      bonescythe: weapon_rules.fetch("Bonescythe")
+    }
+
+    set_minions = lambda do |current|
+      tracks = reaver.trait_set.resource_tracks.map do |track|
+        track.fetch("key") == "shadow_minions" ? track.merge("current" => current) : track
+      end
+      reaver.trait_set.update!(resource_tracks: tracks)
+    end
+
+    begin
+      summon_rule["summon_amount"] = 2
+      summon_rule["summon_action_cost"] = 2
+      reaver.trait_set.update!(current_actions: 1)
+      assert_match(/need 2 actions/i, assert_raises(ArgumentError) { reaver.summon_shadow_minion! }.message)
+      reaver.trait_set.update!(current_actions: 3)
+      summon_revision = reaver.summon_shadow_minion!
+      assert_equal 2, reaver.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+      assert_equal 1, reaver.trait_set.current_actions
+      assert_includes summon_revision.summary, "2 Shadow Minions (2 actions)"
+
+      weapon_rules["Bonescythe"] = original_rules.fetch(:bonescythe).merge("action_cost" => 2)
+      reaver.trait_set.update!(current_actions: 1)
+      assert_match(/need at least 2 actions/i, assert_raises(ArgumentError) { reaver.summon_bonescythe! }.message)
+      reaver.trait_set.update!(current_actions: 2)
+      weapon_revision = reaver.summon_bonescythe!
+      assert_equal 0, reaver.trait_set.current_actions
+      assert_includes weapon_revision.summary, "(2 actions)"
+
+      set_minions.call(1)
+      exploit_rule["increment_per_cast"] = 3
+      reaver.use_shadow_exploit!(spell_name: tiered_spell.name)
+      exploit_track = reaver.trait_set.resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }
+      assert_equal 4, exploit_track.fetch("current"), "the next cost must increase by the catalog increment, not a duplicated constant"
+
+      martyr_rule["shadow_minions_spent"] = 2
+      set_minions.call(1)
+      assert_match(/do not have a Shadow Minion to sacrifice/i, assert_raises(ArgumentError) { reaver.martyr_spawn! }.message)
+      set_minions.call(2)
+      martyr_revision = reaver.martyr_spawn!
+      assert_equal 0, reaver.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+      assert_includes martyr_revision.summary, "sacrificed 2 Shadow Minions"
+
+      reaver.update_column(:level, 7)
+      reap_rule["shadow_minions_gained"] = 2
+      set_minions.call(0)
+      reap_revision = reaver.mark_bonescythe_hit!(outcome: "critical")
+      assert_equal 2, reaver.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }.fetch("current")
+      assert_includes reap_revision.summary, "Reap summoned 2 Shadow Minions"
+
+      reaver.update_column(:level, 11)
+      my_blood_rule["wounds_to_take"] = 2
+      reaver.trait_set.update!(current_wounds: reaver.trait_set.max_wounds - 1)
+      assert_match(/requires room to take 2 Wounds/i, assert_raises(ArgumentError) { reaver.use_my_blood_my_power!(spell_name: tiered_spell.name) }.message)
+      reaver.trait_set.update!(current_wounds: 0)
+      blood_revision = reaver.use_my_blood_my_power!(spell_name: tiered_spell.name)
+      assert_equal 2, reaver.trait_set.reload.current_wounds
+      assert_includes blood_revision.summary, "Took 2 Wounds"
+    ensure
+      summon_rule.replace(original_rules.fetch(:summon))
+      exploit_rule.replace(original_rules.fetch(:exploit))
+      martyr_rule.replace(original_rules.fetch(:martyr))
+      reap_rule.replace(original_rules.fetch(:reap))
+      my_blood_rule.replace(original_rules.fetch(:my_blood))
+      weapon_rules["Bonescythe"] = original_rules.fetch(:bonescythe)
+    end
+  end
+
   test "Beastmaster approval records the companion and reselects the first two Hunt abilities" do
     hunter = create_hunter
     hunter.update_columns(feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet", "Wild Instinct" ] })

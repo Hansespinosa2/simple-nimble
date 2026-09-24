@@ -132,20 +132,20 @@ class CharactersController < ApplicationController
     attributes = params.expect(game_feature: [ :action, :spell_name, :outcome ])
     case attributes[:action]
     when "summon_bonescythe"
-      @character.summon_bonescythe!
-      notice = "Bonescythe summoned. 1 action spent."
+      revision = @character.summon_bonescythe!
+      notice = revision.summary
     when "mark_bonescythe_hit"
       revision = @character.mark_bonescythe_hit!(outcome: attributes[:outcome].presence || "hit")
       notice = revision.summary
     when "summon_shadow_minion"
-      @character.summon_shadow_minion!
-      notice = "Shadow Minion summoned. 1 action spent."
+      revision = @character.summon_shadow_minion!
+      notice = revision.summary
     when "martyr_spawn"
-      @character.martyr_spawn!
-      notice = "Martyr Spawn sacrificed a Shadow Minion; negate the damage."
+      revision = @character.martyr_spawn!
+      notice = revision.summary
     when "shadow_exploit"
-      @character.use_shadow_exploit!(spell_name: attributes[:spell_name])
-      notice = "Shadow Exploit cast recorded. The spell uses your highest unlocked tier."
+      revision = @character.use_shadow_exploit!(spell_name: attributes[:spell_name])
+      notice = revision.summary
     when "my_blood_my_power"
       revision = @character.use_my_blood_my_power!(spell_name: attributes[:spell_name])
       notice = revision.summary

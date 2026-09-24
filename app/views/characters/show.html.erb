@@ -52,6 +52,9 @@
   <%= render "characters/derived_conditions", character: @character %>
 
   <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
+  <% story_feature_notes = @character.story_subclass_feature_note_entries.index_by { |note| note.fetch("name") } %>
+  <% shadow_minion_rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions") %>
+  <% shadow_exploit_cost_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost") %>
   <% if resource_tracks.any? %>
     <section class="panel resource-summary-panel">
       <div class="panel-heading compact"><div><p class="eyebrow">Game resources</p><h2>Ready to spend</h2></div><span class="mini-label">Tracked with the sheet</span></div>
@@ -173,20 +176,24 @@
               <p class="field-hint"><%= bonescythe.fetch(:invocation_carryover_note) %> (<%= bonescythe.fetch(:source_ref) %>)</p>
               <% if bonescythe.fetch(:summoned) %>
                 <p><%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. The next hit shatters it.</p>
-                <% if @character.story_subclass_feature_unlocked?("Reap") %>
-                  <p class="field-hint">Grim Harrow: divide the Bonescythe's damage dice among any number of adjacent targets within Reach; resolve target selection at the table. (Heroes 2.0.1, p. 78)</p>
-                  <p class="field-hint">Reap can summon one minion on a critical hit or kill, if you are below your limit. (Heroes 2.0.1, p. 78)</p>
+                <% grim_harrow = story_feature_notes["Grim Harrow"] %>
+                <% reap = story_feature_notes["Reap"] %>
+                <% if grim_harrow.present? %>
+                  <p class="field-hint"><strong>Grim Harrow:</strong> <%= grim_harrow.fetch("effect") %> (<%= grim_harrow.fetch("source_ref") %>)</p>
+                <% end %>
+                <% if reap.present? %>
+                  <p class="field-hint"><strong>Reap:</strong> <%= reap.fetch("effect") %> (<%= reap.fetch("source_ref") %>)</p>
                   <%= button_to "Record Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
                   <%= button_to "Record Critical Hit · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "critical" } }, class: "button button-secondary button-full" %>
                   <%= button_to "Record Kill · shatter + Reap", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "kill" } }, class: "button button-secondary button-full" %>
                 <% else %>
                   <%= button_to "Record Bonescythe Hit · shatter", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "mark_bonescythe_hit", outcome: "hit" } }, class: "button button-secondary button-full" %>
                 <% end %>
-              <% elsif @character.trait_set&.current_actions.to_i.positive? %>
+              <% elsif @character.trait_set&.current_actions.to_i >= bonescythe.fetch(:action_cost).to_i %>
                 <p>Summon as a melee weapon: <%= bonescythe.fetch(:damage_dice) %> · <%= bonescythe.fetch(:damage_effect) %> · Reach <%= bonescythe.fetch(:reach) %>. It shatters after one hit or when combat ends.</p>
-                <%= button_to "Summon Bonescythe · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_bonescythe" } }, class: "button button-secondary button-full" %>
+                <%= button_to "Summon Bonescythe · spend #{pluralize(bonescythe.fetch(:action_cost).to_i, 'action')}", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_bonescythe" } }, class: "button button-secondary button-full" %>
               <% else %>
-                <p>Summoning requires 1 action. You currently have no actions available.</p>
+                <p>Summoning requires <%= pluralize(bonescythe.fetch(:action_cost).to_i, "action") %>. You currently have <%= pluralize(@character.trait_set&.current_actions.to_i, "action") %>.</p>
               <% end %>
             </div>
           <% end %>
@@ -194,24 +201,33 @@
           <% if shadow_minions.present? %>
             <% minion_count = shadow_minions.fetch("current").to_i %>
             <% minion_capacity = shadow_minions.fetch("max").to_i %>
+            <% summon_amount = shadow_minion_rule.fetch("summon_amount").to_i %>
+            <% summon_action_cost = shadow_minion_rule.fetch("summon_action_cost").to_i %>
             <% reaver = @character.subclass_name == "Reaver" %>
             <div class="safe-rest-action">
               <p class="eyebrow">Shadow Minions · <%= minion_count %> / <%= minion_capacity %></p>
-              <p>Summon Shadows costs 1 action. Minions abandon you when combat ends; the count resets with the encounter.</p>
+              <p><%= shadow_minion_rule.fetch("summon_source_quote") %> Summoning costs <%= pluralize(summon_action_cost, "action") %>. <%= shadow_minion_rule.fetch("source_quote") %> (<%= shadow_minion_rule.fetch("source_ref") %>)</p>
               <% if reaver && minion_count.positive? && @character.story_subclass_feature_unlocked?("Otherworldly Might") %>
-                <p class="field-hint">Otherworldly Might: you have advantage on concentration checks while you have any Shadow Minions. (Heroes 2.0.1, p. 78)</p>
+                <% otherworldly_might = story_feature_notes.fetch("Otherworldly Might") %>
+                <p class="field-hint"><strong>Otherworldly Might:</strong> <%= otherworldly_might.fetch("effect") %> (<%= otherworldly_might.fetch("source_ref") %>)</p>
               <% end %>
-              <% if minion_count < minion_capacity && @character.trait_set&.current_actions.to_i.positive? %>
-                <%= button_to "Summon Shadow Minion · spend 1 action", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
+              <% if minion_count + summon_amount <= minion_capacity && @character.trait_set&.current_actions.to_i >= summon_action_cost %>
+                <%= button_to "Summon Shadow Minion · spend #{pluralize(summon_action_cost, 'action')}", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
               <% end %>
-              <% if reaver && @character.story_subclass_feature_unlocked?("Martyr Spawn") && minion_count.positive? %>
-                <%= button_to "Martyr Spawn · spend 1 minion to negate Defend damage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "martyr_spawn" } }, class: "button button-secondary button-full" %>
+              <% martyr_spawn = story_feature_notes["Martyr Spawn"] %>
+              <% if reaver && martyr_spawn.present? %>
+                <% martyr_cost = martyr_spawn.fetch("shadow_minions_spent").to_i %>
+                <p class="field-hint"><strong>Martyr Spawn:</strong> <%= martyr_spawn.fetch("effect") %> (<%= martyr_spawn.fetch("source_ref") %>)</p>
+                <% if minion_count >= martyr_cost %>
+                  <%= button_to "Martyr Spawn · spend #{pluralize(martyr_cost, 'minion')} to negate Defend damage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "martyr_spawn" } }, class: "button button-secondary button-full" %>
+                <% end %>
               <% end %>
               <% if reaver && @character.story_subclass_feature_unlocked?("Shadow Exploit") %>
                 <% next_cost = resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" } %>
                 <% tiered_spells = @character.sheet_spells.select { |spell| spell.tier.to_i.positive? && spell.available_to?(@character) } %>
                 <% if next_cost.present? && tiered_spells.any? %>
-                  <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %>. Spend the spell's normal actions separately. (Heroes 2.0.1, p. 78)</p>
+                  <% next_cost_increment = shadow_exploit_cost_rule.fetch("increment_per_cast").to_i %>
+                  <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %> and increases by <%= next_cost_increment %> minion<%= "s" unless next_cost_increment == 1 %> after each cast. Spend the spell's normal actions separately. (<%= shadow_exploit_cost_rule.fetch("source_ref") %>)</p>
                   <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
                     <%= feature_form.hidden_field :action, value: "shadow_exploit" %>
                     <div class="field">
@@ -222,10 +238,13 @@
                   <% end %>
                 <% end %>
                 <% if @character.story_subclass_feature_unlocked?("My Blood, My Power") && tiered_spells.any? %>
+                  <% my_blood = story_feature_notes.fetch("My Blood, My Power") %>
+                  <% wounds_to_take = my_blood.fetch("wounds_to_take").to_i %>
+                  <% my_blood_effect = my_blood.fetch("effect").sub(/\b\d+ Wounds?\b/i, "#{wounds_to_take} #{'Wound'.pluralize(wounds_to_take)}") %>
                   <% current_wounds = @character.trait_set&.current_wounds.to_i %>
                   <% max_wounds = @character.trait_set&.max_wounds.to_i %>
-                  <p class="field-hint">My Blood, My Power: take 1 Wound to cast a known tiered spell at your highest unlocked tier; the spell's normal action cost still applies. Current Wounds: <%= current_wounds %> / <%= max_wounds %>. (Heroes 2.0.1, p. 78)</p>
-                  <% if current_wounds < max_wounds %>
+                  <p class="field-hint"><strong>My Blood, My Power:</strong> <%= my_blood_effect %> The spell's normal action cost still applies. Current Wounds: <%= current_wounds %> / <%= max_wounds %>. (<%= my_blood.fetch("source_ref") %>)</p>
+                  <% if current_wounds + wounds_to_take <= max_wounds %>
                     <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
                       <%= feature_form.hidden_field :action, value: "my_blood_my_power" %>
                       <div class="field">
@@ -235,7 +254,7 @@
                       <%= feature_form.submit "Record My Blood, My Power cast", class: "button button-secondary button-full" %>
                     <% end %>
                   <% else %>
-                    <p class="field-hint">You are at your Wound limit and cannot use this feature now.</p>
+                    <p class="field-hint">You need room for <%= pluralize(wounds_to_take, "Wound") %> and cannot use this feature now.</p>
                   <% end %>
                 <% end %>
               <% end %>

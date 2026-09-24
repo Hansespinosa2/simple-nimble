@@ -499,6 +499,15 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "Hollow One", "Shadow Exploit", "Martyr Spawn", "Grim Harrow", "Reap", "My Blood, My Power", "Otherworldly Might", "I'm the Patron Now!" ], notes.map { |note| note.fetch("name") }
     shadow_minions = @catalog.class_for("Shadowmancer").fetch("resource").fetch("pools").find { |pool| pool.fetch("key") == "shadow_minions" }
     assert_equal "MIN(INT, LVL)", shadow_minions.fetch("max_formula")
+    assert_same shadow_minions, @catalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
+    assert_equal 1, shadow_minions.fetch("summon_amount")
+    assert_equal 1, shadow_minions.fetch("summon_action_cost")
+    assert_equal "Heroes 2.0.1, p. 43", shadow_minions.fetch("source_ref")
+    assert_equal "reaver_shadow_exploit_next_cost", @catalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost").fetch("key")
+    assert_equal 1, @catalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost").fetch("increment_per_cast")
+    assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Martyr Spawn").fetch("shadow_minions_spent")
+    assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Reap").fetch("shadow_minions_gained")
+    assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "My Blood, My Power").fetch("wounds_to_take")
   end
 
   # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3

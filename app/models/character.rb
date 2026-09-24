@@ -750,11 +750,21 @@ class Character < ApplicationRecord
   end
 
   def summon_shadow_minion!
-    apply_shadow_minion_change!(1, action_cost: 1, summary: "Summoned a Shadow Minion (1 action)")
+    rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
+    raise ArgumentError, "Shadow Minion summon rules are unavailable. Heroes 2.0.1, p. 43." unless rule
+
+    amount = rule.fetch("summon_amount").to_i
+    action_cost = rule.fetch("summon_action_cost").to_i
+    minions = "#{amount} Shadow Minion#{'s' unless amount == 1}"
+    actions = "#{action_cost} action#{'s' unless action_cost == 1}"
+    apply_shadow_minion_change!(amount, action_cost:, summary: "Summoned #{minions} (#{actions})")
   end
 
   def martyr_spawn!
-    apply_shadow_minion_change!(-1, summary: "Martyr Spawn sacrificed a Shadow Minion to negate damage", required_reaver_ability: "Martyr Spawn")
+    feature = require_reaver!("Martyr Spawn")
+    amount = feature.fetch("shadow_minions_spent").to_i
+    minions = "#{amount} Shadow Minion#{'s' unless amount == 1}"
+    apply_shadow_minion_change!(-amount, summary: "Martyr Spawn sacrificed #{minions} to negate Defend damage", required_reaver_ability: "Martyr Spawn")
   end
 
   def use_shadow_exploit!(spell_name:)
@@ -769,8 +779,11 @@ class Character < ApplicationRecord
       minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
       cost_track = tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }
       raise ArgumentError, "Reaver resource tracking is unavailable. Heroes 2.0.1, p. 78." unless minion_track && cost_track
+      cost_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost")
+      raise ArgumentError, "Shadow Exploit cost rules are unavailable. Heroes 2.0.1, p. 78." unless cost_rule
 
       cost = cost_track.fetch("current").to_i
+      increment = cost_rule.fetch("increment_per_cast").to_i
       if minion_track.fetch("current").to_i < cost
         raise ArgumentError, "Shadow Exploit costs #{cost} Shadow Minion#{'s' unless cost == 1}; you have #{minion_track.fetch('current')}."
       end
@@ -780,7 +793,7 @@ class Character < ApplicationRecord
         when "shadow_minions"
           track.merge("current" => track.fetch("current").to_i - cost)
         when "reaver_shadow_exploit_next_cost"
-          track.merge("current" => cost + 1)
+          track.merge("current" => cost + increment)
         else
           track
         end
@@ -798,20 +811,21 @@ class Character < ApplicationRecord
 
   def use_my_blood_my_power!(spell_name:)
     with_lock do
-      require_reaver!("My Blood, My Power")
+      feature = require_reaver!("My Blood, My Power")
+      wounds_to_take = feature.fetch("wounds_to_take").to_i
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
         raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
       end
-      if trait_set.current_wounds.to_i >= trait_set.max_wounds.to_i
-        raise ArgumentError, "My Blood, My Power requires room to take 1 Wound."
+      if trait_set.current_wounds.to_i + wounds_to_take > trait_set.max_wounds.to_i
+        raise ArgumentError, "My Blood, My Power requires room to take #{wounds_to_take} Wound#{'s' unless wounds_to_take == 1}."
       end
 
-      trait_set.update!(current_wounds: trait_set.current_wounds.to_i + 1)
+      trait_set.update!(current_wounds: trait_set.current_wounds.to_i + wounds_to_take)
       highest_tier = character_class.spell_tier_for(level)
       record_revision!(
         event_type: "my_blood_my_power",
-        summary: "Took 1 Wound to cast #{spell.name} at Tier #{highest_tier} through My Blood, My Power",
+        summary: "Took #{wounds_to_take} Wound#{'s' unless wounds_to_take == 1} to cast #{spell.name} at Tier #{highest_tier} through My Blood, My Power",
         from_level: level,
         to_level: level
       )
@@ -822,11 +836,13 @@ class Character < ApplicationRecord
     with_lock do
       require_reaver!("Hollow One")
       raise ArgumentError, "The Bonescythe is already summoned." if bonescythe_summoned?
-      raise ArgumentError, "You need at least 1 action to summon the Bonescythe." if trait_set.current_actions.to_i < 1
+      weapon = story_subclass_weapon_entry
+      action_cost = weapon.fetch(:action_cost).to_i
+      raise ArgumentError, "You need at least #{action_cost} action#{'s' unless action_cost == 1} to summon the Bonescythe." if trait_set.current_actions.to_i < action_cost
 
-      trait_set.update!(current_actions: trait_set.current_actions.to_i - 1)
+      trait_set.update!(current_actions: trait_set.current_actions.to_i - action_cost)
       update_columns(bonescythe_summoned: true, updated_at: Time.current)
-      record_revision!(event_type: "weapon_summoned", summary: "Summoned Bonescythe (1 action)", from_level: level, to_level: level)
+      record_revision!(event_type: "weapon_summoned", summary: "Summoned Bonescythe (#{action_cost} action#{'s' unless action_cost == 1})", from_level: level, to_level: level)
     end
   end
 
@@ -842,18 +858,22 @@ class Character < ApplicationRecord
 
       summary = "Bonescythe hit recorded; weapon shattered"
       if story_subclass_feature_unlocked?("Reap") && %w[critical kill].include?(hit_outcome)
+        reap = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Reap")
+        amount = reap.fetch("shadow_minions_gained").to_i
         tracks = Array(trait_set.resource_tracks).map(&:to_h)
         minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
         raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
 
         current = minion_track.fetch("current").to_i
         maximum = minion_track.fetch("max").to_i
-        if current < maximum
+        gained = [ amount, maximum - current ].min
+        if gained.positive?
           tracks = tracks.map do |track|
-            track.fetch("key") == "shadow_minions" ? track.merge("current" => current + 1) : track
+            track.fetch("key") == "shadow_minions" ? track.merge("current" => current + gained) : track
           end
           trait_set.update!(resource_tracks: tracks)
-          summary += "; Reap summoned a Shadow Minion after a Bonescythe #{hit_outcome == 'critical' ? 'critical hit' : 'kill'}"
+          minions = gained == 1 ? "a Shadow Minion" : "#{gained} Shadow Minions"
+          summary += "; Reap summoned #{minions} after a Bonescythe #{hit_outcome == 'critical' ? 'critical hit' : 'kill'}"
         else
           summary += "; Reap could not add a minion because you are at your limit"
         end
@@ -1502,10 +1522,8 @@ class Character < ApplicationRecord
 
   private
     def require_reaver!(ability)
-      feature = Rules::NimbleCatalog.story_subclass_feature_notes_for("Shadowmancer", "Reaver").find do |note|
-        note.fetch("name") == ability.to_s
-      end
-      return if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && story_subclass_feature_unlocked?(ability)
+      feature = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", ability)
+      return feature if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && story_subclass_feature_unlocked?(ability)
 
       minimum_level = feature&.fetch("unlock_level", 1).to_i
       raise ArgumentError, "#{ability} requires a level #{minimum_level} Shadowmancer Reaver. Heroes 2.0.1, p. 78."
@@ -1534,7 +1552,7 @@ class Character < ApplicationRecord
         end }
         if action_cost.positive?
           actions = trait_set.current_actions.to_i
-          raise ArgumentError, "You need #{action_cost} action to summon a Shadow Minion." if actions < action_cost
+          raise ArgumentError, "You need #{action_cost} action#{'s' unless action_cost == 1} to summon a Shadow Minion." if actions < action_cost
 
           updates[:current_actions] = actions - action_cost
         end

@@ -622,19 +622,26 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
     catalog_weapon_rules = Rules::NimbleCatalog.data.dig("story_subclass_weapon_rules", "Shadowmancer", "Reaver")
     original_weapon_rules = catalog_weapon_rules.fetch("Bonescythe")
+    catalog_summon_rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
+    original_summon_rule = catalog_summon_rule.dup
     catalog_weapon_rules["Bonescythe"] = original_weapon_rules.merge(
       "base_damage_dice" => 4,
       "additional_dice_per_interval" => 2,
-      "additional_die_every_levels" => 2
+      "additional_die_every_levels" => 2,
+      "action_cost" => 2
     )
+    catalog_summon_rule["summon_action_cost"] = 2
 
     begin
       get character_url(reaver)
       assert_response :success
       assert_select ".progression-entry-subclass", /Bonescythe · 6d12/
       assert_select ".progression-entry-subclass small", /\+2 damage dice every 2 levels/
+      assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Bonescythe · spend 2 actions"
+      assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Shadow Minion · spend 2 actions"
     ensure
       catalog_weapon_rules["Bonescythe"] = original_weapon_rules
+      catalog_summon_rule.replace(original_summon_rule)
     end
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
@@ -652,7 +659,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
     assert_equal 1, reaver.reload.trait_set.current_actions
     get character_url(reaver)
-    assert_select ".field-hint", /Grim Harrow: divide the Bonescythe's damage dice among any number of adjacent targets within Reach/
+    assert_select ".field-hint", /Grim Harrow: When striking with the Bonescythe, divide its damage dice among any number of adjacent targets within Reach/
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Critical Hit · shatter + Reap"
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Record Kill · shatter + Reap"
     assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']", count: 0
@@ -673,7 +680,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     reaver.update_column(:level, 11)
     get character_url(reaver)
     assert_response :success
-    assert_select ".field-hint", /Otherworldly Might: you have advantage on concentration checks while you have any Shadow Minions/
+    assert_select ".field-hint", /Otherworldly Might: Gain advantage on concentration checks while you have any shadow minions/
     assert_select "form[action='#{game_feature_character_path(reaver)}'] input[name='game_feature[action]'][value='my_blood_my_power']"
     assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Trap']"
     assert_select "select[name='game_feature[spell_name]'] option[value='Shadow Blast']", count: 0

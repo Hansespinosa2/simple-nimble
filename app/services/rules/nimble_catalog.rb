@@ -103,6 +103,12 @@ module Rules
         data.fetch("classes")[name.to_s]
       end
 
+      def class_resource_pool_for(class_name, pool_key)
+        Array(class_for(class_name).to_h.dig("resource", "pools")).find do |pool|
+          pool.fetch("key") == pool_key.to_s
+        end
+      end
+
       def story_based_subclasses_for(class_name)
         story_based_subclass_records_for(class_name).map { |subclass| subclass.fetch("name") }
       end
@@ -269,6 +275,12 @@ module Rules
           .fetch(subclass_name.to_s, [])
       end
 
+      def story_subclass_resource_pool_for(class_name, subclass_name, pool_key)
+        story_subclass_resource_pools_for(class_name, subclass_name).find do |pool|
+          pool.fetch("key") == pool_key.to_s
+        end
+      end
+
       def story_subclass_resource_pool_replacements_for(class_name, subclass_name)
         data.fetch("story_subclass_resource_pool_replacements", {})
           .fetch(class_name.to_s, {})
@@ -309,6 +321,12 @@ module Rules
         data.fetch("story_subclass_feature_notes", {})
           .fetch(class_name.to_s, {})
           .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_feature_note_for(class_name, subclass_name, feature_name)
+        story_subclass_feature_notes_for(class_name, subclass_name).find do |note|
+          note.fetch("name") == feature_name.to_s
+        end
       end
 
       def story_subclass_initiative_features_for(class_name, subclass_name)
