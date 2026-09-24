@@ -278,8 +278,13 @@ class LevelUpTest < ActiveSupport::TestCase
     missing = character.level_ups.build(from_level: 2, to_level: 3, skill_name: "arcana", hit_die_roll_one: 3, hit_die_roll_two: 2)
     invalid = character.level_ups.build(from_level: 2, to_level: 3, skill_name: "arcana", subclass_name: "Berserker", hit_die_roll_one: 3, hit_die_roll_two: 2)
 
-    assert_includes LevelUpPlanner.new(character, missing).explanations.map { |explanation| explanation[:message] }, "Choose a subclass for Mage."
+    missing_planner = LevelUpPlanner.new(character, missing)
+    assert_includes missing_planner.explanations.map { |explanation| explanation[:message] }, "Choose a subclass for Mage at level #{character.character_class.subclass_choice_level}."
     assert_includes LevelUpPlanner.new(character, invalid).explanations.map { |explanation| explanation[:message] }, "Berserker is not a legal subclass for Mage."
+
+    choice_level = character.character_class.subclass_choice_level
+    character.update_columns(level: choice_level, status: "playable")
+    assert_includes character.creation_issues.map { |issue| issue[:message] }, "Choose a Mage subclass before playing at level #{choice_level}."
   end
 
   # S-02:AC-1 S-02:AC-4 S-06:AC-2 S-06:AC-5

@@ -129,6 +129,14 @@ module Rules
         data.fetch("progression", {}).fetch(class_name.to_s, {})
       end
 
+      def subclass_choice_level_for(class_name)
+        progression_for(class_name)
+          .fetch("features", {})
+          .find { |_level, features| Array(features).include?("Subclass choice") }
+          &.first
+          &.to_i
+      end
+
       def features_for(class_name, level)
         progression_for(class_name).fetch("features", {}).fetch(level.to_i, [])
       end

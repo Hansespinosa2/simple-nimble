@@ -1268,17 +1268,28 @@ class Character < ApplicationRecord
       )
     end
 
+    subclass_choice_level = character_class&.subclass_choice_level
+    subclass_choice_quote = if subclass_choice_level.present?
+      character_class.features_for(subclass_choice_level).find { |feature| feature == "Subclass choice" }
+    end
+
     if subclass_name.present? && !known_subclass_options.include?(subclass_name)
       issues << rule_issue(
-        "#{subclass_name} is not a legal subclass for #{character_class&.name || 'this class'}.",
+        "#{subclass_name} is not a legal subclass for #{character_class&.name || 'this class'} at its level #{subclass_choice_level} subclass choice.",
         character_class&.source_reference || "Heroes 2.0.1, Subclasses",
-        "Choose a subclass listed for the character's class at level 3."
+        subclass_choice_quote || "Choose a published subclass for this class."
       )
-    elsif level.to_i >= 3 && character_class.present? && subclass_options.present? && subclass_name.blank?
+    elsif character_class.present? && subclass_options.present? && subclass_choice_level.blank?
+      issues << rule_issue(
+        "The rules catalog does not define when to choose a #{character_class.name} subclass.",
+        "Nimble rules catalog · #{character_class.name} progression",
+        "The published progression must include a Subclass choice feature."
+      )
+    elsif subclass_choice_level.present? && level.to_i >= subclass_choice_level && character_class.present? && subclass_options.present? && subclass_name.blank?
       issues << rule_issue(
         "Choose a #{character_class.name} subclass before playing at level #{level}.",
         character_class.source_reference,
-        "At level 3, choose a subclass for your class."
+        subclass_choice_quote
       )
     end
 

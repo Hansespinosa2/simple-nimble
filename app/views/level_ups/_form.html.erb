@@ -24,7 +24,7 @@
         <div class="field">
           <%= form.label :subclass_name, "Subclass" %>
           <%= form.select :subclass_name, @planner.subclass_options.map { |subclass| [ subclass, subclass ] }, { include_blank: "Choose a subclass" }, class: "choice-select" %>
-          <span class="field-hint"><%= @character.character_class.source_reference %> · Subclass features begin at level 3.</span>
+          <span class="field-hint"><%= @character.character_class.source_reference %> · Choose a subclass at level <%= @planner.subclass_choice_level %>.</span>
           <% if @planner.story_based_subclass_rules.any? %>
             <% story_subclass_names = @planner.story_based_subclass_rules.map { |subclass| subclass.fetch("name") } %>
             <% story_subclass_rule = @planner.story_based_subclass_rules.first %>

@@ -39,6 +39,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "select[name='level_up[subclass_name]']"
     assert_select "select[name='level_up[subclass_name]'] option", text: "Path of the Mountainheart"
+    assert_select ".field-hint", /Choose a subclass at level #{@character.character_class.subclass_choice_level}/
   end
 
   # S-02:AC-2 S-02:AC-4 S-06:AC-2

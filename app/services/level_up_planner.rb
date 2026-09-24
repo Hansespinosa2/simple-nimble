@@ -39,12 +39,16 @@ class LevelUpPlanner
     character.subclass_options
   end
 
+  def subclass_choice_level
+    character.character_class&.subclass_choice_level
+  end
+
   def story_based_subclass_rules
     character.character_class&.story_based_subclass_rules || []
   end
 
   def subclass_selection_required?
-    target_level == 3 && character.subclass_name.blank? && subclass_options.present?
+    subclass_choice_level.present? && target_level == subclass_choice_level && character.subclass_name.blank? && subclass_options.present?
   end
 
   def selected_subclass_name
@@ -156,7 +160,11 @@ class LevelUpPlanner
     result << issue("Level-up must advance exactly one level.", "Chapter 3, Character Progression", "Level-up is an explicit one-level transition.") unless target_level == character.level.to_i + 1
 
     if subclass_selection_required? && level_up.subclass_name.blank?
-      result << issue("Choose a subclass for #{character.character_class.name}.", character.character_class.source_reference, "At level 3, choose a subclass for your class.")
+      result << issue(
+        "Choose a subclass for #{character.character_class.name} at level #{subclass_choice_level}.",
+        character.character_class.source_reference,
+        subclass_choice_source_quote
+      )
     elsif level_up.subclass_name.present?
       story_rule = character.character_class&.story_based_subclass_rule(level_up.subclass_name)
       if story_rule
@@ -165,8 +173,14 @@ class LevelUpPlanner
           story_rule.fetch("source_ref"),
           story_rule.fetch("source_quote")
         )
-      elsif target_level != 3 || character.subclass_name.present?
-        result << issue("A subclass can only be chosen once at level 3.", character.character_class&.source_reference || "Heroes 2.0.1, Subclasses", "Subclass selection is a level-3 class feature.")
+      elsif subclass_choice_level.blank?
+        result << issue("No subclass choice is defined for #{character.character_class.name}.", character.character_class.source_reference, "Subclass choice is missing from the published progression data.")
+      elsif target_level != subclass_choice_level || character.subclass_name.present?
+        result << issue(
+          "A subclass can only be chosen once at level #{subclass_choice_level}.",
+          character.character_class.source_reference,
+          subclass_choice_source_quote
+        )
       elsif !subclass_options.include?(level_up.subclass_name)
         result << issue("#{level_up.subclass_name} is not a legal subclass for #{character.character_class.name}.", character.character_class.source_reference, "Choose one of the subclasses listed for the class.")
       end
@@ -375,6 +389,10 @@ class LevelUpPlanner
 
     def max_skill_source_quote
       Rules::NimbleCatalog.derived_values.fetch("max_skill_source_quote")
+    end
+
+    def subclass_choice_source_quote
+      character.character_class.features_for(subclass_choice_level).find { |feature| feature == "Subclass choice" }
     end
 
     def projected_language_choices

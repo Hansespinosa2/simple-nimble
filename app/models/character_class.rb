@@ -110,6 +110,10 @@ class CharacterClass < ApplicationRecord
     Rules::NimbleCatalog.features_for(name, level)
   end
 
+  def subclass_choice_level
+    Rules::NimbleCatalog.subclass_choice_level_for(name)
+  end
+
   def subclass_features_for(subclass_name, level)
     Rules::NimbleCatalog.subclass_features_for(name, subclass_name, level)
   end

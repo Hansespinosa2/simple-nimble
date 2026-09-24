@@ -528,4 +528,17 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       assert_match(/replacing your existing subclass/, record.fetch("source_quote"))
     end
   end
+
+  # S-02:AC-1 S-02:AC-4 S-06:AC-2
+  test "every class subclass-choice level is read from its published progression row" do
+    @catalog.classes.each_key do |class_name|
+      features_by_level = @catalog.progression_for(class_name).fetch("features")
+      choice_levels = features_by_level.filter_map do |level, features|
+        level.to_i if Array(features).include?("Subclass choice")
+      end
+
+      assert_equal 1, choice_levels.length, "#{class_name} must publish exactly one Subclass choice feature"
+      assert_equal choice_levels.first, @catalog.subclass_choice_level_for(class_name), class_name
+    end
+  end
 end
