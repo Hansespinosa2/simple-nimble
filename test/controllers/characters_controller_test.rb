@@ -45,14 +45,17 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-09:AC-3
   test "creation rule hints and skill input limits follow the catalog" do
     catalog = Rules::NimbleCatalog.data
     original_arrays = catalog.fetch("stat_arrays")
     original_derived_values = catalog.fetch("derived_values")
+    original_starting_equipment = catalog.fetch("starting_equipment")
     changed_arrays = original_arrays.deep_dup
     changed_arrays["standard"] = [ 4, 2, 1, -2 ]
     catalog["stat_arrays"] = changed_arrays
     catalog["derived_values"] = original_derived_values.merge("max_skill" => 17)
+    catalog["starting_equipment"] = original_starting_equipment.merge("gold_per_level" => 75)
 
     begin
       get new_character_url
@@ -61,8 +64,27 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
       assert_select ".stat-array-rules-summary", /Standard \+4\/\+2\/\+1\/-2/
       assert_select ".panel-subtitle", /Skills cannot exceed \+17\./
       assert_select "input[data-skill='might'][max='17']"
+      assert_select "select[name='character[starting_equipment_choice]'] option[value='starting_gold']", text: "Starting gold instead (75 gp per level)"
+      assert_select ".field-hint", /choose listed class gear or 75 gp per starting level/
     ensure
       catalog["stat_arrays"] = original_arrays
+      catalog["derived_values"] = original_derived_values
+      catalog["starting_equipment"] = original_starting_equipment
+    end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "the sheet save DC formula caption follows the catalog base" do
+    catalog = Rules::NimbleCatalog.data
+    original_derived_values = catalog.fetch("derived_values")
+    catalog["derived_values"] = original_derived_values.merge("save_dc_base" => 14)
+
+    begin
+      get character_url(@character)
+
+      assert_response :success
+      assert_select ".save-dc-formula", text: "14 + KEY"
+    ensure
       catalog["derived_values"] = original_derived_values
     end
   end

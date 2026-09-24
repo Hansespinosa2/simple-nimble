@@ -28,6 +28,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Shared Hero"
     assert_includes response.body, "Read-only shared sheet"
+    assert_select ".save-dc-formula", text: "10 + KEY"
   end
 
   test "the read-only shared sheet includes structured inventory without edit controls" do

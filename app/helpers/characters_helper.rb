@@ -18,6 +18,10 @@ module CharactersHelper
     end.join(" · ")
   end
 
+  def save_dc_formula_caption
+    "#{Rules::NimbleCatalog.derived_values.fetch('save_dc_base')} + KEY"
+  end
+
   def stat_display_name(stat)
     { "strength" => "STR", "dexterity" => "DEX", "intelligence" => "INT", "will" => "WIL" }.fetch(stat.to_s, stat.to_s.humanize)
   end
