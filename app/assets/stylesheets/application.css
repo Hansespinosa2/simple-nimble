@@ -220,11 +220,7 @@ h3 { font-size: 18px; margin-bottom: 4px; }
 .inventory-rule-note p { margin: 7px 0; }
 .inventory-item-list { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .inventory-item-row { align-items: end; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 9px 0; }
-.starting-gear-breakdown { color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
-.starting-gear-breakdown summary { color: var(--ink); cursor: pointer; font-weight: 750; }
-.starting-gear-list { list-style: none; margin: 8px 0; padding: 0; }
-.starting-gear-list li { border-bottom: 1px solid var(--line); display: grid; gap: 2px 10px; grid-template-columns: minmax(0, 1fr) auto; padding: 7px 0; }
-.starting-gear-list small { grid-column: 1 / -1; font-size: 10px; }
+.inventory-item-source { color: var(--ink-soft); font-size: 10px; width: 100%; }
 .inventory-item-form, .inventory-create-form { align-items: end; display: grid; flex: 1; gap: 8px; grid-template-columns: minmax(100px, 1fr) 100px auto; }
 .inventory-item-form .field, .inventory-create-form .field { min-width: 0; }
 .inventory-item-form label, .inventory-create-form label { color: var(--ink-soft); font-size: 10px; }

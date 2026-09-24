@@ -27,7 +27,12 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2 potions", item.name
     assert_equal 1, item.slots
     assert_equal 5, @character.reload.inventory_slots_used
-    assert_equal [ { "name" => "2 potions", "slots" => 1 } ], @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items")
+    snapshot_items = @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items")
+    assert_equal 4, snapshot_items.size
+    assert_equal "2 potions", snapshot_items.last.fetch("name")
+    assert_equal false, snapshot_items.last.fetch("starting_gear")
+    assert_equal 3, snapshot_items.count { |snapshot_item| snapshot_item.fetch("starting_gear") }
+    assert snapshot_items.select { |snapshot_item| snapshot_item.fetch("starting_gear") }.all? { |snapshot_item| snapshot_item.fetch("source_ref").present? }
   end
 
   test "inventory can exceed capacity without blocking the GM-waivable rules option" do
@@ -53,7 +58,8 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Grouped camping supplies", item.reload.name
     assert_equal 2, item.slots
     assert_equal 6, @character.reload.inventory_slots_used
-    assert_equal "Grouped camping supplies", @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").first.fetch("name")
+    snapshot_items = @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items")
+    assert_equal "Grouped camping supplies", snapshot_items.find { |snapshot_item| snapshot_item.fetch("name") == "Grouped camping supplies" }.fetch("name")
 
     assert_difference("InventoryItem.count", -1) do
       assert_difference("CharacterRevision.count", 1) do
@@ -61,8 +67,63 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
       end
     end
     assert_not InventoryItem.exists?(item.id)
-    assert_empty @character.reload.snapshot_payload.fetch("inventory_items")
+    assert_not_includes @character.reload.snapshot_payload.fetch("inventory_items").map { |snapshot_item| snapshot_item.fetch("name") }, "Grouped camping supplies"
     assert_equal 4, @character.inventory_slots_used
+  end
+
+  test "removing a starting kit item updates the game load and its revision" do
+    staff = @character.starting_gear_inventory_items.find_by!(name: "Staff")
+
+    assert_difference("InventoryItem.count", -1) do
+      assert_difference("CharacterRevision.count", 1) do
+        delete character_inventory_item_url(@character, staff)
+      end
+    end
+
+    assert_not InventoryItem.exists?(staff.id)
+    assert_equal 2, @character.reload.inventory_slots_used
+    assert_equal 2, @character.starting_gear_inventory_slots
+    snapshot_items = @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items")
+    assert_not_includes snapshot_items.map { |snapshot_item| snapshot_item.fetch("name") }, "Staff"
+    assert_equal 2, snapshot_items.count { |snapshot_item| snapshot_item.fetch("starting_gear") }
+  end
+
+  test "renaming a starting item clears its original gear source without dropping it" do
+    staff = @character.starting_gear_inventory_items.find_by!(name: "Staff")
+
+    patch character_inventory_item_url(@character, staff), params: {
+      inventory_item: { name: "Enchanted Staff", slots: 2 }
+    }
+
+    assert_redirected_to character_url(@character)
+    staff.reload
+    assert_equal "Enchanted Staff", staff.name
+    assert_not staff.starting_gear?
+    assert_nil staff.source_ref
+    assert_equal 4, @character.reload.inventory_slots_used
+  end
+
+  test "adjusting a starting item's slots preserves its class-kit source" do
+    staff = @character.starting_gear_inventory_items.find_by!(name: "Staff")
+
+    patch character_inventory_item_url(@character, staff), params: {
+      inventory_item: { name: "Staff", slots: 3 }
+    }
+
+    assert_redirected_to character_url(@character)
+    assert_equal 3, staff.reload.slots
+    assert_predicate staff, :starting_gear?
+    assert staff.source_ref.present?
+    assert_equal 2, staff.catalog_slots
+    assert_equal 5, @character.reload.inventory_slots_used
+    snapshot_item = @character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").find { |item| item.fetch("name") == "Staff" }
+    assert_equal 3, snapshot_item.fetch("slots")
+    assert snapshot_item.fetch("starting_gear")
+    assert snapshot_item.fetch("source_ref").present?
+    assert_equal 2, snapshot_item.fetch("catalog_slots")
+
+    get character_url(@character)
+    assert_select ".inventory-item-source", text: /adjusted from 2 catalog slots/
   end
 
   test "an inventory item cannot be edited through another character's nested URL" do

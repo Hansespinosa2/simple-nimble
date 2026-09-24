@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_241000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_060000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -162,11 +162,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_241000) do
   end
 
   create_table "inventory_items", force: :cascade do |t|
+    t.integer "catalog_slots"
     t.integer "character_id", null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.integer "slots", default: 1, null: false
+    t.string "source_ref"
+    t.boolean "starting_gear", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["character_id", "starting_gear"], name: "index_inventory_items_on_character_id_and_starting_gear"
     t.index ["character_id"], name: "index_inventory_items_on_character_id"
   end
 

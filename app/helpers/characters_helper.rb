@@ -39,7 +39,7 @@ module CharactersHelper
     if character.starting_equipment_choice == "starting_gold"
       "Starting gold replaces the class/background gear package and is tracked with carried inventory. #{rules.fetch('source_ref')}."
     else
-      "#{rules.fetch('background_gear_note')} #{rules.fetch('background_gear_source_ref')}."
+      "#{rules.fetch('background_gear_note')} #{rules.fetch('background_gear_source_ref')}. This records the kit chosen at creation; current items are tracked below."
     end
   end
 

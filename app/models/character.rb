@@ -83,6 +83,8 @@ class Character < ApplicationRecord
   before_validation :assign_default_ruleset
   before_validation :sync_derived_values, if: :should_sync_derived_values?
   before_validation :sync_starting_equipment, if: :should_sync_starting_equipment?
+  after_create :sync_starting_gear_inventory
+  after_update :sync_starting_gear_inventory, if: :starting_gear_loadout_changed?
   after_commit :record_initial_revision, on: :create
 
   scope :drafts, -> { where(status: "draft") }
@@ -155,17 +157,15 @@ class Character < ApplicationRecord
   end
 
   def inventory_slots_used
-    starting_gear_inventory_slots + inventory_items.sum(:slots) + gold_inventory_slots
+    inventory_items.sum(:slots) + gold_inventory_slots
   end
 
   def starting_gear_inventory_slots
-    starting_gear_inventory_items.sum { |item| item.fetch("slots").to_i }
+    starting_gear_inventory_items.sum(:slots)
   end
 
   def starting_gear_inventory_items
-    return [] unless starting_equipment_choice == "class_gear" && character_class.present?
-
-    Rules::NimbleCatalog.starting_gear_inventory_items(character_class.name)
+    inventory_items.where(starting_gear: true).order(:id)
   end
 
   def inventory_slots_capacity
@@ -804,7 +804,7 @@ class Character < ApplicationRecord
         "name", "race", "nimble_class", "level", "subclass_name", "legacy_background_text", "description", "languages", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
         "status", "conditions", "inventory", "game_notes", "stat_array"
       ),
-      "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots") },
+      "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots") },
       "rules" => {
         "class" => character_class&.name,
         "ancestry" => ancestry&.name,
@@ -881,6 +881,25 @@ class Character < ApplicationRecord
 
     def should_sync_starting_equipment?
       new_record? || character_class_id_changed? || starting_equipment_choice_changed? || (draft? && level_changed?)
+    end
+
+    def starting_gear_loadout_changed?
+      saved_change_to_character_class_id? || saved_change_to_starting_equipment_choice?
+    end
+
+    def sync_starting_gear_inventory
+      inventory_items.where(starting_gear: true).destroy_all
+      return unless starting_equipment_choice == "class_gear" && character_class.present?
+
+      Rules::NimbleCatalog.starting_gear_inventory_items(character_class.name).each do |item|
+        inventory_items.create!(
+          name: item.fetch("name"),
+          slots: item.fetch("slots"),
+          starting_gear: true,
+          source_ref: item.fetch("source_ref"),
+          catalog_slots: item.fetch("slots")
+        )
+      end
     end
 
     def sync_derived_values

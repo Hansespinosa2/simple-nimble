@@ -6,20 +6,5 @@
     </div>
     <p><strong><%= character.starting_equipment.presence || "Not recorded" %></strong></p>
     <p class="muted"><%= starting_equipment_context(character) %></p>
-    <% if character.starting_gear_inventory_items.any? %>
-      <details class="starting-gear-breakdown">
-        <summary>Starting gear slots and sources</summary>
-        <ul class="starting-gear-list">
-          <% character.starting_gear_inventory_items.each do |item| %>
-            <li>
-              <strong><%= item.fetch("name") %></strong>
-              <span><%= item.fetch("slots") %> <%= "slot" if item.fetch("slots").to_i == 1 %><%= "slots" if item.fetch("slots").to_i != 1 %></span>
-              <small><%= item.fetch("source_ref") %></small>
-            </li>
-          <% end %>
-        </ul>
-        <p class="muted"><%= Rules::NimbleCatalog.data.fetch("starting_gear_inventory").fetch("miscellaneous_item_note") %> <%= Rules::NimbleCatalog.data.fetch("starting_gear_inventory").fetch("source_ref") %>.</p>
-      </details>
-    <% end %>
   </section>
 <% end %>

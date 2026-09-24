@@ -58,6 +58,10 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 4, mage.starting_gear_inventory_slots
     assert_equal 3, mage.starting_gear_inventory_items.size
     assert_equal 4, mage.inventory_slots_used
+    initial_inventory = mage.character_revisions.find_by!(event_type: "created").snapshot.fetch("inventory_items")
+    assert_equal 3, initial_inventory.size
+    assert initial_inventory.all? { |item| item.fetch("starting_gear") && item.fetch("source_ref").present? }
+    assert_equal [ 1, 2, 1 ], initial_inventory.map { |item| item.fetch("catalog_slots") }
     assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), mage.trait_set.armor
   end
 
@@ -71,21 +75,23 @@ class CharacterTest < ActiveSupport::TestCase
       background: Background.find_by!(name: "Fearless"),
       stat_array: "balanced"
     )
+    mage.inventory_items.create!(name: "Keepsake", slots: 1)
     class_gear_armor = mage.trait_set.armor
     assert_equal mage.armor_for + mage.derived_modifier_for(:armor_modifier), class_gear_armor
-    assert_equal 4, mage.inventory_slots_used
+    assert_equal 5, mage.inventory_slots_used
 
     mage.update!(starting_equipment_choice: "starting_gold")
 
     assert_equal 50, mage.current_gold
-    assert_equal 1, mage.inventory_slots_used
+    assert_equal 2, mage.inventory_slots_used
     assert_empty mage.starting_gear_inventory_items
+    assert mage.inventory_items.exists?(name: "Keepsake", starting_gear: false)
     unarmored_armor = mage.stat_value("dexterity") + mage.derived_modifier_for(:armor_modifier)
     assert_equal unarmored_armor, mage.trait_set.armor
 
     mage.update!(starting_equipment_choice: "class_gear")
     assert_equal 0, mage.current_gold
-    assert_equal 4, mage.inventory_slots_used
+    assert_equal 5, mage.inventory_slots_used
     assert_equal class_gear_armor, mage.trait_set.armor
   end
 
@@ -99,14 +105,30 @@ class CharacterTest < ActiveSupport::TestCase
     }
 
     expected_slots.each do |class_name, slots|
-      character = Character.new(
+      character = Character.create!(
+        name: "#{class_name} slot test",
         character_class: CharacterClass.find_by!(name: class_name),
         starting_equipment_choice: "class_gear"
       )
 
       assert_equal slots, character.starting_gear_inventory_slots, "#{class_name} kit slots"
       assert_equal slots, character.inventory_slots_used, "#{class_name} total slots before carried items"
+      assert_equal Rules::NimbleCatalog.starting_gear_inventory_items(class_name).size, character.starting_gear_inventory_items.size
     end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-03:AC-3 S-05:AC-2 S-09:AC-3
+  test "changing a draft class replaces only starting kit items" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    mage = Character.create!(name: "Class Change Draft", character_class: CharacterClass.find_by!(name: "Mage"))
+    mage.inventory_items.create!(name: "Found key", slots: 1)
+
+    mage.update!(character_class: CharacterClass.find_by!(name: "Berserker"))
+
+    assert_equal [ "Battleaxe", "Rations (meat)", "Rope (50 ft.)" ], mage.starting_gear_inventory_items.order(:id).pluck(:name)
+    assert mage.inventory_items.exists?(name: "Found key", starting_gear: false)
+    assert_not mage.inventory_items.exists?(name: "Staff")
+    assert_equal 5, mage.inventory_slots_used
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3

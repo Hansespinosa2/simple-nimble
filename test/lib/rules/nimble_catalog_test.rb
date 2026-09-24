@@ -132,6 +132,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       assert_equal gear_names, items.map { |item| item.fetch("name") }, "#{class_name} slot items should cover its full class kit"
       assert_equal expected_items, actual_items, "#{class_name} item slots should match the source rules and documented default"
       assert items.all? { |item| item.fetch("source_ref").present? }, "#{class_name} gear slots should cite their rules"
+      assert_match(/Core Rules/, items.first.fetch("source_ref"), "#{class_name} starting gear should surface an inspectable source")
     end
 
     assert_match(/GM may adjust/, @catalog.data.fetch("starting_gear_inventory").fetch("miscellaneous_item_note"))

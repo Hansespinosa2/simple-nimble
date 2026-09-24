@@ -69,12 +69,12 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal @ancestry, created.ancestry
     assert_equal @background, created.background
     assert_equal 4, created.inventory_slots_used
-    assert_text "Starting class gear"
+    assert_text "Starting kit carried"
     assert_text "4 slots · included in total"
     assert_text "#{created.inventory_slots_used} / #{created.inventory_slots_capacity} slots used"
-    find(".starting-gear-breakdown summary").click
-    battleaxe = find(".starting-gear-list li", text: "Battleaxe")
-    assert_includes battleaxe.text, "2 slots"
+    battleaxe_item = created.inventory_items.find_by!(name: "Battleaxe")
+    battleaxe = find("[data-inventory-item-id='#{battleaxe_item.id}']")
+    assert_equal "2", battleaxe.find("input[name$='[slots]']").value
     assert_includes battleaxe.text, "Core Rules 2.0.1, pp. 21, 34"
   end
 
@@ -296,6 +296,32 @@ class CharactersTest < ApplicationSystemTestCase
     assert_text "Dragon Shield removed from inventory."
     assert_text "0 / #{capacity} slots used"
     assert_not InventoryItem.exists?(item.id)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-03:AC-3 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "a class starting item can be removed without returning on later sheet updates" do
+    character = Character.create!(
+      name: "Tracked Starting Gear Hero",
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    battleaxe = character.starting_gear_inventory_items.find_by!(name: "Battleaxe")
+
+    visit character_url(character)
+    row = find("[data-inventory-item-id='#{battleaxe.id}']")
+    accept_confirm("Remove Battleaxe from inventory?") do
+      within(row) { click_on "Remove" }
+    end
+
+    assert_text "Battleaxe removed from inventory."
+    assert_equal 2, character.reload.inventory_slots_used
+    character.update!(game_notes: "The battleaxe was sold in town.")
+    visit character_url(character)
+
+    assert_no_selector "[data-inventory-item-id='#{battleaxe.id}']"
+    assert_text "2 / #{character.reload.inventory_slots_capacity} slots used"
   end
 
   test "should update Character" do

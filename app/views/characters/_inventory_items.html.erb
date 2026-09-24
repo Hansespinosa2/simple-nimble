@@ -1,4 +1,4 @@
-<% items = character.inventory_items.order(:id) %>
+<% items = character.inventory_items.order(starting_gear: :desc, id: :asc) %>
 <% slots_used = character.inventory_slots_used %>
 <% starting_gear_slots = character.starting_gear_inventory_slots %>
 <% over_capacity = slots_used > character.inventory_slots_capacity %>
@@ -14,13 +14,13 @@
   <details class="inventory-rule-note">
     <summary>Slot rules · Core Rules 2.0.1, p. 21</summary>
     <p>Each hero has 10 + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, 500 gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
-    <p>When class gear is selected, its known item slots are included in the total automatically. Unusual item sizes may be adjusted with your GM.</p>
+    <p>When class gear is selected, its known item slots are included in the total automatically. Starting items can be adjusted or removed; unusual item sizes may be grouped with your GM.</p>
     <p>The rules also let the GM waive inventory bookkeeping. This tracker warns when you exceed capacity but does not block the save.</p>
   </details>
 
   <div class="inventory-currency-row"><strong>Gold</strong><span><%= number_with_delimiter(character.current_gold.to_i) %> gp · <%= character.gold_inventory_slots %> <%= "slot" if character.gold_inventory_slots == 1 %><%= "slots" if character.gold_inventory_slots != 1 %></span></div>
   <% if starting_gear_slots.positive? %>
-    <div class="inventory-currency-row"><strong>Starting class gear</strong><span><%= starting_gear_slots %> <%= "slot" if starting_gear_slots == 1 %><%= "slots" if starting_gear_slots != 1 %> · included in total</span></div>
+    <div class="inventory-currency-row"><strong>Starting kit carried</strong><span><%= starting_gear_slots %> <%= "slot" if starting_gear_slots == 1 %><%= "slots" if starting_gear_slots != 1 %> · included in total</span></div>
   <% end %>
 
   <% if over_capacity %>
@@ -33,24 +33,26 @@
         <li class="inventory-item-row" data-inventory-item-id="<%= item.id %>">
           <% if editable %>
             <%= form_with model: [ character, item ], class: "inventory-item-form" do |item_form| %>
-              <div class="field"><%= item_form.label :name, "Item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true %></div>
+              <div class="field"><%= item_form.label :name, item.starting_gear? ? "Starting item" : "Item or stack" %><%= item_form.text_field :name, maxlength: 120, required: true %></div>
               <div class="field"><%= item_form.label :slots, "Slots used" %><%= item_form.number_field :slots, min: 1, step: 1, required: true %></div>
               <%= item_form.submit "Save item", class: "button button-secondary" %>
             <% end %>
             <%= button_to "Remove", character_inventory_item_path(character, item), method: :delete, class: "button button-quiet inventory-remove", form: { data: { turbo_confirm: "Remove #{item.name} from inventory?" } } %>
+            <% if item.starting_gear? %><small class="inventory-item-source">Starting kit · <%= item.source_ref %><%= " · adjusted from #{item.catalog_slots} catalog slots" if item.slots != item.catalog_slots %></small><% end %>
           <% else %>
             <strong><%= item.name %></strong><span><%= item.slots %> <%= "slot" if item.slots == 1 %><%= "slots" if item.slots != 1 %></span>
+            <% if item.starting_gear? %><small class="inventory-item-source">Starting kit · <%= item.source_ref %><%= " · adjusted from #{item.catalog_slots} catalog slots" if item.slots != item.catalog_slots %></small><% end %>
           <% end %>
         </li>
       <% end %>
     </ul>
   <% else %>
-    <p class="muted inventory-empty"><% if starting_gear_slots.positive? %>Starting class gear is listed above and its slots are included. Add later-acquired gear and loot here; the starting kit is not yet itemized for individual removal.<% elsif character.starting_equipment_choice == "starting_gold" %>No individual gear or loot recorded yet. Gold carried is shown above; add carried items here to include them in the slot total.<% else %>No individual gear or loot recorded yet. Add carried items here to include them in the slot total.<% end %></p>
+    <p class="muted inventory-empty"><% if character.starting_equipment_choice == "class_gear" && character.starting_equipment.present? %>No individual gear or loot currently recorded. The original starting kit is shown above; record the items you still carry here.<% elsif character.starting_equipment_choice == "starting_gold" %>No individual gear or loot recorded yet. Gold carried is shown above; add carried items here to include them in the slot total.<% else %>No individual gear or loot recorded yet. Add carried items here to include them in the slot total.<% end %></p>
   <% end %>
 
   <% if editable %>
-    <p class="muted inventory-empty"><%= if starting_gear_slots.positive?
-      "Starting class gear is counted automatically; record only later-acquired gear and loot here. The starting kit is not yet editable item by item."
+    <p class="muted inventory-empty"><%= if character.starting_equipment_choice == "class_gear" && character.starting_equipment.present?
+      "Starting-kit items are labeled and can be adjusted for your table or removed when lost or sold. Add later-acquired gear and loot below."
     elsif character.starting_equipment_choice == "starting_gold"
       "Gold carried is counted above; record other carried gear and loot here."
     else
