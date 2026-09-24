@@ -225,7 +225,7 @@ class CharacterTest < ActiveSupport::TestCase
     assert_not_equal 2 * zephyr.armor_for, zephyr.armor_for, "Iron Defense doubles unarmored Armor, not worn plate"
   end
 
-  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-05:AC-2 S-09:AC-3
   test "equipped armor replaces the body-armor formula, uses source slots, and recalculates the sheet" do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
     mage = Character.create!(
