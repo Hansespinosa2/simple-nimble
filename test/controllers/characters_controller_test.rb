@@ -507,6 +507,48 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Smoldering", @character.character_revisions.order(:id).last.snapshot.fetch("character").fetch("conditions")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
+  test "tracker applies the catalog zero-HP Wound once per transition and refreshes Wound-triggered resources" do
+    hero = Character.create!(
+      name: "Zero HP Tracker Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Dragonborn"),
+      background: @background,
+      stat_array: "balanced"
+    )
+    wound_resource_key = "ancestry_dragonborn_draconic_heritage"
+    hero.trait_set.update!(resource_tracks: hero.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == wound_resource_key ? track.merge("current" => 0) : track
+    end)
+    transition_rule = Rules::NimbleCatalog.zero_hp_transition_rules
+    original_transition_rule = transition_rule.dup
+
+    begin
+      transition_rule["wounds_gained"] = 2
+      transition_rule["source_ref"] = "Test rules, p. 99"
+      transition_rule["source_quote"] = "Test rule: gain 2 Wounds when reduced to 0 HP."
+
+      patch tracker_character_url(hero), params: { character: { trait_set_attributes: { id: hero.trait_set.id, current_hp: 0, current_wounds: 0 } } }
+      assert_redirected_to character_url(hero)
+      assert_equal 2, hero.reload.trait_set.current_wounds
+      assert_equal 1, hero.trait_set.resource_tracks.find { |track| track.fetch("key") == wound_resource_key }.fetch("current")
+      assert_includes flash[:notice], "added 2 Wounds. Test rules, p. 99"
+      assert_includes hero.character_revisions.order(:id).last.summary, "gained 2 Wounds on reaching 0 HP"
+
+      patch tracker_character_url(hero), params: { character: { trait_set_attributes: { id: hero.trait_set.id, current_hp: 0, current_wounds: 2 } } }
+      assert_equal 2, hero.reload.trait_set.current_wounds, "remaining at 0 HP must not count as a second drop"
+
+      patch tracker_character_url(hero), params: { character: { trait_set_attributes: { id: hero.trait_set.id, current_hp: 5, current_wounds: 2, resource_tracks: [ { key: wound_resource_key, current: 0 } ] } } }
+      assert_equal 0, hero.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == wound_resource_key }.fetch("current")
+
+      patch tracker_character_url(hero), params: { character: { trait_set_attributes: { id: hero.trait_set.id, current_hp: 0, current_wounds: 2, resource_tracks: [ { key: wound_resource_key, current: 0 } ] } } }
+      assert_equal 4, hero.reload.trait_set.current_wounds
+      assert_equal 1, hero.trait_set.resource_tracks.find { |track| track.fetch("key") == wound_resource_key }.fetch("current")
+    ensure
+      transition_rule.replace(original_transition_rule)
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet exposes an encounter end action that refreshes only encounter counters" do
     Rails.application.load_seed

@@ -192,7 +192,17 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal expected_derived, conditions.fetch("derived_conditions").map { |entry| entry.fetch("name") }
     assert_equal 18, expected_manual.length + expected_derived.length
     assert_equal %w[Charged Distracted Smoldering], conditions.fetch("minor_status_examples")
-    assert_match(/does not apply their effects or durations/, conditions.fetch("tracker_note"))
+    assert_equal 1, @catalog.dying_action_limit_for("Mage", 1).fetch("actions_limited_to")
+    assert_equal "Core Rules 2.0.1, p. 9", @catalog.dying_action_limit_for("Mage", 1).fetch("source_ref")
+    assert_equal 2, @catalog.dying_action_limit_for("Zephyr", 20).fetch("actions_limited_to")
+    assert_equal "Heroes 2.0.1, p. 69", @catalog.dying_action_limit_for("Zephyr", 20).fetch("source_ref")
+    assert_includes @catalog.dying_action_limit_for("Zephyr", 20).fetch("source_quote"), "max of 2 actions"
+    assert_equal 1, @catalog.dying_action_limit_for("Zephyr", 19).fetch("actions_limited_to")
+    assert_equal 1, @catalog.zero_hp_transition_rules.fetch("wounds_gained")
+    assert_equal "Core Rules 2.0.1, p. 9", @catalog.zero_hp_transition_rules.fetch("source_ref")
+    assert_includes @catalog.zero_hp_transition_rules.fetch("source_quote"), "gain 1 Wound"
+    assert_match(/does not automate other condition effects or durations/, conditions.fetch("tracker_note"))
+    assert_match(/does not enforce Dying's action limit/, conditions.fetch("tracker_note"))
   end
 
   # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3

@@ -13,9 +13,14 @@
     <details class="condition-rule-note">
       <summary>Why these appear · <%= entries.first.fetch("source_ref") %></summary>
       <ul>
-        <% entries.each do |entry| %><li><strong><%= entry.fetch("name") %>:</strong> <%= entry.fetch("source_quote") %></li><% end %>
+        <% entries.each do |entry| %>
+          <li><strong><%= entry.fetch("name") %>:</strong> <%= entry.fetch("source_quote") %> (<%= entry.fetch("source_ref") %>)</li>
+          <% if entry["actions_limited_to"].present? %>
+            <li><strong><%= entry.fetch("name") %> effect:</strong> <%= entry.fetch("effects_source_quote") %> (<%= entry.fetch("effects_source_ref") %>)</li>
+          <% end %>
+        <% end %>
       </ul>
-      <p>The sheet derives these labels from tracked values. It does not automate other condition effects or durations.</p>
+      <p><%= Rules::NimbleCatalog.condition_tracking.fetch("tracker_note") %></p>
     </details>
   </section>
 <% end %>

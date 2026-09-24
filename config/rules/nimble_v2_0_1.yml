@@ -113,11 +113,25 @@ condition_tracking:
     - name: Wounded
       predicate: any_wounds
       source_quote: "Has any Wounds."
+  zero_hp_transition:
+    wounds_gained: 1
+    source_ref: "Core Rules 2.0.1, p. 9"
+    source_quote: "When reduced to 0 HP, gain 1 Wound; you also gain the Dying condition until you regain HP."
+  dying_action_limit:
+    actions_limited_to: 1
+    source_ref: "Core Rules 2.0.1, p. 9"
+    source_quote: "While Dying, actions are limited to 1."
+    exceptions:
+      - character_class: Zephyr
+        min_level: 20
+        actions_limited_to: 2
+        source_ref: "Heroes 2.0.1, p. 69"
+        source_quote: "Permanently gain 1 action (while Dying, you have a max of 2 actions)."
   minor_status_examples:
     - Charged
     - Distracted
     - Smoldering
-  tracker_note: "HP- and Wound-derived states are displayed automatically. Other conditions and minor statuses are recorded as notes; the tracker does not apply their effects or durations."
+  tracker_note: "Bloodied, Dying, and Wounded derive from tracked HP and Wounds. A game-state update that reduces positive HP to 0 adds the source-defined Wound. Dying guidance reflects source-defined action-limit exceptions for this character. The tracker does not automate other condition effects or durations. It does not enforce Dying's action limit. Other conditions and minor statuses are recorded as notes."
 
 resting:
   source_ref: Core Rules 2.0.1, p. 16

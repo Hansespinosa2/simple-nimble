@@ -135,7 +135,23 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal "Core Rules 2.0.1, p. 11", entries.first.fetch("source_ref")
 
     traits.update!(current_hp: 0, current_wounds: 0)
+    dying = character.derived_condition_entries.find { |entry| entry.fetch("name") == "Dying" }
     assert_equal %w[Bloodied Dying], character.derived_condition_entries.map { |entry| entry.fetch("name") }
+    assert_equal 1, dying.fetch("actions_limited_to")
+    assert_equal "Core Rules 2.0.1, p. 9", dying.fetch("effects_source_ref")
+
+    zephyr = Character.create!(
+      name: "Windborne Zephyr",
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      level: 20
+    )
+    zephyr.trait_set.update!(current_hp: 0)
+    dying = zephyr.derived_condition_entries.find { |entry| entry.fetch("name") == "Dying" }
+    assert_equal 2, dying.fetch("actions_limited_to")
+    assert_equal "Heroes 2.0.1, p. 69", dying.fetch("effects_source_ref")
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-3

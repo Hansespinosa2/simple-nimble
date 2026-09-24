@@ -72,6 +72,18 @@ module Rules
         data.fetch("condition_tracking")
       end
 
+      def zero_hp_transition_rules
+        condition_tracking.fetch("zero_hp_transition")
+      end
+
+      def dying_action_limit_for(class_name, level)
+        rules = condition_tracking.fetch("dying_action_limit")
+        exception = Array(rules.fetch("exceptions", [])).find do |entry|
+          entry.fetch("character_class") == class_name.to_s && level.to_i >= entry.fetch("min_level").to_i
+        end
+        exception || rules
+      end
+
       def resting_rules
         data.fetch("resting")
       end

@@ -395,7 +395,7 @@ class CharactersTest < ApplicationSystemTestCase
     assert_no_selector "datalist#nimble-condition-suggestions option[value='Bloodied']", visible: :all
     find("details.condition-rule-note summary").click
     assert_text "At half HP or less."
-    assert_text "It does not automate other condition effects or durations."
+    assert_text "The tracker does not automate other condition effects or durations."
 
     fill_in "character_trait_set_attributes_current_hp", with: 0
     fill_in "character_trait_set_attributes_current_wounds", with: 0
@@ -404,12 +404,23 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_text "Game state saved."
     assert_selector ".derived-condition-chip", text: "Dying"
+    assert_selector ".derived-condition-chip", text: "Wounded"
+    assert_text "The zero-HP rule added 1 Wound. Core Rules 2.0.1, p. 9."
     assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
-    assert_equal %w[Bloodied Dying], character.derived_condition_entries.map { |entry| entry.fetch("name") }
+    assert_equal 2, character.trait_set.current_wounds
+    assert_equal %w[Bloodied Dying Wounded], character.derived_condition_entries.map { |entry| entry.fetch("name") }
+    find("details.condition-rule-note summary").click
+    assert_text "While Dying, actions are limited to 1."
+    assert_text "Core Rules 2.0.1, p. 9"
 
     fill_in "character_trait_set_attributes_current_hp", with: max_hp
     click_on "Save game state"
-    assert_no_selector ".derived-condition-panel"
+    assert_selector ".derived-condition-panel"
+    assert_selector ".derived-condition-chip", text: "Wounded"
+    assert_no_selector ".derived-condition-chip", text: "Bloodied"
+    assert_no_selector ".derived-condition-chip", text: "Dying"
+    assert_equal max_hp, character.reload.trait_set.current_hp
+    assert_equal 2, character.trait_set.current_wounds
     assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
   end
 

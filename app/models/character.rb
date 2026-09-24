@@ -240,7 +240,17 @@ class Character < ApplicationRecord
       else
         raise ArgumentError, "Unknown derived condition predicate: #{condition.fetch('predicate')}"
       end
-    end.map { |condition| condition.merge("source_ref" => rules.fetch("source_ref")) }
+    end.map do |condition|
+      entry = condition.merge("source_ref" => condition.fetch("source_ref", rules.fetch("source_ref")))
+      next entry unless condition.fetch("name") == "Dying"
+
+      action_limit = Rules::NimbleCatalog.dying_action_limit_for(character_class&.name, level)
+      entry.merge(
+        "actions_limited_to" => action_limit.fetch("actions_limited_to"),
+        "effects_source_ref" => action_limit.fetch("source_ref"),
+        "effects_source_quote" => action_limit.fetch("source_quote")
+      )
+    end
   end
 
   def progression_features_through(level = self.level)
