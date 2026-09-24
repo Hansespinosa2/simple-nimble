@@ -89,6 +89,36 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
+  test "rest guidance and action labels follow catalog values" do
+    catalog = Rules::NimbleCatalog.data
+    original_resting_rules = catalog.fetch("resting")
+    changed_resting_rules = original_resting_rules.deep_dup
+    changed_resting_rules.fetch("safe_rest")["wounds_healed"] = 2
+    changed_resting_rules.fetch("field_rests").fetch("catch_breath")["minimum_duration"] = 15
+    changed_resting_rules.fetch("field_rests").fetch("make_camp")["minimum_duration"] = 9
+    catalog["resting"] = changed_resting_rules
+
+    begin
+      hero = Character.create!(
+        name: "Rest Guidance Hero",
+        character_class: CharacterClass.find_by!(name: "Mage"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "balanced"
+      )
+      get character_url(hero)
+
+      assert_response :success
+      assert_select ".safe-rest-summary", /heal 2 Wounds/
+      assert_select ".field-rest-summary", /Catch Breath takes at least 15 minutes.*Make Camp takes at least 9 hours with food and sleep/
+      assert_select "form[action='#{field_rest_character_path(hero)}'] input[type='submit']", value: "Catch Breath · 15 min"
+      assert_select "form[action='#{field_rest_character_path(hero)}'] input[type='submit']", value: "Make Camp · 9 hours"
+    ensure
+      catalog["resting"] = original_resting_rules
+    end
+  end
+
   test "should embed structured origin rules in the builder payload" do
     get new_character_url
 

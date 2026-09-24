@@ -112,6 +112,37 @@ condition_tracking:
     - Smoldering
   tracker_note: "HP- and Wound-derived states are displayed automatically. Other conditions and minor statuses are recorded as notes; the tracker does not apply their effects or durations."
 
+resting:
+  source_ref: Core Rules 2.0.1, p. 16
+  safe_rest:
+    recover_all_hit_points: true
+    recover_all_hit_dice: true
+    wounds_healed: 1
+    temporary_hit_points_expire: true
+    source_ref: "Core Rules 2.0.1, pp. 9, 16"
+    source_quote: "After a Safe Rest, heroes recover all of their HP, Hit Dice, mana (and other class-specific resources), and heal 1 Wound."
+    temporary_hit_points_source_ref: "Core Rules 2.0.1, p. 9"
+    temporary_hit_points_source_quote: "They expire after a Safe Rest."
+  field_rests:
+    catch_breath:
+      minimum_duration: 10
+      duration_unit: minutes
+      hit_die_result: rolled
+      hit_dice_per_use: 1
+      stat_modifier: strength
+      stat_modifier_application: each_hit_die
+      source_ref: "Core Rules 2.0.1, p. 16"
+      source_quote: "Catch Breath. Requires at least 10 minutes to tend to your injuries. Expend any number of Hit Dice one at a time (roll them and add your STR to each), and regain that many HP."
+    make_camp:
+      minimum_duration: 8
+      duration_unit: hours
+      requires_food_and_sleep: true
+      hit_die_result: maximum
+      stat_modifier: strength
+      stat_modifier_application: each_hit_die
+      source_ref: "Core Rules 2.0.1, p. 16"
+      source_quote: "Make Camp. If you rest for at least 8 hours with food and sleep, take the maximum value for each Hit Die you expend instead of rolling. Add your STR to each Hit Die as usual."
+
 starting_equipment:
   source_ref: Core Rules 2.0.1, p. 20
   background_gear_status: not_itemized_in_parsed_sources

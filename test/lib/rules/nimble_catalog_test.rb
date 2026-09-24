@@ -189,6 +189,37 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_match(/does not apply their effects or durations/, conditions.fetch("tracker_note"))
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
+  test "resting rules expose source-backed recovery and field-rest parameters" do
+    resting = @catalog.resting_rules
+    safe_rest = resting.fetch("safe_rest")
+    field_rests = resting.fetch("field_rests")
+    catch_breath = field_rests.fetch("catch_breath")
+    make_camp = field_rests.fetch("make_camp")
+
+    assert_equal "Core Rules 2.0.1, pp. 9, 16", safe_rest.fetch("source_ref")
+    assert_equal true, safe_rest.fetch("recover_all_hit_points")
+    assert_equal true, safe_rest.fetch("recover_all_hit_dice")
+    assert_equal 1, safe_rest.fetch("wounds_healed")
+    assert_equal true, safe_rest.fetch("temporary_hit_points_expire")
+    assert_equal "Core Rules 2.0.1, p. 9", safe_rest.fetch("temporary_hit_points_source_ref")
+    assert_match(/recover all of their HP, Hit Dice.*heal 1 Wound/, safe_rest.fetch("source_quote"))
+    assert_equal "They expire after a Safe Rest.", safe_rest.fetch("temporary_hit_points_source_quote")
+    assert_equal 10, catch_breath.fetch("minimum_duration")
+    assert_equal "minutes", catch_breath.fetch("duration_unit")
+    assert_equal "rolled", catch_breath.fetch("hit_die_result")
+    assert_equal 1, catch_breath.fetch("hit_dice_per_use")
+    assert_equal "strength", catch_breath.fetch("stat_modifier")
+    assert_equal "each_hit_die", catch_breath.fetch("stat_modifier_application")
+    assert_equal "Core Rules 2.0.1, p. 16", catch_breath.fetch("source_ref")
+    assert_includes catch_breath.fetch("source_quote"), "Expend any number of Hit Dice one at a time"
+    assert_equal 8, make_camp.fetch("minimum_duration")
+    assert_equal true, make_camp.fetch("requires_food_and_sleep")
+    assert_equal "maximum", make_camp.fetch("hit_die_result")
+    assert_equal "Core Rules 2.0.1, p. 16", make_camp.fetch("source_ref")
+    assert_includes make_camp.fetch("source_quote"), "with food and sleep"
+  end
+
   test "the starting-gold alternative and coin slot size are source-backed" do
     starting_equipment = @catalog.starting_equipment_rules
 

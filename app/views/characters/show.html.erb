@@ -1,4 +1,9 @@
 <% content_for :title, @character.name.presence || "Character sheet" %>
+<% resting_rules = Rules::NimbleCatalog.resting_rules %>
+<% safe_rest_rules = resting_rules.fetch("safe_rest") %>
+<% field_rest_rules = resting_rules.fetch("field_rests") %>
+<% catch_breath_rules = field_rest_rules.fetch("catch_breath") %>
+<% make_camp_rules = field_rest_rules.fetch("make_camp") %>
 
 <div class="page-shell sheet-shell">
   <% if notice.present? %><div class="alert-card alert-card-success"><span class="alert-icon">✓</span><span><%= notice %></span></div><% end %>
@@ -244,14 +249,20 @@
         <% end %>
         <div class="safe-rest-action">
           <p class="eyebrow">Safe Rest</p>
-          <p>At a GM-designated safe location: recover all HP and Hit Dice, heal 1 Wound, clear Temp HP, and refresh tracked rest resources.</p>
-          <span class="field-hint">Core Rules 2.0.1, pp. 9, 16 · encounter-reset resources return to their starting state.</span>
+          <% safe_rest_effects = [] %>
+          <% safe_rest_effects << "recover all HP" if safe_rest_rules.fetch("recover_all_hit_points") %>
+          <% safe_rest_effects << "recover all Hit Dice" if safe_rest_rules.fetch("recover_all_hit_dice") %>
+          <% safe_rest_effects << "heal #{pluralize(safe_rest_rules.fetch('wounds_healed'), 'Wound')}" if safe_rest_rules.fetch("wounds_healed").to_i.positive? %>
+          <% safe_rest_effects << "clear Temp HP" if safe_rest_rules.fetch("temporary_hit_points_expire") %>
+          <% safe_rest_effects << "refresh tracked rest resources" %>
+          <p class="safe-rest-summary">At a GM-designated safe location, <%= safe_rest_effects.to_sentence %>.</p>
+          <span class="field-hint"><%= safe_rest_rules.fetch("source_ref") %>; <%= safe_rest_rules.fetch("temporary_hit_points_source_ref") %> · encounter-reset resources return to their starting state.</span>
           <%= button_to "Complete Safe Rest", safe_rest_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
         </div>
         <div class="field-rest-action">
           <p class="eyebrow">Field Rest · <%= @character.trait_set&.hit_die || "Hit Die" %></p>
-          <p>Catch Breath takes at least 10 minutes and spends one Hit Die per roll, so you can decide whether to continue. Make Camp takes 8 hours with food and sleep and uses each die’s maximum. STR is added automatically.</p>
-          <span class="field-hint">Core Rules 2.0.1, p. 16 · Hit Dice available: <%= @character.trait_set&.current_hit_dice || 0 %></span>
+          <p class="field-rest-summary">Catch Breath takes at least <%= catch_breath_rules.fetch("minimum_duration") %> <%= catch_breath_rules.fetch("duration_unit") %> and resolves <%= pluralize(catch_breath_rules.fetch("hit_dice_per_use"), "Hit Die") %> at a time, adding <%= stat_display_name(catch_breath_rules.fetch("stat_modifier")) %> to each die. Make Camp takes at least <%= make_camp_rules.fetch("minimum_duration") %> <%= make_camp_rules.fetch("duration_unit") %><%= " with food and sleep" if make_camp_rules.fetch("requires_food_and_sleep") %> and uses each die’s maximum, adding <%= stat_display_name(make_camp_rules.fetch("stat_modifier")) %> to each.</p>
+          <span class="field-hint"><%= catch_breath_rules.fetch("source_ref") %> · Hit Dice available: <%= @character.trait_set&.current_hit_dice || 0 %></span>
           <% if (@character.trait_set&.current_hit_dice || 0).to_i.positive? %>
             <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
               <%= rest_form.hidden_field :mode, value: "catch_breath" %>
@@ -259,12 +270,12 @@
               <div class="field-rest-fields">
                 <div class="field"><%= rest_form.label :die_rolls, "Single Hit Die roll (d#{@character.hit_die_sides})", for: "catch_breath_die_rolls" %><%= rest_form.number_field :die_rolls, id: "catch_breath_die_rolls", min: 1, max: @character.hit_die_sides, step: 1 %></div>
               </div>
-              <%= rest_form.submit "Catch Breath · 10 min", class: "button button-secondary button-full" %>
+              <%= rest_form.submit "Catch Breath · #{catch_breath_rules.fetch('minimum_duration')} #{catch_breath_rules.fetch('duration_unit') == 'minutes' ? 'min' : catch_breath_rules.fetch('duration_unit')}", class: "button button-secondary button-full" %>
             <% end %>
             <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
               <%= rest_form.hidden_field :mode, value: "make_camp" %>
               <div class="field"><%= rest_form.label :hit_dice, "Hit Dice to spend", for: "make_camp_hit_dice" %><%= rest_form.number_field :hit_dice, id: "make_camp_hit_dice", min: 1, max: @character.trait_set.current_hit_dice, value: 1 %></div>
-              <%= rest_form.submit "Make Camp · 8 hours", class: "button button-secondary button-full" %>
+              <%= rest_form.submit "Make Camp · #{make_camp_rules.fetch('minimum_duration')} #{make_camp_rules.fetch('duration_unit')}", class: "button button-secondary button-full" %>
             <% end %>
           <% else %>
             <p class="field-hint">No Hit Dice available to spend.</p>

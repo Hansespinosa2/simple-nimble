@@ -68,6 +68,10 @@ module Rules
         data.fetch("condition_tracking")
       end
 
+      def resting_rules
+        data.fetch("resting")
+      end
+
       def starting_equipment_rules
         data.fetch("starting_equipment")
       end

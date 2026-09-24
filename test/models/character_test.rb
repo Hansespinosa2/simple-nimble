@@ -1077,6 +1077,36 @@ class CharacterTest < ActiveSupport::TestCase
     assert character.character_revisions.exists?(event_type: "safe_rest", summary: "Safe Rest completed")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
+  test "Safe Rest healing and temporary HP expiration follow catalog values" do
+    Rails.application.load_seed
+    catalog = Rules::NimbleCatalog.data
+    original_resting_rules = catalog.fetch("resting")
+    changed_resting_rules = original_resting_rules.deep_dup
+    changed_resting_rules.fetch("safe_rest").merge!("wounds_healed" => 2, "temporary_hit_points_expire" => false)
+    catalog["resting"] = changed_resting_rules
+
+    begin
+      character = Character.create!(
+        name: "Catalog Rest Hero",
+        character_class: CharacterClass.find_by!(name: "Oathsworn"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "balanced"
+      )
+      character.trait_set.update!(current_hp: 2, current_hit_dice: 0, current_wounds: 3, temp_hp: 5)
+
+      character.take_safe_rest!
+
+      assert_equal character.trait_set.max_hp, character.reload.trait_set.current_hp
+      assert_equal character.trait_set.max_hit_dice, character.trait_set.current_hit_dice
+      assert_equal 1, character.trait_set.current_wounds
+      assert_equal 5, character.trait_set.temp_hp
+    ensure
+      catalog["resting"] = original_resting_rules
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "Safe Rest resets encounter and healed-to-full resources but not daily uses" do
     Rails.application.load_seed
@@ -1139,6 +1169,36 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 7, mage.trait_set.current_hp
     assert_equal 0, mage.trait_set.current_hit_dice
     assert mage.character_revisions.exists?(event_type: "field_rest", summary: "Catch Breath: spent 1 Hit Die, recovered 5 HP")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
+  test "Field Rest die result and stat modifier follow catalog rules" do
+    Rails.application.load_seed
+    catalog = Rules::NimbleCatalog.data
+    original_resting_rules = catalog.fetch("resting")
+    changed_resting_rules = original_resting_rules.deep_dup
+    changed_resting_rules.fetch("field_rests").fetch("catch_breath").merge!("hit_die_result" => "maximum", "stat_modifier" => "intelligence")
+    catalog["resting"] = changed_resting_rules
+
+    begin
+      mage = Character.create!(
+        name: "Catalog Field Rest Mage",
+        character_class: CharacterClass.find_by!(name: "Mage"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "standard",
+        stat_assignments: { strength: -1, dexterity: 0, intelligence: 2, will: 2 }
+      )
+      mage.trait_set.update!(current_hp: 0, current_hit_dice: 1)
+      expected_healing = [ mage.trait_set.max_hp, 6 + mage.stat_value("intelligence") ].min
+
+      result = mage.perform_field_rest!(mode: "catch_breath", hit_dice_count: 1, die_rolls: [ "1" ])
+
+      assert_equal expected_healing, result.fetch(:hp_recovered)
+      assert_equal expected_healing, mage.reload.trait_set.current_hp
+    ensure
+      catalog["resting"] = original_resting_rules
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3

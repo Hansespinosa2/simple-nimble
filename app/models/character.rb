@@ -704,14 +704,15 @@ class Character < ApplicationRecord
   end
 
   def take_safe_rest!
+    rest_rules = Rules::NimbleCatalog.resting_rules.fetch("safe_rest")
     transaction do
       tracks = resource_tracks_after_safe_rest
       resource_values = resource_tracker_values_for(tracks)
       trait_set.update!(
-        current_hp: trait_set.max_hp,
-        current_hit_dice: trait_set.max_hit_dice,
-        current_wounds: [ trait_set.current_wounds.to_i - 1, 0 ].max,
-        temp_hp: 0,
+        current_hp: rest_rules.fetch("recover_all_hit_points") ? trait_set.max_hp : trait_set.current_hp,
+        current_hit_dice: rest_rules.fetch("recover_all_hit_dice") ? trait_set.max_hit_dice : trait_set.current_hit_dice,
+        current_wounds: [ trait_set.current_wounds.to_i - rest_rules.fetch("wounds_healed").to_i, 0 ].max,
+        temp_hp: rest_rules.fetch("temporary_hit_points_expire") ? 0 : trait_set.temp_hp,
         current_mana: resource_values.fetch(:current_mana) || trait_set.max_mana,
         current_resource: resource_values.fetch(:current_resource) || trait_set.max_resource,
         resource_tracks: tracks
@@ -880,30 +881,44 @@ class Character < ApplicationRecord
 
   def perform_field_rest!(mode:, hit_dice_count:, die_rolls: [])
     mode = mode.to_s
+    field_rest_rules = Rules::NimbleCatalog.resting_rules.fetch("field_rests")
+    rest_rules = field_rest_rules[mode]
+    source_ref = rest_rules&.fetch("source_ref") || Rules::NimbleCatalog.resting_rules.fetch("source_ref")
     count = Integer(hit_dice_count, exception: false)
     die_sides = hit_die_sides
 
-    raise ArgumentError, "Choose Catch Breath or Make Camp. Core Rules 2.0.1, p. 16." unless %w[catch_breath make_camp].include?(mode)
-    raise ArgumentError, "Spend at least 1 Hit Die. Core Rules 2.0.1, p. 16." unless count&.positive?
+    raise ArgumentError, "Choose a supported Field Rest. #{source_ref}." unless rest_rules
+    raise ArgumentError, "Spend at least 1 Hit Die. #{source_ref}." unless count&.positive?
     if count > trait_set.current_hit_dice.to_i
-      raise ArgumentError, "You have only #{trait_set.current_hit_dice} Hit Dice available. Core Rules 2.0.1, p. 16."
+      raise ArgumentError, "You have only #{trait_set.current_hit_dice} Hit Dice available. #{source_ref}."
     end
-    raise ArgumentError, "This character has no usable Hit Die. Core Rules 2.0.1, p. 16." unless die_sides&.positive?
+    raise ArgumentError, "This character has no usable Hit Die. #{source_ref}." unless die_sides&.positive?
 
-    if mode == "catch_breath" && count != 1
-      raise ArgumentError, "Spend one Hit Die at a time for Catch Breath so you can choose whether to continue. Core Rules 2.0.1, p. 16."
+    hit_dice_per_use = rest_rules["hit_dice_per_use"]&.to_i
+    if hit_dice_per_use && count != hit_dice_per_use
+      hit_dice_word = hit_dice_per_use == 1 ? "one" : hit_dice_per_use.to_s
+      hit_die_unit = hit_dice_per_use == 1 ? "Hit Die" : "Hit Dice"
+      raise ArgumentError, "Spend #{hit_dice_word} #{hit_die_unit} at a time for #{mode.humanize} so you can choose whether to continue. #{source_ref}."
     end
 
     rolls = Array(die_rolls).map { |roll| Integer(roll, exception: false) }
-    if mode == "catch_breath"
+    hit_die_result = rest_rules.fetch("hit_die_result")
+    if hit_die_result == "rolled"
       unless rolls.length == count && rolls.all? { |roll| roll&.between?(1, die_sides) }
-        raise ArgumentError, "Enter exactly #{count} roll#{'s' if count != 1}, each from 1 to #{die_sides}. Core Rules 2.0.1, p. 16."
+        raise ArgumentError, "Enter exactly #{count} roll#{'s' if count != 1}, each from 1 to #{die_sides}. #{source_ref}."
       end
     end
 
-    results = mode == "make_camp" ? Array.new(count, die_sides) : rolls
-    strength = stat_value("strength").to_i
-    healing = results.sum { |roll| [ roll + strength, 0 ].max }
+    results = case hit_die_result
+    when "rolled" then rolls
+    when "maximum" then Array.new(count, die_sides)
+    else raise ArgumentError, "Unsupported Hit Die result #{hit_die_result.inspect}. #{source_ref}."
+    end
+    stat_modifier = stat_value(rest_rules.fetch("stat_modifier")).to_i
+    healing = case rest_rules.fetch("stat_modifier_application")
+    when "each_hit_die" then results.sum { |roll| [ roll + stat_modifier, 0 ].max }
+    else raise ArgumentError, "Unsupported Field Rest stat modifier application. #{source_ref}."
+    end
     actual_healing = [ healing, trait_set.max_hp.to_i - trait_set.current_hp.to_i ].min
     new_hp = trait_set.current_hp.to_i + actual_healing
     tracks = normalized_resource_tracks(trait_set.resource_tracks, current_hp: new_hp)
