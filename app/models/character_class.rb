@@ -1,10 +1,4 @@
 class CharacterClass < ApplicationRecord
-  FALLBACK_STAT_INCREASES = {
-    "key" => [ 4, 8, 12, 16 ],
-    "secondary" => [ 5, 9, 13, 17 ],
-    "any_two" => [ 20 ]
-  }.freeze
-
   # Structured rules-canon record (spec 02): the catalog supplies progression,
   # spell access, and class-resource metadata while this table stores the
   # relational identity used by characters.
@@ -66,19 +60,11 @@ class CharacterClass < ApplicationRecord
   end
 
   def stat_increase_type_for(level)
-    if rules_entry.present?
-      Rules::NimbleCatalog.stat_increase_for(name, level)
-    else
-      fallback_stat_increase_type_for(level)
-    end
+    Rules::NimbleCatalog.stat_increase_for(name, level)
   end
 
   def stat_increase_levels_for(type)
-    if rules_entry.present?
-      Rules::NimbleCatalog.stat_increase_levels_for(name, type)
-    else
-      Array(FALLBACK_STAT_INCREASES[type.to_s])
-    end
+    Rules::NimbleCatalog.stat_increase_levels_for(name, type)
   end
 
   def stat_options_for(type)
@@ -143,16 +129,7 @@ class CharacterClass < ApplicationRecord
   def spell_auto_grants_for(level)
     Rules::NimbleCatalog.spell_auto_grants_for(name, level)
   end
-
   private
-    def fallback_stat_increase_type_for(level)
-      FALLBACK_STAT_INCREASES.each do |type, levels|
-        return type if levels.include?(level.to_i)
-      end
-
-      nil
-    end
-
     def key_stats_are_distinct
       return if key_stat_one.blank? || key_stat_two.blank? || key_stat_one != key_stat_two
 

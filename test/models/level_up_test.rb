@@ -3,16 +3,9 @@ require "test_helper"
 # S-01:AC-2 S-01:AC-3 S-04:AC-3 S-06:AC-1 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-06:AC-5 S-06:AC-6 S-07:AC-1 S-07:AC-2 S-07:AC-3 S-07:AC-5
 class LevelUpTest < ActiveSupport::TestCase
   setup do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
     ruleset = RulesetVersion.find_or_create_by!(name: "Nimble", version: "v2.0.1")
-    character_class = CharacterClass.create!(
-      name: "Level-Up Warrior",
-      key_stat_one: "strength",
-      key_stat_two: "dexterity",
-      hit_die: "1d10",
-      starting_hp: 16,
-      save_bonus_stat: "strength",
-      save_penalty_stat: "intelligence"
-    )
+    character_class = CharacterClass.find_by!(name: "Berserker")
     ancestry = Ancestry.create!(name: "Level-Up Human", size: "Medium")
     background = Background.create!(name: "Level-Up Background", description: "No prerequisite")
     @character = Character.create!(
@@ -26,7 +19,7 @@ class LevelUpTest < ActiveSupport::TestCase
       skill_set_attributes: { arcana: 4 }
     )
     @character.finalize_creation!
-    @character.update_columns(level: 3, status: "playable")
+    @character.update_columns(level: 3, status: "playable", subclass_name: "Path of the Red Mist")
     @character.skill_set.update!(arcana: @character.skill_set.arcana + 2)
   end
 
@@ -38,10 +31,10 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_not planner.valid?
     assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Choose a key stat to increase."
     assert_equal 4, preview.fetch("level")
-    assert_equal 24, preview.fetch("traits").fetch("max_hp")
+    assert_equal 28, preview.fetch("traits").fetch("max_hp")
     assert_equal 8, preview.fetch("hp_gain")
     assert_equal 3, @character.level
-    assert_equal 16, @character.trait_set.max_hp
+    assert_equal 20, @character.trait_set.max_hp
   end
 
   test "finalizing a legal level-up applies a skill, stat, derived values, and revision" do
@@ -50,6 +43,7 @@ class LevelUpTest < ActiveSupport::TestCase
       to_level: 4,
       skill_name: "might",
       stat_name: "strength",
+      feature_choices: legal_feature_choices_for(4),
       hit_die_roll_one: 2,
       hit_die_roll_two: 8
     )
@@ -62,7 +56,7 @@ class LevelUpTest < ActiveSupport::TestCase
     assert @character.playable?
     assert_equal 3, @character.stat_set.strength
     assert_equal 4, @character.skill_set.might
-    assert_equal 24, @character.trait_set.max_hp
+    assert_equal 28, @character.trait_set.max_hp
     assert_equal original_revisions + 1, @character.character_revisions.count
     assert level_up.reload.finalized?
     assert_equal 4, level_up.preview.fetch("level")
@@ -84,13 +78,27 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_includes level_up.errors.full_messages, "Will is not eligible for this level's stat increase."
   end
 
-  test "a skill at the maximum cannot be selected again" do
-    @character.skill_set.update!(might: 12)
-    level_up = @character.level_ups.build(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", hit_die_roll_one: 2, hit_die_roll_two: 8)
+  test "skill maximum validation follows the structured rules value" do
+    max_skill = Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i
+    @character.skill_set.update!(might: max_skill)
+    level_up = @character.level_ups.build(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", feature_choices: legal_feature_choices_for(4), hit_die_roll_one: 2, hit_die_roll_two: 8)
     planner = LevelUpPlanner.new(@character, level_up)
 
+    assert_equal max_skill, planner.max_skill_value
+    assert_not planner.skill_options.include?("might")
     assert_not planner.valid?
-    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Might is already at the +12 skill maximum."
+    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Might is already at the +#{max_skill} skill maximum."
+  end
+
+  test "stat maximum validation follows the structured rules value" do
+    max_stat = Rules::NimbleCatalog.derived_values.fetch("max_stat").to_i
+    @character.stat_set.update!(strength: max_stat)
+    level_up = @character.level_ups.build(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", feature_choices: legal_feature_choices_for(4), hit_die_roll_one: 2, hit_die_roll_two: 8)
+    planner = LevelUpPlanner.new(@character, level_up)
+
+    assert_equal max_stat, planner.max_stat_value
+    assert_not planner.valid?
+    assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Strength is already at the +#{max_stat} stat maximum."
   end
 
   test "a finalized transition cannot be applied twice" do
@@ -120,7 +128,7 @@ class LevelUpTest < ActiveSupport::TestCase
   test "finalizing a level-up preserves unrelated game state" do
     @character.update!(description: "A scarred veteran", conditions: "Poisoned", inventory: "Torch", game_notes: "Ask about the ferryman.")
     @character.trait_set.update!(current_hp: 7, current_wounds: 2, current_actions: 1, temp_hp: 3)
-    level_up = @character.level_ups.create!(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", hit_die_roll_one: 2, hit_die_roll_two: 8)
+    level_up = @character.level_ups.create!(from_level: 3, to_level: 4, skill_name: "might", stat_name: "strength", feature_choices: legal_feature_choices_for(4), hit_die_roll_one: 2, hit_die_roll_two: 8)
 
     LevelUpService.finalize!(level_up)
     @character.reload
@@ -164,6 +172,7 @@ class LevelUpTest < ActiveSupport::TestCase
       skill_name: "arcana",
       skill_from: "might",
       stat_name: "strength",
+      feature_choices: legal_feature_choices_for(4),
       hit_die_roll_one: 2,
       hit_die_roll_two: 8
     )
@@ -352,8 +361,9 @@ class LevelUpTest < ActiveSupport::TestCase
       to_level: 4,
       skill_name: "might",
       stat_name: "strength",
+      feature_choices: legal_feature_choices_for(4),
       hit_die_roll_one: 2,
-      hit_die_roll_two: 11
+      hit_die_roll_two: 13
     )
 
     planner = LevelUpPlanner.new(@character, level_up)
@@ -861,6 +871,12 @@ class LevelUpTest < ActiveSupport::TestCase
   end
 
   private
+    def legal_feature_choices_for(level)
+      @character.feature_choice_pools_for(level).to_h do |pool|
+        [ pool.fetch("name"), Array(pool.fetch("options")).first(pool.fetch("count").to_i) ]
+      end
+    end
+
     def commander_at_level_five
       Rails.application.load_seed unless CharacterClass.exists?(name: "Commander")
       character = Character.create!(

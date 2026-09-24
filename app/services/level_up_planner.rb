@@ -20,7 +20,15 @@ class LevelUpPlanner
   end
 
   def skill_options
-    Character::SKILL_NAMES.select { |skill| character.skill_value(skill).to_i < 12 }
+    Character::SKILL_NAMES.select { |skill| character.skill_value(skill).to_i < max_skill_value }
+  end
+
+  def max_stat_value
+    Rules::NimbleCatalog.derived_values.fetch("max_stat").to_i
+  end
+
+  def max_skill_value
+    Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i
   end
 
   def subclass_options
@@ -168,7 +176,7 @@ class LevelUpPlanner
     elsif !Character::SKILL_NAMES.include?(level_up.skill_name)
       result << issue("#{level_up.skill_name.to_s.humanize} is not a recognized skill.", "Chapter 3, Skills", "Choose one of the ten skills listed in the character rules.")
     elsif !skill_options.include?(level_up.skill_name)
-      result << issue("#{level_up.skill_name.to_s.humanize} is already at the +12 skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +12.")
+      result << issue("#{level_up.skill_name.to_s.humanize} is already at the +#{max_skill_value} skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +#{max_skill_value}.")
     end
 
     if level_up.skill_from.present?
@@ -194,8 +202,8 @@ class LevelUpPlanner
       selected_stats.each do |stat_name|
         if !stat_options.include?(stat_name)
           result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", stat_increase_source_ref, stat_increase_quote)
-        elsif character.stat_value(stat_name) >= 5
-          result << issue("#{stat_name.to_s.humanize} is already at the +5 stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +5.")
+        elsif character.stat_value(stat_name) >= max_stat_value
+          result << issue("#{stat_name.to_s.humanize} is already at the +#{max_stat_value} stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +#{max_stat_value}.")
         end
       end
     elsif level_up.stat_name.present? || level_up.second_stat_name.present?
@@ -212,8 +220,8 @@ class LevelUpPlanner
     if level_up.skill_from.present? && Character::SKILL_NAMES.include?(level_up.skill_from) && projected_skills.fetch(level_up.skill_from) < 0
       result << issue("#{level_up.skill_from.to_s.humanize} cannot become negative when moving a skill point.", "Chapter 3, Skills", "You may move 1 point only as long as the source skill does not become negative.")
     end
-    if level_up.skill_name.present? && Character::SKILL_NAMES.include?(level_up.skill_name) && projected_skills.fetch(level_up.skill_name) > 12
-      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +12 skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +12.")
+    if level_up.skill_name.present? && Character::SKILL_NAMES.include?(level_up.skill_name) && projected_skills.fetch(level_up.skill_name) > max_skill_value
+      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +#{max_skill_value} skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +#{max_skill_value}.")
     end
 
     character.language_issues_for(

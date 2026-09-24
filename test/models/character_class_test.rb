@@ -17,6 +17,20 @@ class CharacterClassTest < ActiveSupport::TestCase
     assert_equal %w[dexterity will], character_class.secondary_stats
   end
 
+  # S-02:AC-1 S-02:AC-4 S-06:AC-2
+  test "does not invent a stat-increase schedule for a class absent from the rules catalog" do
+    character_class = CharacterClass.create!(
+      name: "Uncatalogued Class",
+      key_stat_one: "strength",
+      key_stat_two: "intelligence",
+      hit_die: "1d10",
+      starting_hp: 17
+    )
+
+    assert_nil character_class.stat_increase_type_for(4)
+    assert_empty character_class.stat_increase_levels_for("key")
+  end
+
   test "rejects duplicate key stats and unknown save stats" do
     duplicate = CharacterClass.new(
       name: "Duplicate Keys",
