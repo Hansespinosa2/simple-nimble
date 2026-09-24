@@ -675,7 +675,7 @@ progression:
         11: ["Survey the Battlefield"]
         15: ["As One!"]
       Spellblade:
-        3: ["Firebrand", "Deep Knowledge (1)"]
+        3: ["Arcane Command", "Firebrand", "Deep Knowledge (1)"]
         7: ["Deep Knowledge (2)"]
         11: ["Deep Knowledge (3)"]
         15: ["Deep Knowledge (4)"]
@@ -1255,7 +1255,82 @@ story_subclass_spell_choice_pools:
         choices: {3: 1, 7: 1, 11: 1, 15: 1}
         kind: utility_spell_any
 
+story_subclass_resource_pools:
+  Commander:
+    Spellblade:
+      - key: spellblade_initiative_mana
+        name: Arcane Command · temporary mana
+        max_formula: INT
+        minimum_max: 0
+        initial_current: 0
+        reset: Combat ends
+        reset_events: [encounter_end]
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+
+story_subclass_initiative_features:
+  Commander:
+    Spellblade:
+      - name: Firebrand
+        effect: Cast Enchant Weapon for free when you roll Initiative; you may upcast it normally by spending additional mana.
+        source_ref: Heroes 2.0.1, p. 77
+        source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
+
+story_subclass_empowered_orders:
+  Commander:
+    Spellblade:
+      "Face Me!":
+        arcane_name: Glimmering Decree
+        effect: "Reaction after an ally within 12 spaces is crit: deal STR d8 radiant damage ignoring armor, pull the enemy up to 4 spaces toward you, and Taunt it until you drop to 0 HP."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "That enemy takes STR d8 radiant damage (ignoring armor), is pulled up to 4 spaces toward you, and is Taunted by you until you drop to 0 HP."
+      "Move it! Move it!":
+        arcane_name: Borne upon the Wind
+        effect: "When you roll Initiative, you and an ally can gain advantage on the roll, +3 speed, and flight for 1 round; then both can move for free."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "When you roll Initiative, you may give yourself and an ally advantage on the roll, +3 speed, and the ability to fly for 1 round. Then, you both can also move for free."
+      "Hold the Line!":
+        arcane_name: Crystalline Armor
+        effect: "1/encounter reaction when an ally drops to 0 HP: set their HP to 3 × your level and grant that many temp HP; melee attackers who remove the temp HP have their speed halved until their next turn ends."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Set their HP to 3× your LVL. Additionally, they gain that many temp HP. Enemies who reduce this temp HP in melee have their speed halved until the end of their next turn."
+      "Reposition!":
+        arcane_name: Flashstep
+        effect: "Action/reaction on an ally's turn: move 1 ally up to their speed, or 2 allies up to half their speed, for free; you may exchange places with one."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Command 1 ally to move up to their speed (or 2 allies up to half their speed) for free. You may exchange places with one of them."
+      "I Can Do This ALL DAY!":
+        arcane_name: Rising Phoenix
+        effect: "1/encounter reaction when you would drop to 0 HP: expend any number of Hit Dice, set HP to the sum rolled, and deal that much fire damage to each enemy within 2 spaces; they gain Smoldering."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "You may expend any number of Hit Dice, set your HP to the sum rolled instead, and deal that much fire damage to each enemy within 2 spaces of you. They gain the Smoldering condition."
+      "Coordinated Strike!":
+        arcane_name: Withering Strike
+        effect: "Attacks made this way deal additional necrotic damage equal to your Combat Die's maximum; an enemy damaged this way counts as undead for 1 round."
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Any attacks made this way deal additional Necrotic damage equal to the max value of your Combat Die. An enemy damaged this way is considered undead for 1 round."
+
 story_subclass_feature_choice_pools:
+  Commander:
+    Spellblade:
+      "Arcane Command":
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
+        choices: {4: 1, 6: 1, 10: 1}
+        kind: arcane_command_order_or_spell
+        replaces_feature_choice_pools: ["Combat Tactics", "Weapon Mastery"]
+        replaces_progression_features: ["Weapon Mastery"]
+        spell_max_tier: 1
+        spell_min_tier: 0
+        include_utility_spells: false
+      "Combat Ability":
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
+        choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
+        kind: arcane_command_combat_ability
+        spell_max_tier: 1
+        spell_min_tier: 0
+        include_utility_spells: false
   Hunter:
     Beastmaster:
       "Thrill of the Hunt":

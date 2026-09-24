@@ -345,6 +345,48 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_empty @catalog.story_subclass_spell_choice_pools_for("Commander", "Champion of the Bulwark", 3)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4
+  test "Spellblade replaces earned tactic and weapon choices with source-defined Arcane Command options" do
+    arcane_command = @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 4).sole
+    assert_equal "Arcane Command", arcane_command.fetch("name")
+    assert_equal "arcane_command_order_or_spell", arcane_command.fetch("kind")
+    assert_equal "Heroes 2.0.1, p. 76", arcane_command.fetch("source_ref")
+    assert_equal "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school.", arcane_command.fetch("source_quote")
+    assert_equal 0, arcane_command.fetch("spell_min_tier")
+    assert_equal 1, arcane_command.fetch("spell_max_tier")
+    assert_equal [ "Combat Tactics", "Weapon Mastery" ], arcane_command.fetch("replaces_feature_choice_pools")
+    assert_equal [ "Weapon Mastery" ], @catalog.story_subclass_replaced_progression_features_for("Commander", "Spellblade")
+
+    combat_ability = @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 6).find { |pool| pool.fetch("name") == "Combat Ability" }
+    assert_equal [ 6, 8, 10, 12, 16 ], @catalog.story_subclass_feature_choice_pool_rules_for("Commander", "Spellblade").fetch("Combat Ability").fetch("choices").keys
+    assert_equal "arcane_command_combat_ability", combat_ability.fetch("kind")
+    assert_empty @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 5)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Spellblade temporary initiative mana is a source-backed encounter resource" do
+    pool = @catalog.story_subclass_resource_pools_for("Commander", "Spellblade").sole
+
+    assert_equal "spellblade_initiative_mana", pool.fetch("key")
+    assert_equal "INT", pool.fetch("max_formula")
+    assert_equal 0, pool.fetch("minimum_max")
+    assert_equal 0, pool.fetch("initial_current")
+    assert_equal [ "encounter_end" ], pool.fetch("reset_events")
+    assert_equal "Heroes 2.0.1, p. 76", pool.fetch("source_ref")
+    assert_empty @catalog.story_subclass_resource_pools_for("Commander", "Champion of the Bulwark")
+
+    firebrand = @catalog.story_subclass_initiative_features_for("Commander", "Spellblade").sole
+    assert_equal "Firebrand", firebrand.fetch("name")
+    assert_includes firebrand.fetch("effect"), "Enchant Weapon for free"
+    assert_equal "Heroes 2.0.1, p. 77", firebrand.fetch("source_ref")
+
+    orders = @catalog.story_subclass_empowered_orders_for("Commander", "Spellblade")
+    assert_equal 6, orders.length
+    assert_equal "Glimmering Decree", orders.fetch("Face Me!").fetch("arcane_name")
+    assert_equal "Rising Phoenix", orders.fetch("I Can Do This ALL DAY!").fetch("arcane_name")
+    assert_equal "Heroes 2.0.1, p. 76", orders.fetch("Coordinated Strike!").fetch("source_ref")
+  end
+
   # S-02:AC-1 S-02:AC-2
   test "Beastmaster companion and alternate Hunt choices are catalog-backed" do
     pool = @catalog.story_subclass_feature_choice_pools_for("Hunter", "Beastmaster", 2).sole

@@ -597,6 +597,105 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, pp. 20, 22", issue.fetch(:source_ref)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-08:AC-4 S-09:AC-3
+  test "Spellblade level-ups replace tactics and mastery with distinct order-or-spell choices" do
+    character = commander_at_level_five
+    already_known = Spell.where(tier: 0..1).first!
+    new_spell = Spell.where(tier: 0..1).where.not(name: already_known.name).first!
+    character.update_columns(
+      subclass_name: "Spellblade",
+      feature_choices: {
+        "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] },
+        "Arcane Command" => { "4" => [ "Spell: #{already_known.name}" ] }
+      }
+    )
+
+    level_up = character.level_ups.create!(
+      from_level: 5,
+      to_level: 6,
+      skill_name: "lore",
+      feature_choices: {
+        "Arcane Command" => [ "Order: I Can Do This ALL DAY!" ],
+        "Combat Ability" => [ "Spell: #{new_spell.name}" ]
+      },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+    planner = LevelUpPlanner.new(character, level_up)
+    pools = planner.feature_choice_pools.index_by { |pool| pool.fetch("name") }
+
+    assert_not_includes pools.keys, "Combat Tactics"
+    assert_not_includes pools.keys, "Weapon Mastery"
+    assert_includes pools.fetch("Arcane Command").fetch("options"), "Order: I Can Do This ALL DAY!"
+    assert_includes pools.fetch("Combat Ability").fetch("options"), "Spell: #{new_spell.name}"
+    assert_not_includes pools.fetch("Combat Ability").fetch("options"), "Spell: #{already_known.name}"
+    assert_not_includes pools.fetch("Combat Ability").fetch("options"), "Heavy Strike"
+    assert_includes pools.fetch("Combat Ability").fetch("options"), "+1 max Combat Dice"
+    assert planner.valid?, planner.explanations.map { |explanation| explanation.fetch(:message) }.join(" | ")
+
+    LevelUpService.finalize!(level_up)
+    character.reload
+    assert_includes character.recorded_feature_choices.fetch("Combat Ability"), "Spell: #{new_spell.name}"
+    assert_includes character.sheet_spells.pluck(:name), new_spell.name
+    assert new_spell.available_to?(character)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-08:AC-4 S-09:AC-3
+  test "Spellblade level-up validation rejects duplicate arcane spell picks" do
+    character = commander_at_level_five
+    character.update_columns(
+      subclass_name: "Spellblade",
+      feature_choices: {
+        "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] }
+      }
+    )
+    duplicated_spell = Spell.where(tier: 0..1).first!
+    level_up = character.level_ups.build(
+      from_level: 5,
+      to_level: 6,
+      skill_name: "lore",
+      feature_choices: {
+        "Arcane Command" => [ "Spell: #{duplicated_spell.name}" ],
+        "Combat Ability" => [ "Spell: #{duplicated_spell.name}" ]
+      },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_not planner.valid?
+    assert planner.issues.any? { |issue| issue.fetch(:message).include?("Choose a different spell") }
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-08:AC-4 S-09:AC-3
+  test "Spellblade cannot select a Commander’s Order it already knows" do
+    character = commander_at_level_five
+    character.update_columns(
+      subclass_name: "Spellblade",
+      feature_choices: {
+        "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] }
+      }
+    )
+    level_up = character.level_ups.build(
+      from_level: 5,
+      to_level: 6,
+      skill_name: "lore",
+      feature_choices: {
+        "Arcane Command" => [ "Order: Face Me!" ],
+        "Combat Ability" => [ "+1 max Combat Dice" ]
+      },
+      hit_die_roll_one: 4,
+      hit_die_roll_two: 2
+    )
+
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_includes planner.feature_choice_pools.find { |pool| pool.fetch("name") == "Arcane Command" }.fetch("options"), "Order: Face Me!"
+    assert_not planner.valid?
+    assert planner.issues.any? { |issue| issue.fetch(:message).include?("Choose a different Commander’s Order") }
+  end
+
   test "repeated Commander Combat Dice upgrades increase and preserve the resource maximum" do
     character = commander_at_level_five
     original_max = character.trait_set.resource_tracks.find { |track| track.fetch("key") == "combat_dice" }.fetch("max")

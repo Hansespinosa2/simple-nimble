@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_140000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -134,6 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_130000) do
     t.datetime "created_at", null: false
     t.integer "current_gold", default: 0, null: false
     t.text "description"
+    t.datetime "encounter_started_at"
     t.text "feature_choices"
     t.text "feature_language_choices", default: "{}", null: false
     t.text "game_notes"

@@ -191,15 +191,33 @@ module Rules
       end
 
       def story_subclass_feature_choice_pools_for(class_name, subclass_name, level)
-        data.fetch("story_subclass_feature_choice_pools", {})
-          .fetch(class_name.to_s, {})
-          .fetch(subclass_name.to_s, {})
+        story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
           .filter_map do |pool_name, definition|
             count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
             next if count.nil?
 
             definition.merge("name" => pool_name.to_s, "level" => level.to_i, "count" => count.to_i, "story_subclass" => subclass_name.to_s)
           end
+      end
+
+      def story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
+        data.fetch("story_subclass_feature_choice_pools", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+      end
+
+      def story_subclass_replaced_feature_choice_pools_for(class_name, subclass_name)
+        story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
+          .values
+          .flat_map { |definition| Array(definition.to_h["replaces_feature_choice_pools"]) }
+          .uniq
+      end
+
+      def story_subclass_replaced_progression_features_for(class_name, subclass_name)
+        story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
+          .values
+          .flat_map { |definition| Array(definition.to_h["replaces_progression_features"]) }
+          .uniq
       end
 
       def story_subclass_companion_rule_for(class_name, subclass_name)
@@ -218,6 +236,24 @@ module Rules
 
       def ancestry_resource_pools_for(ancestry_name)
         data.fetch("ancestry_resource_pools", {}).fetch(ancestry_name.to_s, [])
+      end
+
+      def story_subclass_resource_pools_for(class_name, subclass_name)
+        data.fetch("story_subclass_resource_pools", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_initiative_features_for(class_name, subclass_name)
+        data.fetch("story_subclass_initiative_features", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, [])
+      end
+
+      def story_subclass_empowered_orders_for(class_name, subclass_name)
+        data.fetch("story_subclass_empowered_orders", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
       end
 
       def spell_auto_grants_for(class_name, level)

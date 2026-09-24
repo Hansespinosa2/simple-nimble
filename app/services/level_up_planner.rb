@@ -44,7 +44,7 @@ class LevelUpPlanner
     subclass_name = level_up.subclass_name.presence || character.subclass_name
 
     {
-      "features" => klass&.features_for(target_level).to_a,
+      "features" => character.progression_features_for(target_level, subclass_name:),
       "subclass_features" => subclass_name.present? ? klass&.subclass_features_for(subclass_name, target_level).to_a : [],
       "feature_choices" => feature_choice_pools,
       "spell_choices" => spell_choice_pools,
@@ -473,9 +473,26 @@ class LevelUpPlanner
           )
         end
       end
+
+      validate_arcane_command_choices(result)
     end
 
     def available_feature_options(pool, selected)
+      if %w[arcane_command_order_or_spell arcane_command_combat_ability].include?(pool["story_choice_kind"] || pool["kind"])
+        options = Array(pool.fetch("options", [])).select do |option|
+          if option.start_with?("Order: ")
+            order = option.delete_prefix("Order: ")
+            recorded_order_selections.exclude?(order) && current_order_selections(pool.fetch("name")).exclude?(order)
+          elsif option.start_with?("Spell: ")
+            spell = option.delete_prefix("Spell: ")
+            recorded_spell_selections.exclude?(spell) && current_spell_selections(pool.fetch("name")).exclude?(spell)
+          else
+            true
+          end
+        end
+        return (options | selected)
+      end
+
       pool_name = pool.fetch("name")
       repeatable_options = Array(pool.fetch("repeatable_options", []))
       prior_selections = character.recorded_feature_choices.fetch(pool_name, [])
@@ -496,6 +513,59 @@ class LevelUpPlanner
         prerequisites_met = (Array(requirements.fetch(option, [])) - eligible_choices).empty?
         not_previously_selected && prerequisites_met
       end | selected
+    end
+
+    def validate_arcane_command_choices(result)
+      return unless character.character_class&.name == "Commander" && character.subclass_name == "Spellblade"
+
+      selected = feature_choices.values.flatten
+      order_picks = recorded_order_selections + current_order_selections(nil)
+      repeated_orders = order_picks.tally.select { |_order, count| count > 1 }.keys
+      if repeated_orders.any?
+        result << issue(
+          "Choose a different Commander’s Order; #{repeated_orders.join(', ')} is already known.",
+          "Heroes 2.0.1, p. 76",
+          "Arcane Command lets the Spellblade choose another Commander’s Order or a tier 1 (or lower) spell."
+        )
+      end
+
+      spell_picks = recorded_spell_selections + current_spell_selections(nil) + spell_choices.values.flatten
+      known_spells = character.sheet_spells.pluck(:name) - character.story_granted_spell_names
+      repeated_spells = (spell_picks & known_spells) | spell_picks.tally.select { |_spell, count| count > 1 }.keys
+      return if repeated_spells.empty?
+
+      result << issue(
+        "Choose a different spell for each Arcane Command and Deep Knowledge choice; #{repeated_spells.join(', ')} is already selected.",
+        "Heroes 2.0.1, p. 76",
+        "Arcane Command grants one tier 1 (or lower) spell from any school in place of the class choice."
+      )
+    end
+
+    def recorded_order_selections
+      character.recorded_feature_choices.fetch("Commander's Orders", []) +
+        character.recorded_feature_choices.values.flatten.filter_map do |selection|
+          selection.delete_prefix("Order: ") if selection.start_with?("Order: ")
+        end
+    end
+
+    def current_order_selections(except_pool_name)
+      feature_choices.except(except_pool_name).values.flatten.filter_map do |selection|
+        selection.delete_prefix("Order: ") if selection.start_with?("Order: ")
+      end
+    end
+
+    def recorded_spell_selections
+      subclass_spell_selections = character.recorded_spell_choices.values.flatten
+      arcane_command_selections = character.recorded_feature_choices.values.flatten.filter_map do |selection|
+        selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
+      end
+      subclass_spell_selections + arcane_command_selections
+    end
+
+    def current_spell_selections(except_pool_name)
+      feature_choices.except(except_pool_name).values.flatten.filter_map do |selection|
+        selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
+      end
     end
 
     def projected_feature_choices

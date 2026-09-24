@@ -26,11 +26,11 @@ class StorySubclassChange < ApplicationRecord
       }
     end
 
-    %w[feature_choices spell_choices].each do |choice_kind|
+    %w[replaced_feature_choices feature_choices spell_choices].each do |choice_kind|
       choices.fetch(choice_kind, {}).to_h.each do |pool_name, choices_by_level|
         choices_by_level.to_h.each do |level, selections|
           entries << {
-            label: "Level #{level} · #{pool_name}",
+            label: "#{'Replaced · ' if choice_kind == 'replaced_feature_choices'}Level #{level} · #{pool_name}",
             value: Array(selections).join(", "),
             source_refs: Array(source_refs.fetch(choice_kind, {}).to_h.fetch(pool_name, source_ref))
           }

@@ -198,6 +198,87 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_empty commander.story_subclass_changes
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
+  test "Spellblade reconciles earned Commander choices and turns arcane picks into known spells" do
+    commander = create_commander
+    commander.update_columns(
+      level: 10,
+      feature_choices: {
+        "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] },
+        "Combat Tactics" => { "4" => [ "Heavy Strike" ] },
+        "Weapon Mastery" => { "6" => [ "Slashing" ], "10" => [ "Piercing" ] },
+        "Combat Ability" => { "6" => [ "Lunging Strike" ], "8" => [ "+1 max Combat Dice" ], "10" => [ "Sweeping Strike" ] }
+      }
+    )
+    allocated_skills = Character::SKILL_NAMES.index_with { |skill| commander.skill_value(skill) }
+    7.times do
+      skill = Character::SKILL_NAMES.find { |candidate| allocated_skills.fetch(candidate) < 12 }
+      allocated_skills[skill] += 1
+    end
+    commander.skill_set.update!(allocated_skills)
+    share = commander.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    tier_one_spell = Spell.where(tier: 1).first!
+    tier_two_spell = Spell.where(tier: 2).where.not(name: tier_one_spell.name).first!
+    arcane_spells = Spell.where(tier: 0..1).where.not(name: [ tier_one_spell.name, tier_two_spell.name ]).select do |spell|
+      spell.class_restriction.blank? || Array(spell.class_restriction).include?("Commander")
+    end
+    arcane_spell_one, arcane_spell_two = arcane_spells.first(2)
+    utility_spells = Spell.where(tier: -1).order(:name).first(2)
+    spell_choices = {
+      "Deep Knowledge · tiered spell" => { "3" => tier_one_spell.name, "7" => tier_two_spell.name },
+      "Deep Knowledge · Utility Spell" => { "3" => utility_spells.first.name, "7" => utility_spells.last.name }
+    }
+    feature_choices = {
+      "Arcane Command" => {
+        "4" => [ "Order: I Can Do This ALL DAY!" ],
+        "6" => [ "Spell: #{arcane_spell_one.name}" ],
+        "10" => [ "Order: Reposition!" ]
+      },
+      "Combat Ability" => {
+        "6" => [ "Spell: #{arcane_spell_two.name}" ],
+        "8" => [ "+1 max Combat Dice" ],
+        "10" => [ "Order: Move it! Move it!" ]
+      }
+    }
+
+    eligible_pools = commander.story_subclass_feature_choice_pools_through(subclass_name: "Spellblade")
+    assert_equal 6, eligible_pools.length
+    assert_includes eligible_pools.find { |pool| pool.fetch("name") == "Combat Ability" && pool.fetch("level") == 6 }.fetch("options"), "Spell: #{arcane_spell_one.name}"
+    assert_not_includes eligible_pools.find { |pool| pool.fetch("name") == "Combat Ability" && pool.fetch("level") == 6 }.fetch("options"), "Heavy Strike"
+
+    change = StorySubclassChangeService.call(
+      character: commander,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Champion of the Bulwark",
+      to_subclass: "Spellblade",
+      story_note: "A bargain with the archmage reshapes the commander's art.",
+      spell_choices:,
+      feature_choices:
+    )
+
+    commander.reload
+    assert_equal "Spellblade", commander.subclass_name
+    assert_equal [ "Order: I Can Do This ALL DAY!", "Spell: #{arcane_spell_one.name}", "Order: Reposition!" ], commander.recorded_feature_choices.fetch("Arcane Command")
+    assert_equal [ "Spell: #{arcane_spell_two.name}", "+1 max Combat Dice", "Order: Move it! Move it!" ], commander.recorded_feature_choices.fetch("Combat Ability")
+    assert_not commander.recorded_feature_choices.key?("Combat Tactics")
+    assert_not commander.recorded_feature_choices.key?("Weapon Mastery")
+    assert_includes commander.story_granted_spell_names, arcane_spell_one.name
+    assert_includes commander.story_granted_spell_names, arcane_spell_two.name
+    assert_includes commander.sheet_spells.pluck(:name), arcane_spell_one.name
+    assert arcane_spell_one.available_to?(commander)
+    empowered_orders = commander.story_subclass_empowered_order_entries.index_by { |entry| entry.fetch(:name) }
+    assert_equal 5, empowered_orders.length
+    assert_equal "Glimmering Decree", empowered_orders.fetch("Face Me!").fetch(:arcane_name)
+    assert_includes empowered_orders.fetch("Reposition!").fetch(:effect), "exchange places"
+    assert_equal "Firebrand", commander.story_subclass_initiative_feature_entries.sole.fetch("name")
+    assert_equal [ "Heroes 2.0.1, p. 22", "Heroes 2.0.1, pp. 20, 22" ], change.subclass_choices.fetch("source_refs").fetch("replaced_feature_choices").values.uniq.sort
+    assert_equal [ "Combat Ability", "Combat Tactics", "Weapon Mastery" ], change.subclass_choices.fetch("replaced_feature_choices").keys.sort
+    assert change.subclass_choice_entries.any? { |entry| entry.fetch(:label) == "Replaced · Level 4 · Combat Tactics" && entry.fetch(:value) == "Heavy Strike" }
+    assert_not_includes commander.progression_features_for(14), "Weapon Mastery (3)"
+    assert_includes commander.subclass_progression_features_through.map { |feature| feature.fetch(:name) }, "Arcane Command"
+  end
+
   test "Beastmaster approval records the companion and reselects the first two Hunt abilities" do
     hunter = create_hunter
     hunter.update_columns(feature_choices: { "Thrill of the Hunt" => [ "Fleet Feet", "Wild Instinct" ] })

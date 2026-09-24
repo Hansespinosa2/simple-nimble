@@ -148,6 +148,18 @@
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
         <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
+          <% initiative_mana = resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" } %>
+          <% if initiative_mana.present? %>
+            <div class="safe-rest-action">
+              <p class="eyebrow">Spellblade · Initiative</p>
+              <p>Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends.</p>
+              <% if @character.encounter_started_at.present? %>
+                <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
+              <% else %>
+                <%= button_to "Record Initiative Roll · gain #{initiative_mana.fetch('max')} mana", begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full" %>
+              <% end %>
+            </div>
+          <% end %>
           <div class="safe-rest-action">
             <p class="eyebrow">Encounter End</p>
             <p>Refresh only the counters whose rules reset when an encounter ends. Safe Rest and daily-use counters are left alone.</p>

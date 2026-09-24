@@ -248,9 +248,19 @@ class Character < ApplicationRecord
     level = level.presence || 1
 
     1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
-      character_class.features_for(feature_level).map do |name|
+      progression_features_for(feature_level).map do |name|
         { level: feature_level, name: name }
       end
+    end
+  end
+
+  def progression_features_for(level, subclass_name: self.subclass_name)
+    features = character_class&.features_for(level).to_a
+    replaced_features = Rules::NimbleCatalog.story_subclass_replaced_progression_features_for(character_class&.name, subclass_name)
+    return features if replaced_features.empty?
+
+    features.reject do |name|
+      replaced_features.any? { |replaced| name == replaced || name.start_with?("#{replaced} ", "#{replaced} (") }
     end
   end
 
@@ -285,21 +295,82 @@ class Character < ApplicationRecord
   def feature_choice_pools_for(level, subclass_name: self.subclass_name)
     pools = character_class&.feature_choice_pools_for(level).to_a
     story_pools = Rules::NimbleCatalog.story_subclass_feature_choice_pools_for(character_class&.name, subclass_name, level)
+    replaced_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character_class&.name, subclass_name)
+    pools.reject! { |pool| replaced_pools.include?(pool.fetch("name")) }
+
+    if character_class&.name == "Commander" && subclass_name == "Spellblade"
+      pools.each do |pool|
+        next unless pool.fetch("name") == "Combat Ability"
+
+        orders = commander_order_options.map { |name| "Order: #{name}" }
+        spells = arcane_command_spell_options
+        repeatable = Array(pool.fetch("repeatable_options", []))
+        pool["options"] = (orders + spells + repeatable).uniq
+      end
+    end
 
     story_pools.each do |story_pool|
+      story_pool = story_pool.merge("options" => story_subclass_feature_options(story_pool))
       base_pool = pools.find { |pool| pool.fetch("name") == story_pool.fetch("name") }
-      next unless base_pool
-
       story_options = Array(story_pool.fetch("options", []))
-      base_pool.merge!(
-        "options" => (Array(base_pool.fetch("options", [])) + story_options).uniq,
-        "story_options" => story_options,
-        "story_source_ref" => story_pool.fetch("source_ref"),
-        "story_source_quote" => story_pool.fetch("source_quote")
-      )
+      if base_pool
+        base_pool.merge!(
+          "options" => (Array(base_pool.fetch("options", [])) + story_options).uniq,
+          "story_options" => story_options - Array(base_pool.fetch("repeatable_options", [])),
+          "story_source_ref" => story_pool.fetch("source_ref"),
+          "story_source_quote" => story_pool.fetch("source_quote"),
+          "story_choice_kind" => story_pool["kind"]
+        )
+      else
+        pools << story_pool.merge(
+          "story_options" => story_options,
+          "story_source_ref" => story_pool.fetch("source_ref"),
+          "story_source_quote" => story_pool.fetch("source_quote"),
+          "story_choice_kind" => story_pool["kind"]
+        )
+      end
     end
 
     pools
+  end
+
+  def commander_order_options
+    Rules::NimbleCatalog.choice_pool_for("Commander", "Commander's Orders").to_h.fetch("options", [])
+  end
+
+  def arcane_command_spell_options
+    Rules::NimbleCatalog.story_subclass_feature_choice_pool_rules_for("Commander", "Spellblade")
+      .values
+      .find { |pool| pool.to_h.fetch("kind", nil) == "arcane_command_order_or_spell" }
+      .then do |pool|
+        minimum_tier = pool.fetch("spell_min_tier").to_i
+        maximum_tier = pool.fetch("spell_max_tier").to_i
+        Spell.where(tier: minimum_tier..maximum_tier).order(:name).pluck(:name).map { |name| "Spell: #{name}" }
+      end
+  end
+
+  def story_subclass_feature_options(pool)
+    case pool.fetch("kind", nil)
+    when "arcane_command_order_or_spell"
+      commander_order_options.map { |name| "Order: #{name}" } + arcane_command_spell_options
+    when "arcane_command_combat_ability"
+      combat_pool = Rules::NimbleCatalog.choice_pool_for("Commander", "Combat Ability").to_h
+      repeatable = Array(combat_pool.fetch("repeatable_options", []))
+      commander_order_options.map { |name| "Order: #{name}" } + arcane_command_spell_options + repeatable
+    else
+      Array(pool.fetch("options", []))
+    end
+  end
+
+  def normalize_story_subclass_feature_selections(pool, selections)
+    kind = pool.fetch("story_choice_kind", nil)
+    return selections unless %w[arcane_command_order_or_spell arcane_command_combat_ability].include?(kind)
+
+    repeatable = Array(Rules::NimbleCatalog.choice_pool_for("Commander", "Combat Ability").to_h.fetch("repeatable_options", []))
+    selections.filter_map do |selection|
+      next selection if selection.start_with?("Order: ", "Spell: ") || repeatable.include?(selection)
+      next "Order: #{selection}" if commander_order_options.include?(selection)
+    end
   end
 
   def story_subclass_feature_choice_pools_through(subclass_name:, level: self.level, ledger: feature_choice_ledger)
@@ -307,7 +378,10 @@ class Character < ApplicationRecord
       feature_choice_pools_for(choice_level, subclass_name:).select { |pool| pool["story_source_ref"].present? }.map do |pool|
         pool.merge(
           "level" => choice_level,
-          "selected" => feature_choice_selections_for(pool.fetch("name"), choice_level, ledger)
+          "selected" => normalize_story_subclass_feature_selections(
+            pool,
+            feature_choice_selections_for(pool.fetch("name"), choice_level, ledger)
+          )
         )
       end
     end
@@ -345,6 +419,32 @@ class Character < ApplicationRecord
         source_ref: rule.fetch("source_ref"),
         source_quote: variant["source_quote"] || ability["source_quote"] || rule.fetch("source_quote")
       }.compact
+    end
+  end
+
+  def story_subclass_initiative_feature_entries
+    Rules::NimbleCatalog.story_subclass_initiative_features_for(character_class&.name, subclass_name)
+  end
+
+  def story_subclass_empowered_order_entries
+    empowered_orders = Rules::NimbleCatalog.story_subclass_empowered_orders_for(character_class&.name, subclass_name)
+    return [] if empowered_orders.empty?
+
+    selected_orders = recorded_feature_choices.values.flatten.map do |selection|
+      selection.start_with?("Order: ") ? selection.delete_prefix("Order: ") : selection
+    end.uniq
+
+    selected_orders.filter_map do |name|
+      rule = empowered_orders[name]
+      next if rule.blank?
+
+      {
+        name:,
+        arcane_name: rule.fetch("arcane_name"),
+        effect: rule.fetch("effect"),
+        source_ref: rule.fetch("source_ref"),
+        source_quote: rule.fetch("source_quote")
+      }
     end
   end
 
@@ -505,9 +605,14 @@ class Character < ApplicationRecord
   end
 
   def story_granted_spell_names(level: self.level)
-    spell_choice_pools_through(level).select do |pool|
+    level_based_spells = spell_choice_pools_through(level).select do |pool|
       pool.fetch("kind") == "spell_up_to_tier"
     end.flat_map { |pool| pool.fetch("selected") & Array(pool.fetch("options")) }.uniq
+    arcane_command_spells = recorded_feature_choices.values.flatten.filter_map do |selection|
+      selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
+    end
+
+    (level_based_spells + arcane_command_spells).uniq
   end
 
   def sheet_spells
@@ -536,7 +641,30 @@ class Character < ApplicationRecord
         current_resource: resource_values.fetch(:current_resource) || trait_set.max_resource,
         resource_tracks: tracks
       )
+      update_columns(encounter_started_at: nil, updated_at: Time.current) if encounter_started_at.present?
       record_revision!(event_type: "safe_rest", summary: "Safe Rest completed", from_level: level, to_level: level)
+    end
+  end
+
+  def begin_encounter!
+    with_lock do
+      unless character_class&.name == "Commander" && subclass_name == "Spellblade"
+        raise ArgumentError, "Only a Spellblade can gain Arcane Command mana. Heroes 2.0.1, p. 76."
+      end
+
+      raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
+
+      track_key = "spellblade_initiative_mana"
+      tracks = Array(trait_set&.resource_tracks)
+      track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
+      raise ArgumentError, "Arcane Command mana is unavailable on this sheet. Heroes 2.0.1, p. 76." unless track
+
+      tracks = tracks.map do |resource|
+        resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => resource.to_h.fetch("max").to_i) : resource
+      end
+      trait_set.update!(resource_tracks: tracks)
+      update_columns(encounter_started_at: Time.current, updated_at: Time.current)
+      record_revision!(event_type: "initiative_roll", summary: "Initiative rolled; gained #{track.to_h.fetch('max')} Arcane Command mana", from_level: level, to_level: level)
     end
   end
 
@@ -549,6 +677,7 @@ class Character < ApplicationRecord
         current_mana: resource_values.fetch(:current_mana) || trait_set.current_mana,
         current_resource: resource_values.fetch(:current_resource) || trait_set.current_resource
       )
+      update_columns(encounter_started_at: nil, updated_at: Time.current) if encounter_started_at.present?
       record_revision!(event_type: "encounter_end", summary: "Encounter ended; encounter-reset resources refreshed", from_level: level, to_level: level)
     end
   end
@@ -731,7 +860,8 @@ class Character < ApplicationRecord
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
     class_pools = Array(character_class&.resource_rules.to_h["pools"])
     ancestry_pools = Rules::NimbleCatalog.ancestry_resource_pools_for(ancestry&.name)
-    pools = class_pools + ancestry_pools + story_subclass_companion_resource_pools(level:, subclass_name:)
+    story_pools = Rules::NimbleCatalog.story_subclass_resource_pools_for(character_class&.name, subclass_name)
+    pools = class_pools + ancestry_pools + story_pools + story_subclass_companion_resource_pools(level:, subclass_name:)
     choice_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, feature_choices)
     derived_resource_modifiers = derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
     choice_resource_modifiers = choice_effects.fetch("resource_max_modifiers", {})
@@ -746,6 +876,7 @@ class Character < ApplicationRecord
 
       maximum = resource_track_max_from(pool, stat_values, level)
       maximum += resource_max_modifiers.fetch(pool.fetch("key"), 0).to_i if maximum.present?
+      maximum = [ maximum, pool.fetch("minimum_max").to_i ].max if maximum.present? && pool.key?("minimum_max")
       die = resource_die_for(pool["die_by_level"], level)
       initial_current = pool.key?("initial_current") ? pool["initial_current"].to_i : maximum.to_i
 
@@ -1080,7 +1211,7 @@ class Character < ApplicationRecord
     {
       "character" => attributes.slice(
         "name", "race", "nimble_class", "level", "subclass_name", "subclass_choices", "legacy_background_text", "description", "languages", "language_choices", "feature_language_choices", "spell_school_choice", "starting_equipment", "starting_equipment_choice", "current_gold", "stat_assignments", "feature_choices", "spell_choices",
-        "status", "conditions", "inventory", "game_notes", "stat_array"
+        "status", "conditions", "inventory", "game_notes", "stat_array", "encounter_started_at"
       ),
       "inventory_items" => inventory_items.order(:id).map { |item| item.attributes.slice("name", "slots", "starting_gear", "source_ref", "catalog_slots", "equipped") },
       "rules" => {
@@ -1098,6 +1229,8 @@ class Character < ApplicationRecord
         "subclass_features" => subclass_progression_features_through,
         "feature_choices" => feature_choice_entries_through,
         "spell_choices" => spell_choice_entries_through,
+        "initiative_features" => story_subclass_initiative_feature_entries,
+        "empowered_orders" => story_subclass_empowered_order_entries,
         "derived_effects" => derived_feature_effects
       },
       "stats" => stat_set&.attributes&.slice("strength", "dexterity", "intelligence", "will"),

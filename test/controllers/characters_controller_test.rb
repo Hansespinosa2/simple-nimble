@@ -460,6 +460,42 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert hunter.character_revisions.exists?(event_type: "encounter_end")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "owner can record Spellblade initiative mana only once until encounter end" do
+    Rails.application.load_seed
+    spellblade = Character.create!(
+      name: "Initiative Button",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 2, dexterity: 1, intelligence: 1, will: 0 }
+    )
+    spellblade.update_columns(subclass_name: "Spellblade", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| spellblade.stat_value(stat) }
+    tracks = spellblade.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Spellblade")
+    spellblade.trait_set.update!(resource_tracks: tracks)
+
+    get character_url(spellblade)
+    assert_response :success
+    assert_select ".progression-entry-subclass", /Firebrand.*Enchant Weapon for free/
+    assert_select "form[action='#{begin_encounter_character_path(spellblade)}'] button[type='submit']", text: "Record Initiative Roll · gain 1 mana"
+
+    patch begin_encounter_character_url(spellblade)
+    assert_redirected_to character_url(spellblade)
+    assert_equal "Initiative recorded. Arcane Command mana is ready to spend.", flash[:notice]
+    assert_equal 1, spellblade.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
+
+    get character_url(spellblade)
+    assert_select "form[action='#{begin_encounter_character_path(spellblade)}']", count: 0
+    assert_select ".field-hint", /Initiative recorded at/
+
+    patch end_encounter_character_url(spellblade)
+    assert_nil spellblade.reload.encounter_started_at
+    assert_equal 0, spellblade.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
+  end
+
   test "should track a keyed class resource and reject a value above its maximum" do
     Rails.application.load_seed
     mage = Character.create!(

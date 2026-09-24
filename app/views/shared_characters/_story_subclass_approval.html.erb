@@ -54,12 +54,14 @@
         <% if @story_subclass_feature_choice_pools.any? %>
           <fieldset class="field feature-choice-field">
             <legend>Reconcile earned feature choices</legend>
-            <p class="field-hint">The subclass changes the options for the first two Thrill of the Hunt choices. Confirm the two choices that remain on the sheet.</p>
+            <p class="field-hint">Confirm every earned choice affected by the subclass replacement. Choices that remain legal can stay selected; replaced or newly granted options are recorded in the audit history.</p>
             <% @story_subclass_feature_choice_pools.each do |pool| %>
               <% field_name = "story_subclass_change[feature_choices][#{pool.fetch('name')}][#{pool.fetch('level')}][]" %>
+              <% choice_count = pool.fetch("count").to_i %>
+              <% multiple_choices = choice_count > 1 %>
               <div class="field">
-                <%= label_tag field_name, "Level #{pool.fetch('level')} · choose #{pool.fetch('count')} #{pool.fetch('name')} abilities" %>
-                <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, pool.fetch("selected")), multiple: true, required: true, size: [ pool.fetch("count").to_i + 2, 5 ].max, class: "choice-select" %>
+                <%= label_tag field_name, "Level #{pool.fetch('level')} · choose #{choice_count} #{pool.fetch('name')} choice#{choice_count == 1 ? '' : 's'}" %>
+                <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, pool.fetch("selected")), include_blank: (multiple_choices ? nil : "Choose an option"), multiple: multiple_choices, required: true, size: (multiple_choices ? [ choice_count + 2, 5 ].max : nil), class: "choice-select" %>
                 <span class="field-hint"><%= pool.fetch("story_source_quote") %> (<%= pool.fetch("story_source_ref") %>)</span>
               </div>
             <% end %>

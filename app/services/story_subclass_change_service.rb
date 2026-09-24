@@ -20,11 +20,24 @@ class StorySubclassChangeService
 
       approved_spell_choices = validate_spell_choices!(character, to_subclass, spell_choices)
       approved_feature_choices = validate_feature_choices!(character, to_subclass, feature_choices)
+      validate_spellblade_choice_conflicts!(character, to_subclass, approved_feature_choices, approved_spell_choices)
       approved_companion = validate_companion!(character, to_subclass, companion_name:, companion_size:)
-      choice_sources = story_choice_source_refs(character, to_subclass, approved_spell_choices, approved_feature_choices, approved_companion)
+      replaced_feature_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character.character_class&.name, to_subclass)
+      feature_choice_ledger = character.feature_choice_ledger
+      reconciled_pool_names = approved_feature_choices.keys | replaced_feature_pools
+      replaced_feature_choices = feature_choice_ledger.slice(*reconciled_pool_names).reject { |_pool_name, selections| selections.blank? }
+      choice_sources = story_choice_source_refs(
+        character,
+        to_subclass,
+        approved_spell_choices,
+        approved_feature_choices,
+        approved_companion,
+        replaced_feature_choices
+      )
       approved_subclass_choices = {
         "spell_choices" => approved_spell_choices,
         "feature_choices" => approved_feature_choices,
+        "replaced_feature_choices" => replaced_feature_choices,
         "companion" => approved_companion,
         "source_refs" => choice_sources
       }.reject { |_key, value| value.blank? }
@@ -35,7 +48,7 @@ class StorySubclassChangeService
         spell_choice_ledger[pool_name] ||= {}
         spell_choice_ledger[pool_name].merge!(selections_by_level)
       end
-      feature_choice_ledger = character.feature_choice_ledger
+      feature_choice_ledger.except!(*replaced_feature_pools)
       approved_feature_choices.each do |pool_name, selections_by_level|
         feature_choice_ledger[pool_name] ||= {}
         feature_choice_ledger[pool_name].delete("legacy")
@@ -155,7 +168,7 @@ class StorySubclassChangeService
   end
   private_class_method :validate_companion!
 
-  def self.story_choice_source_refs(character, subclass_name, spell_choices, feature_choices, companion)
+  def self.story_choice_source_refs(character, subclass_name, spell_choices, feature_choices, companion, replaced_feature_choices)
     source_refs = {}
     unless spell_choices.empty?
       pools = character.story_subclass_spell_choice_pools_through(subclass_name:).index_by { |pool| pool.fetch("name") }
@@ -171,9 +184,35 @@ class StorySubclassChangeService
     if companion.present?
       source_refs["companion"] = [ character.story_subclass_companion_rule(subclass_name).fetch("source_ref") ]
     end
+    unless replaced_feature_choices.empty?
+      source_refs["replaced_feature_choices"] = replaced_feature_choices.keys.index_with do |pool_name|
+        Rules::NimbleCatalog.choice_pool_for(character.character_class&.name, pool_name).to_h.fetch("source_ref", character.character_class&.source_reference)
+      end
+    end
     source_refs
   end
   private_class_method :story_choice_source_refs
+
+  def self.validate_spellblade_choice_conflicts!(character, subclass_name, feature_choices, spell_choices)
+    return unless character.character_class&.name == "Commander" && subclass_name == "Spellblade"
+
+    selections = feature_choices.values.flat_map { |levels| levels.values.flatten }
+    order_selections = selections.filter_map { |selection| selection.delete_prefix("Order: ") if selection.start_with?("Order: ") }
+    prior_orders = character.recorded_feature_choices.fetch("Commander's Orders", [])
+    repeated_orders = order_selections & prior_orders
+    if repeated_orders.any? || order_selections.uniq.length != order_selections.length
+      raise ArgumentError, "Choose a different Commander’s Order; an Order can only be selected once."
+    end
+
+    selected_spells = selections.filter_map { |selection| selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ") }
+    selected_spells.concat(spell_choices.values.flat_map { |levels| levels.values.flatten })
+    previously_known = character.sheet_spells.pluck(:name)
+    repeated_spells = (selected_spells & previously_known) | selected_spells.tally.select { |_spell, count| count > 1 }.keys
+    return if repeated_spells.empty?
+
+    raise ArgumentError, "Choose a different spell for each Arcane Command and Deep Knowledge choice (#{repeated_spells.join(', ')} is already selected)."
+  end
+  private_class_method :validate_spellblade_choice_conflicts!
 
   def self.validate_spell_choices!(character, subclass_name, raw_choices)
     expected_pools = character.story_subclass_spell_choice_pools_through(subclass_name:, level: character.level)

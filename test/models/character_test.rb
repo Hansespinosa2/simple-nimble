@@ -896,6 +896,54 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, thrill.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Spellblade gains INT temporary mana once at initiative and loses it when the encounter ends" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Arcane Initiative",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 2, dexterity: 1, intelligence: 1, will: 0 }
+    )
+    spellblade_tracks = character.derived_resource_tracks_for(
+      stat_values: { strength: 2, dexterity: 1, intelligence: 1, will: 0 },
+      level: 3,
+      subclass_name: "Spellblade"
+    )
+    mana = spellblade_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }
+    assert_equal 1, mana.fetch("max")
+    assert_equal 0, mana.fetch("current")
+    assert_equal [ "encounter_end" ], mana.fetch("reset_events")
+
+    character.update_columns(subclass_name: "Spellblade", status: "playable")
+    character.trait_set.update!(resource_tracks: spellblade_tracks)
+    character.begin_encounter!
+
+    assert_equal 1, character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
+    assert character.encounter_started_at.present?
+    assert character.character_revisions.exists?(event_type: "initiative_roll")
+    assert_raises(ArgumentError) { character.begin_encounter! }
+
+    spent_tracks = character.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "spellblade_initiative_mana" ? track.merge("current" => 0) : track
+    end
+    character.trait_set.update!(resource_tracks: spent_tracks)
+    character.end_encounter!
+
+    refreshed_mana = character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }
+    assert_equal 0, refreshed_mana.fetch("current")
+    assert_nil character.encounter_started_at
+    assert character.character_revisions.exists?(event_type: "encounter_end")
+
+    character.begin_encounter!
+    character.take_safe_rest!
+    assert_nil character.reload.encounter_started_at
+    assert_equal 0, character.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "limited-use ancestry abilities become source-backed game resource tracks" do
     Rails.application.load_seed

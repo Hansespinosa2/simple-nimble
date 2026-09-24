@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     member do
       post :finalize
       patch :tracker
+      patch :begin_encounter
       patch :end_encounter
       patch :safe_rest
       patch :field_rest

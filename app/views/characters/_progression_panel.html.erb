@@ -5,7 +5,9 @@
 <% companion = character.subclass_choices.to_h.stringify_keys.fetch("companion", {}).to_h.stringify_keys %>
 <% companion_rule = character.story_subclass_companion_rule %>
 <% companion_abilities = character.story_subclass_companion_ability_entries %>
-<% if class_features.any? || subclass_features.any? || feature_choices.any? || spell_choices.any? %>
+<% initiative_features = character.story_subclass_initiative_feature_entries %>
+<% empowered_orders = character.story_subclass_empowered_order_entries %>
+<% if class_features.any? || subclass_features.any? || feature_choices.any? || spell_choices.any? || initiative_features.any? || empowered_orders.any? %>
   <section class="panel progression-panel">
     <div class="panel-heading compact">
       <div><p class="eyebrow">Class progression</p><h2>Features unlocked</h2></div>
@@ -24,6 +26,12 @@
           <div class="progression-entry progression-entry-choice"><span>Companion ability</span><strong><%= ability.fetch(:name) %></strong><em><%= ability.fetch(:effect) %></em><small><%= [ ability[:action_cost], ability[:cost], ability[:uses], ability[:uses_per_round], ability.fetch(:source_ref) ].compact.join(" · ") %></small></div>
         <% end %>
         <p class="field-hint"><%= companion_rule.fetch("general_note") %> (<%= companion_rule.fetch("source_ref") %>)</p>
+      <% end %>
+      <% initiative_features.each do |feature| %>
+        <div class="progression-entry progression-entry-subclass"><span>Initiative feature</span><strong><%= feature.fetch("name") %></strong><em><%= feature.fetch("effect") %></em><small><%= feature.fetch("source_ref") %></small></div>
+      <% end %>
+      <% empowered_orders.each do |order| %>
+        <div class="progression-entry progression-entry-choice"><span>Empowered Order · <%= order.fetch(:arcane_name) %></span><strong><%= order.fetch(:name) %></strong><em><%= order.fetch(:effect) %></em><small><%= order.fetch(:source_ref) %></small></div>
       <% end %>
       <% feature_choices.each do |choice| %>
         <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>
