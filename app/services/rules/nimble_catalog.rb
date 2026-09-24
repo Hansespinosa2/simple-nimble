@@ -88,7 +88,11 @@ module Rules
       end
 
       def equipment_armor_items
-        data.fetch("equipment_armor").fetch("items")
+        equipment_armor_rules.fetch("items")
+      end
+
+      def equipment_armor_rules
+        data.fetch("equipment_armor")
       end
 
       def equipment_armor_item(name)

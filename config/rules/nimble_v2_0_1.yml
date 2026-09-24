@@ -190,6 +190,10 @@ starting_gear_inventory:
 equipment_armor:
   source_ref: Core Rules 2.0.1, p. 33
   slots_source_ref: Core Rules 2.0.1, p. 21
+  nonproficient_worn_armor:
+    defend_action_surcharge: 1
+    source_ref: Core Rules 2.0.1, p. 32
+    source_quote: "Defending while wearing armor worn without proficiency costs 1 additional action."
   items:
     "Adventurer's Garb": {kind: armor, proficiency: cloth, armor_value: 2, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 10, source_ref: "Core Rules 2.0.1, p. 33"}
     "Minor Enchantment": {kind: armor, proficiency: cloth, armor_value: 3, formula: dexterity, slots_worn: 1, slots_unworn: 2, cost_gp: 100, source_ref: "Core Rules 2.0.1, p. 33"}

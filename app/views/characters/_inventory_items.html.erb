@@ -2,6 +2,8 @@
 <% slots_used = character.inventory_slots_used %>
 <% starting_gear_slots = character.starting_gear_inventory_slots %>
 <% over_capacity = slots_used > character.inventory_slots_capacity %>
+<% armor_rules = Rules::NimbleCatalog.equipment_armor_rules %>
+<% nonproficient_armor_rule = armor_rules.fetch("nonproficient_worn_armor") %>
 
 <%= render "characters/starting_equipment_panel", character: character %>
 
@@ -15,7 +17,8 @@
     <summary>Slot rules · Core Rules 2.0.1, p. 21</summary>
     <p>Each hero has 10 + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, 500 gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
     <p>When class gear is selected, its known item slots are included in the total automatically. Starting items can be adjusted or removed; unusual item sizes may be grouped with your GM.</p>
-    <p>Known body armor and shields add their listed Armor only while equipped. Non-proficient worn body armor costs 1 additional action to Defend. Catalog STR requirements must be met for the Armor benefit to apply. Core Rules 2.0.1, pp. 32–33.</p>
+    <p>Known body armor and shields add their listed Armor only while equipped. Catalog STR requirements must be met for the Armor benefit to apply. Core Rules 2.0.1, p. 33.</p>
+    <p>Defending while wearing body armor without its listed proficiency costs <%= pluralize(nonproficient_armor_rule.fetch("defend_action_surcharge").to_i, "additional action") %>. <%= nonproficient_armor_rule.fetch("source_ref") %>.</p>
     <p>Optional Deflect: instead of adding a shield’s Armor to your total, reduce one attack’s damage by that value for free once per round. This tracker displays the default add-to-Armor calculation. Tracker behavior (not an extra published restriction): one body-armor item and one shield stay equipped at a time; equipping another in that category replaces the current one.</p>
     <p>The rules also let the GM waive inventory bookkeeping. This tracker warns when you exceed capacity but does not block the save.</p>
   </details>

@@ -322,6 +322,10 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       assert_equal "Core Rules 2.0.1, p. 33", item.fetch("source_ref"), name
     end
     assert_equal "Core Rules 2.0.1, p. 21", @catalog.data.fetch("equipment_armor").fetch("slots_source_ref")
+    penalty = @catalog.equipment_armor_rules.fetch("nonproficient_worn_armor")
+    assert_equal 1, penalty.fetch("defend_action_surcharge")
+    assert_equal "Core Rules 2.0.1, p. 32", penalty.fetch("source_ref")
+    assert_includes penalty.fetch("source_quote"), "1 additional action"
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3

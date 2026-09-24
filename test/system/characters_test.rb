@@ -256,6 +256,34 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal true, character.character_revisions.order(:id).last.snapshot.fetch("inventory_items").find { |item| item.fetch("name") == "Rusty Mail" }.fetch("equipped")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "untrained armor Defend guidance follows its structured action surcharge" do
+    character = Character.create!(
+      name: "Armor Rule Preview",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+    armor = character.inventory_items.create!(name: "Rusty Mail", equipped: true)
+    penalty = Rules::NimbleCatalog.equipment_armor_rules.fetch("nonproficient_worn_armor")
+    original_penalty = penalty.dup
+
+    begin
+      penalty["defend_action_surcharge"] = 2
+      visit character_url(character)
+
+      row = find("[data-inventory-item-id='#{armor.id}']")
+      assert_includes row.text, "Defend while wearing it costs 2 additional actions"
+      find("summary", text: /Slot rules/).click
+      assert_text "Defending while wearing body armor without its listed proficiency costs 2 additional actions."
+      assert_text "Core Rules 2.0.1, p. 32"
+    ensure
+      penalty.replace(original_penalty)
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the sheet explains and blocks armor with an unmet STR requirement" do
     character = Character.create!(

@@ -85,7 +85,9 @@ module CharactersHelper
       warnings << "Requires STR #{rules.fetch('strength_requirement')} (current STR #{character.stat_value('strength')}); the Armor benefit is not applied until the requirement is met."
     end
     if item.equipped? && rules.fetch("kind") == "armor" && !character.armor_proficient_with?(rules)
-      warnings << "Not proficient with #{rules.fetch('proficiency')} armor: Defend while wearing it costs 1 additional action · Core Rules 2.0.1, p. 32."
+      penalty = Rules::NimbleCatalog.equipment_armor_rules.fetch("nonproficient_worn_armor")
+      surcharge = penalty.fetch("defend_action_surcharge").to_i
+      warnings << "Not proficient with #{rules.fetch('proficiency')} armor: Defend while wearing it costs #{pluralize(surcharge, 'additional action')} · #{penalty.fetch('source_ref')}."
     elsif item.equipped? && rules.fetch("kind") == "shield" && !character.armor_proficient_with?(rules)
       warnings << "This class has no shield proficiency listed; the parsed rules do not specify a separate shield penalty."
     end
