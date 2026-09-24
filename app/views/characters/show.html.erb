@@ -282,6 +282,12 @@
           <p class="eyebrow">Field Rest · <%= @character.trait_set&.hit_die || "Hit Die" %></p>
           <p class="field-rest-summary">Catch Breath takes at least <%= catch_breath_rules.fetch("minimum_duration") %> <%= catch_breath_rules.fetch("duration_unit") %> and resolves <%= pluralize(catch_breath_rules.fetch("hit_dice_per_use"), "Hit Die") %> at a time, adding <%= stat_display_name(catch_breath_rules.fetch("stat_modifier")) %> to each die. Make Camp takes at least <%= make_camp_rules.fetch("minimum_duration") %> <%= make_camp_rules.fetch("duration_unit") %><%= " with food and sleep" if make_camp_rules.fetch("requires_food_and_sleep") %> and uses each die’s maximum, adding <%= stat_display_name(make_camp_rules.fetch("stat_modifier")) %> to each.</p>
           <span class="field-hint"><%= catch_breath_rules.fetch("source_ref") %> · Hit Dice available: <%= @character.trait_set&.current_hit_dice || 0 %></span>
+          <% epic_mana_selected = @character.recorded_feature_choices.fetch("Epic Boon", []).include?("Epic Mana") %>
+          <% epic_mana_available = epic_mana_selected && @character.trait_set.present? && @character.trait_set.current_mana.to_i < @character.trait_set.max_mana.to_i %>
+          <% if epic_mana_available %>
+            <% epic_boon_pool = Rules::NimbleCatalog.choice_pool_for(@character.character_class&.name, "Epic Boon") %>
+            <span class="field-hint epic-mana-help"><%= epic_boon_pool.fetch("option_descriptions").fetch("Epic Mana") %> (<%= epic_boon_pool.fetch("source_ref") %>)</span>
+          <% end %>
           <% if (@character.trait_set&.current_hit_dice || 0).to_i.positive? %>
             <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
               <%= rest_form.hidden_field :mode, value: "catch_breath" %>
@@ -289,11 +295,13 @@
               <div class="field-rest-fields">
                 <div class="field"><%= rest_form.label :die_rolls, "Single Hit Die roll (d#{@character.hit_die_sides})", for: "catch_breath_die_rolls" %><%= rest_form.number_field :die_rolls, id: "catch_breath_die_rolls", min: 1, max: @character.hit_die_sides, step: 1 %></div>
               </div>
+              <% if epic_mana_available %><div class="field"><%= rest_form.check_box :convert_healing_to_mana, {}, "1", "0" %><%= rest_form.label :convert_healing_to_mana, "Use Epic Mana instead of this rest’s HP healing (1 Mana per 5 HP)" %></div><% end %>
               <%= rest_form.submit "Catch Breath · #{catch_breath_rules.fetch('minimum_duration')} #{catch_breath_rules.fetch('duration_unit') == 'minutes' ? 'min' : catch_breath_rules.fetch('duration_unit')}", class: "button button-secondary button-full" %>
             <% end %>
             <%= form_with url: field_rest_character_path(@character), method: :patch, scope: :field_rest, class: "field-rest-form" do |rest_form| %>
               <%= rest_form.hidden_field :mode, value: "make_camp" %>
               <div class="field"><%= rest_form.label :hit_dice, "Hit Dice to spend", for: "make_camp_hit_dice" %><%= rest_form.number_field :hit_dice, id: "make_camp_hit_dice", min: 1, max: @character.trait_set.current_hit_dice, value: 1 %></div>
+              <% if epic_mana_available %><div class="field"><%= rest_form.check_box :convert_healing_to_mana, {}, "1", "0" %><%= rest_form.label :convert_healing_to_mana, "Use Epic Mana instead of this rest’s HP healing (1 Mana per 5 HP)" %></div><% end %>
               <%= rest_form.submit "Make Camp · #{make_camp_rules.fetch('minimum_duration')} #{make_camp_rules.fetch('duration_unit')}", class: "button button-secondary button-full" %>
             <% end %>
           <% else %>

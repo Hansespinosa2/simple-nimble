@@ -173,14 +173,19 @@ class CharactersController < ApplicationController
   end
 
   def field_rest
-    attributes = params.expect(field_rest: [ :mode, :hit_dice, :die_rolls ])
+    attributes = params.expect(field_rest: [ :mode, :hit_dice, :die_rolls, :convert_healing_to_mana ])
     result = @character.perform_field_rest!(
       mode: attributes[:mode],
       hit_dice_count: attributes[:hit_dice],
-      die_rolls: attributes[:die_rolls].to_s.split(",").map(&:strip).reject(&:blank?)
+      die_rolls: attributes[:die_rolls].to_s.split(",").map(&:strip).reject(&:blank?),
+      convert_healing_to_mana: attributes[:convert_healing_to_mana].to_s == "1"
     )
     rest_name = result.fetch(:mode) == "make_camp" ? "Make Camp" : "Catch Breath"
-    redirect_to @character, notice: "#{rest_name} complete: recovered #{result.fetch(:hp_recovered)} HP."
+    notice = "#{rest_name} complete: recovered #{result.fetch(:hp_recovered)} HP."
+    if result.fetch(:mana_recovered).positive?
+      notice += " Converted #{result.fetch(:hp_healing_forgone)} HP of healing into #{result.fetch(:mana_recovered)} Mana with Epic Mana."
+    end
+    redirect_to @character, notice:
   rescue ArgumentError => error
     redirect_to @character, alert: error.message
   end

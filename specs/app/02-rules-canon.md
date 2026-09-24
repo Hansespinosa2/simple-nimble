@@ -458,7 +458,9 @@ a cap. Epic Speed, Epic Foresight, Epic Defense, Epic Mind, Epic Stats, and Epic
 Stamina update the corresponding derived values. Epic Agility, Epic Knowledge,
 Epic Resistance, and Epic Foresight's first-attack advantage have use counters;
 encounter-limited counters refresh when an encounter ends. Other situational
-attack/save effects and mana-for-healing substitution remain reference-only.
+attack/save effects remain reference-only. Epic Mana can substitute Mana for
+Field Rest healing in the sheet flow; healing from spells and other external
+sources must still be recorded manually because the app does not resolve them.
 
 ---
 

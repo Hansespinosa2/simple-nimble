@@ -466,6 +466,8 @@ class NimbleCatalogTest < ActiveSupport::TestCase
       "derived_modifiers" => { "initiative_modifier" => 9, "speed_modifier" => 4 },
       "resource_max_modifiers" => { "mana" => 8 }
     }, effects)
+    epic_mana = @catalog.feature_choice_effects_for("Mage", "Epic Boon" => [ "Epic Mana" ])
+    assert_equal 5, epic_mana.fetch("field_rest_effects").fetch("mana_conversion_hp_per_mana")
 
     resources = @catalog.feature_choice_resource_pools_for("Berserker", "Epic Boon" => [ "Epic Agility", "Epic Knowledge", "Epic Resistance", "Epic Mind" ])
     assert_equal %w[epic_agility epic_knowledge epic_resistance mana], resources.map { |pool| pool.fetch("key") }

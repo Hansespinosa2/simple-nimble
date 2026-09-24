@@ -917,7 +917,7 @@ class Character < ApplicationRecord
     end
   end
 
-  def perform_field_rest!(mode:, hit_dice_count:, die_rolls: [])
+  def perform_field_rest!(mode:, hit_dice_count:, die_rolls: [], convert_healing_to_mana: false)
     mode = mode.to_s
     field_rest_rules = Rules::NimbleCatalog.resting_rules.fetch("field_rests")
     rest_rules = field_rest_rules[mode]
@@ -960,13 +960,36 @@ class Character < ApplicationRecord
     actual_healing = [ healing, trait_set.max_hp.to_i - trait_set.current_hp.to_i ].min
     new_hp = trait_set.current_hp.to_i + actual_healing
     field_rest_effects = Rules::NimbleCatalog.feature_choice_effects_for(character_class&.name, recorded_feature_choices).fetch("field_rest_effects", {})
+    mana_conversion_rate = field_rest_effects.fetch("mana_conversion_hp_per_mana", 0).to_i
+    mana_recovered = 0
+    hp_healing_forgone = 0
+    tracks = Array(trait_set.resource_tracks).map { |track| track.to_h.stringify_keys }
+    if convert_healing_to_mana
+      source_ref = Rules::NimbleCatalog.choice_pool_for(character_class&.name, "Epic Boon").to_h.fetch("source_ref")
+      raise ArgumentError, "Epic Mana is required to convert healing into Mana. #{source_ref}." unless mana_conversion_rate.positive?
+
+      mana_track = tracks.find { |track| track.to_h.fetch("key") == "mana" }
+      raise ArgumentError, "This character has no Mana pool for Epic Mana conversion. #{source_ref}." unless mana_track
+
+      missing_mana = mana_track.to_h.fetch("max").to_i - mana_track.to_h.fetch("current").to_i
+      mana_recovered = [ actual_healing / mana_conversion_rate, missing_mana ].min
+      raise ArgumentError, "This Field Rest cannot convert at least #{mana_conversion_rate} HP of healing into available Mana. #{source_ref}." unless mana_recovered.positive?
+
+      hp_healing_forgone = actual_healing
+      new_hp = trait_set.current_hp.to_i
+    end
+    tracks = normalized_resource_tracks(trait_set.resource_tracks, current_hp: new_hp)
+    if mana_recovered.positive?
+      tracks = tracks.map do |track|
+        track.to_h.fetch("key") == "mana" ? track.to_h.merge("current" => track.to_h.fetch("current").to_i + mana_recovered) : track
+      end
+    end
     wound_threshold = field_rest_effects.fetch("wound_healing_threshold", 0).to_i
     wounds_recovered = if hit_die_result == "rolled" && wound_threshold.positive?
       [ results.count { |roll| roll >= wound_threshold }, trait_set.current_wounds.to_i ].min
     else
       0
     end
-    tracks = normalized_resource_tracks(trait_set.resource_tracks, current_hp: new_hp)
     resource_values = resource_tracker_values_for(tracks)
 
     transaction do
@@ -979,16 +1002,17 @@ class Character < ApplicationRecord
         resource_tracks: tracks
       )
       method_name = mode == "make_camp" ? "Make Camp" : "Catch Breath"
+      mana_summary = mana_recovered.positive? ? "; forwent #{hp_healing_forgone} HP healing and recovered #{mana_recovered} Mana with Epic Mana (#{Rules::NimbleCatalog.choice_pool_for(character_class&.name, 'Epic Boon').fetch('source_ref')})" : ""
       wound_summary = wounds_recovered.positive? ? "; healed #{wounds_recovered} Wound#{'s' unless wounds_recovered == 1}" : ""
       record_revision!(
         event_type: "field_rest",
-        summary: "#{method_name}: spent #{count} Hit Die#{'s' if count != 1}, recovered #{actual_healing} HP#{wound_summary}",
+        summary: "#{method_name}: spent #{count} Hit Die#{'s' if count != 1}, recovered #{convert_healing_to_mana ? 0 : actual_healing} HP#{mana_summary}#{wound_summary}",
         from_level: level,
         to_level: level
       )
     end
 
-    { mode:, hit_dice_spent: count, hp_recovered: actual_healing, wounds_recovered: }
+    { mode:, hit_dice_spent: count, hp_recovered: convert_healing_to_mana ? 0 : actual_healing, hp_healing_forgone:, mana_recovered:, wounds_recovered: }
   end
 
   def derived_feature_effects(level: self.level, subclass_name: self.subclass_name)

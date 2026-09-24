@@ -916,6 +916,55 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_revisions, mage.character_revisions.count
   end
 
+  # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet offers and records Epic Mana as an explicit Field Rest healing replacement" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Epic Mana Rest",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: @background,
+      stat_array: "balanced",
+      feature_choices: { "Epic Boon" => [ "Epic Mana" ] }
+    )
+    mage.update_columns(level: 19, status: "playable")
+    stats = mage.stat_set.attributes.slice("strength", "dexterity", "intelligence", "will").transform_values(&:to_i)
+    tracks = mage.derived_resource_tracks_for(stat_values: stats, level: 19)
+    mana = tracks.find { |track| track.fetch("key") == "mana" }
+    tracks = tracks.map { |track| track.fetch("key") == "mana" ? track.merge("current" => 0) : track }
+    mage.trait_set.update!(
+      current_hp: 0,
+      current_hit_dice: 1,
+      max_hit_dice: 19,
+      current_mana: 0,
+      max_mana: mana.fetch("max"),
+      resource_tracks: tracks
+    )
+    healing = mage.hit_die_sides + mage.stat_value("will")
+
+    get character_url(mage)
+
+    assert_response :success
+    assert_select "input[name='field_rest[convert_healing_to_mana]'][type='checkbox'][value='1']", 2
+    assert_select ".epic-mana-help", /Gamemaster's Guide 2\.0, p\. 23/
+
+    patch field_rest_character_url(mage), params: {
+      field_rest: {
+        mode: "catch_breath",
+        hit_dice: 1,
+        die_rolls: mage.hit_die_sides.to_s,
+        convert_healing_to_mana: "1"
+      }
+    }
+
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:notice], "Converted #{healing} HP of healing into #{healing / 5} Mana with Epic Mana."
+    assert_equal 0, mage.reload.trait_set.current_hp
+    assert_equal healing / 5, mage.trait_set.current_mana
+    assert_equal 0, mage.trait_set.current_hit_dice
+    assert_includes mage.character_revisions.where(event_type: "field_rest").sole.summary, "Gamemaster's Guide 2.0, p. 23"
+  end
+
   test "should reject impossible tracker state without changing derived limits" do
     original_hp = @character.trait_set.current_hp
     original_max_hp = @character.trait_set.max_hp
