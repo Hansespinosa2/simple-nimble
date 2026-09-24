@@ -121,6 +121,10 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Roll 1d20 and add your skill (the max bonus a skill can ever have is +12).", derived.fetch("max_skill_source_quote")
     assert_equal 4, derived.fetch("skill_points_at_level_one")
     assert_equal 1, derived.fetch("skill_points_per_level")
+    assert_equal 1, derived.fetch("skill_point_transfers_per_level")
+    assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Key Stat" }, @catalog.stat_increase_mechanic_for("key"))
+    assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Secondary Stat" }, @catalog.stat_increase_mechanic_for("secondary"))
+    assert_equal({ "choice_count" => 2, "amount" => 1, "distinct" => true, "label" => "stat" }, @catalog.stat_increase_mechanic_for("any_two"))
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-06:AC-2

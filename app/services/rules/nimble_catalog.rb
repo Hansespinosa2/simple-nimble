@@ -25,6 +25,10 @@ module Rules
         data.fetch("derived_values")
       end
 
+      def stat_increase_mechanic_for(type)
+        derived_values.fetch("stat_increase_mechanics", {}).fetch(type.to_s, {})
+      end
+
       def language_rules
         data.fetch("languages")
       end

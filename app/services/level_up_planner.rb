@@ -20,7 +20,62 @@ class LevelUpPlanner
   end
 
   def skill_options
-    Character::SKILL_NAMES.select { |skill| character.skill_value(skill).to_i < max_skill_value }
+    projected = projected_skill_values(include_skill_grant: false, include_skill_transfer: false)
+    Character::SKILL_NAMES.select do |skill|
+      increase = skill_points_per_level
+      if level_up.skill_from.present? && Character::SKILL_NAMES.include?(level_up.skill_from) && level_up.skill_from != skill
+        increase += skill_point_transfers_per_level
+      end
+      projected.fetch(skill) + increase <= max_skill_value
+    end
+  end
+
+  def skill_points_per_level
+    Rules::NimbleCatalog.derived_values.fetch("skill_points_per_level").to_i
+  end
+
+  def skill_point_transfers_per_level
+    Rules::NimbleCatalog.derived_values.fetch("skill_point_transfers_per_level", 1).to_i
+  end
+
+  def skill_points_per_level_description
+    count = skill_points_per_level
+    "#{count} skill #{count == 1 ? 'point' : 'points'}"
+  end
+
+  def skill_point_transfers_per_level_description
+    count = skill_point_transfers_per_level
+    "#{count} #{count == 1 ? 'point' : 'points'}"
+  end
+
+  def stat_increase_mechanic
+    Rules::NimbleCatalog.stat_increase_mechanic_for(stat_increase_type)
+  end
+
+  def stat_increase_choice_count
+    stat_increase_mechanic.fetch("choice_count", 0).to_i
+  end
+
+  def stat_increase_amount
+    stat_increase_mechanic.fetch("amount", 0).to_i
+  end
+
+  def stat_increase_distinct?
+    stat_increase_mechanic.fetch("distinct", false)
+  end
+
+  def stat_increase_label
+    stat_increase_mechanic.fetch("label", stat_increase_type.to_s.humanize)
+  end
+
+  def stat_increase_choice_description
+    if stat_increase_type == "any_two" && stat_increase_distinct? && stat_increase_choice_count > 1
+      "Choose #{stat_increase_choice_count} different stats; each increases by +#{stat_increase_amount}."
+    elsif stat_increase_distinct? && stat_increase_choice_count > 1
+      "Choose #{stat_increase_choice_count} different #{stat_increase_label.pluralize} (#{stat_increase_option_text}); each increases by +#{stat_increase_amount}."
+    else
+      "Choose one #{stat_increase_label} to increase by +#{stat_increase_amount}."
+    end
   end
 
   def max_stat_value
@@ -104,7 +159,7 @@ class LevelUpPlanner
   def projected_stats
     stats = Character::STAT_NAMES.index_with { |stat| character.stat_value(stat) }
     [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
-      stats[stat_name] += 1 if stat_options.include?(stat_name)
+      stats[stat_name] += stat_increase_amount if stat_options.include?(stat_name)
     end
     stats
   end
@@ -190,11 +245,16 @@ class LevelUpPlanner
     validate_spell_choices(result)
 
     if level_up.skill_name.blank?
-      result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants 1 skill point.")
+      result << issue("Choose one skill to improve.", "Chapter 3, Skills", "Each level grants #{skill_points_per_level_description}.")
     elsif !Character::SKILL_NAMES.include?(level_up.skill_name)
       result << issue("#{level_up.skill_name.to_s.humanize} is not a recognized skill.", "Chapter 3, Skills", "Choose one of the ten skills listed in the character rules.")
     elsif !skill_options.include?(level_up.skill_name)
-      result << issue("#{level_up.skill_name.to_s.humanize} is already at the +#{max_skill_value} skill maximum.", max_skill_source_ref, max_skill_source_quote)
+      message = if character.skill_value(level_up.skill_name).to_i >= max_skill_value
+        "#{level_up.skill_name.to_s.humanize} is already at the +#{max_skill_value} skill maximum."
+      else
+        "#{level_up.skill_name.to_s.humanize} would exceed the +#{max_skill_value} skill maximum after this level's increases."
+      end
+      result << issue(message, max_skill_source_ref, max_skill_source_quote)
     end
 
     if level_up.skill_from.present?
@@ -207,14 +267,11 @@ class LevelUpPlanner
 
     if stat_increase_type.present?
       selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
-      if stat_increase_type == "any_two"
-        if selected_stats.length != 2 || selected_stats.uniq.length != 2
-          result << issue("Choose two different stats to increase.", stat_increase_source_ref, stat_increase_quote)
-        end
-      elsif level_up.second_stat_name.present?
-        result << issue("Only one stat can increase at this level.", stat_increase_source_ref, stat_increase_quote)
-      elsif level_up.stat_name.blank?
-        result << issue("Choose a #{stat_increase_type} stat to increase.", stat_increase_source_ref, stat_increase_quote)
+      if selected_stats.length != stat_increase_choice_count || level_up.stat_name.blank? ||
+          (stat_increase_choice_count > 1 && level_up.second_stat_name.blank?)
+        result << issue(stat_increase_requirement_message, stat_increase_source_ref, stat_increase_quote)
+      elsif stat_increase_distinct? && selected_stats.uniq.length != selected_stats.length
+        result << issue(stat_increase_requirement_message, stat_increase_source_ref, stat_increase_quote)
       end
 
       selected_stats.each do |stat_name|
@@ -222,6 +279,8 @@ class LevelUpPlanner
           result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", stat_increase_source_ref, stat_increase_quote)
         elsif character.stat_value(stat_name) >= max_stat_value
           result << issue("#{stat_name.to_s.humanize} is already at the +#{max_stat_value} stat maximum.", max_stat_source_ref, max_stat_source_quote)
+        elsif character.stat_value(stat_name) + stat_increase_amount > max_stat_value
+          result << issue("#{stat_name.to_s.humanize} would exceed the +#{max_stat_value} stat maximum.", max_stat_source_ref, max_stat_source_quote)
         end
       end
     elsif level_up.stat_name.present? || level_up.second_stat_name.present?
@@ -236,10 +295,11 @@ class LevelUpPlanner
 
     projected_skills = projected_skill_values
     if level_up.skill_from.present? && Character::SKILL_NAMES.include?(level_up.skill_from) && projected_skills.fetch(level_up.skill_from) < 0
-      result << issue("#{level_up.skill_from.to_s.humanize} cannot become negative when moving a skill point.", "Chapter 3, Skills", "You may move 1 point only as long as the source skill does not become negative.")
-    end
-    if level_up.skill_name.present? && Character::SKILL_NAMES.include?(level_up.skill_name) && projected_skills.fetch(level_up.skill_name) > max_skill_value
-      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +#{max_skill_value} skill maximum.", max_skill_source_ref, max_skill_source_quote)
+      result << issue(
+        "#{level_up.skill_from.to_s.humanize} cannot become negative when moving #{skill_point_transfers_per_level_description}.",
+        "Chapter 3, Skills",
+        "You may move #{skill_point_transfers_per_level_description} from one skill to another as long as the source skill does not become negative."
+      )
     end
 
     character.language_issues_for(
@@ -265,7 +325,7 @@ class LevelUpPlanner
 
   def preview
     stats = projected_stats
-    skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
+    skills = projected_skill_values
     traits = {
       "max_hp" => character.trait_set&.max_hp.to_i,
       "hit_die" => character.trait_set&.hit_die.presence || character.character_class&.hit_die || "1d6",
@@ -288,21 +348,6 @@ class LevelUpPlanner
       "current_resource" => character.trait_set&.current_resource,
       "resource_tracks" => character.trait_set&.resource_tracks
     }
-
-    selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
-    selected_stats.each do |stat_name|
-      next unless stat_options.include?(stat_name)
-
-      Character::SKILL_NAMES.each do |skill|
-        skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == stat_name
-      end
-    end
-
-    skills[level_up.skill_name] += 1 if level_up.skill_name.present? && skills.key?(level_up.skill_name)
-    if level_up.skill_from.present? && skills.key?(level_up.skill_from) && level_up.skill_from != level_up.skill_name
-      skills[level_up.skill_from] -= 1
-      skills[level_up.skill_name] += 1 if skills.key?(level_up.skill_name)
-    end
 
     hp_gain = [ level_up.hit_die_roll_one.to_i, level_up.hit_die_roll_two.to_i ].max
     if character.trait_set
@@ -415,20 +460,22 @@ class LevelUpPlanner
       level_up.roll_hit_die!(hit_die_size)
     end
 
-    def projected_skill_values
+    def projected_skill_values(include_skill_grant: true, include_skill_transfer: true)
       skills = Character::SKILL_NAMES.index_with { |skill| character.skill_value(skill).to_i }
       selected_stats = [ level_up.stat_name, level_up.second_stat_name ].compact_blank
       selected_stats.each do |stat_name|
         next unless stat_options.include?(stat_name)
 
         Character::SKILL_NAMES.each do |skill|
-          skills[skill] += 1 if Character::SKILL_TO_STAT.fetch(skill) == stat_name
+          skills[skill] += stat_increase_amount if Character::SKILL_TO_STAT.fetch(skill) == stat_name
         end
       end
-      skills[level_up.skill_name] += 1 if level_up.skill_name.present? && skills.key?(level_up.skill_name)
-      if level_up.skill_from.present? && skills.key?(level_up.skill_from) && level_up.skill_from != level_up.skill_name
-        skills[level_up.skill_from] -= 1
-        skills[level_up.skill_name] += 1 if skills.key?(level_up.skill_name)
+      if include_skill_grant && level_up.skill_name.present? && skills.key?(level_up.skill_name)
+        skills[level_up.skill_name] += skill_points_per_level
+      end
+      if include_skill_transfer && level_up.skill_from.present? && skills.key?(level_up.skill_from) && level_up.skill_from != level_up.skill_name
+        skills[level_up.skill_from] -= skill_point_transfers_per_level
+        skills[level_up.skill_name] += skill_point_transfers_per_level if skills.key?(level_up.skill_name)
       end
       skills
     end
@@ -687,12 +734,37 @@ class LevelUpPlanner
       scheduled_levels = character.character_class&.stat_increase_levels_for(stat_increase_type).to_a
       level_phrase = scheduled_levels.one? ? "level #{scheduled_levels.first}" : "levels #{scheduled_levels.to_sentence}"
 
-      if stat_increase_type == "key"
-        "At #{level_phrase}, increase one Key Stat by +1 (#{character.character_class.key_stats.map(&:upcase).to_sentence})."
-      elsif stat_increase_type == "any_two"
-        "At #{level_phrase}, increase any 2 different stats by +1."
+      if stat_increase_distinct? && stat_increase_choice_count > 1
+        choices = if stat_increase_type == "any_two"
+          "any #{stat_increase_choice_count} different stats"
+        else
+          "#{stat_increase_choice_count} different #{stat_increase_label.pluralize} (#{stat_increase_option_text})"
+        end
+        "At #{level_phrase}, increase #{choices} by +#{stat_increase_amount}."
       else
-        "At #{level_phrase}, increase one Secondary Stat by +1 (#{character.character_class.secondary_stats.map(&:upcase).to_sentence})."
+        "At #{level_phrase}, increase one #{stat_increase_label} by +#{stat_increase_amount} (#{stat_increase_option_text})."
+      end
+    end
+
+    def stat_increase_option_text
+      option_stats = case stat_increase_type
+      when "key" then character.character_class.key_stats
+      when "secondary" then character.character_class.secondary_stats
+      else []
+      end
+      option_abbreviations = option_stats.map do |stat|
+        Rules::NimbleCatalog.stats.fetch(stat).fetch("abbreviation")
+      end
+      option_abbreviations.to_sentence(two_words_connector: " or ", last_word_connector: " or ")
+    end
+
+    def stat_increase_requirement_message
+      if stat_increase_distinct? && stat_increase_choice_count > 1
+        count_word = stat_increase_choice_count == 2 ? "two" : stat_increase_choice_count.to_s
+        target = stat_increase_type == "any_two" ? "different stats" : "different #{stat_increase_label.pluralize}"
+        "Choose #{count_word} #{target} to increase."
+      else
+        "Choose a #{stat_increase_type} stat to increase."
       end
     end
 
@@ -704,9 +776,9 @@ class LevelUpPlanner
       explanations = [
         {
           type: "applied",
-          message: "Level #{target_level} grants 1 point to #{level_up.skill_name.to_s.humanize}.",
+          message: "Level #{target_level} grants #{skill_points_per_level_description} to #{level_up.skill_name.to_s.humanize}.",
           source_ref: "Chapter 3, Skills",
-          quote: "Each level grants +1 skill point."
+          quote: "Each level grants +#{skill_points_per_level} skill #{skill_points_per_level == 1 ? 'point' : 'points'}."
         },
         {
           type: "auto_applied",
@@ -726,9 +798,9 @@ class LevelUpPlanner
       if level_up.skill_from.present? && level_up.skill_from != level_up.skill_name
         explanations << {
           type: "applied",
-          message: "1 point moves from #{level_up.skill_from.humanize} to #{level_up.skill_name.to_s.humanize}.",
+          message: "#{skill_point_transfers_per_level_description.capitalize} #{skill_point_transfers_per_level == 1 ? 'moves' : 'move'} from #{level_up.skill_from.humanize} to #{level_up.skill_name.to_s.humanize}.",
           source_ref: "Chapter 3, Skills",
-          quote: "You may move 1 point from one skill to another as long as the skill does not become negative."
+          quote: "You may move #{skill_point_transfers_per_level_description} from one skill to another as long as the source skill does not become negative."
         }
       end
       if preview_spell_tier = spell_tier_for(target_level)

@@ -13,11 +13,11 @@
     <div class="panel panel-featured">
       <p class="eyebrow">Required</p>
       <h2>Choose your improvement</h2>
-      <p class="panel-subtitle">Every level grants one skill point. The level-up stays a preview until you apply it.</p>
+      <p class="panel-subtitle">Every level grants <%= @planner.skill_points_per_level_description %>. The level-up stays a preview until you apply it.</p>
       <div class="field">
         <%= form.label :skill_name, "Skill point" %>
         <%= form.select :skill_name, @planner.skill_options.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Choose a skill" }, class: "choice-select" %>
-        <span class="field-hint">Choose any skill below +12. The governing stat is already included in the preview.</span>
+        <span class="field-hint">Choose any skill below +<%= @planner.max_skill_value %>. The governing stat is already included in the preview.</span>
       </div>
 
       <% if @planner.subclass_selection_required? %>
@@ -86,7 +86,7 @@
       <div class="field">
         <%= form.label :skill_from, "Optional moved point" %>
         <%= form.select :skill_from, Character::SKILL_NAMES.map { |skill| [ skill_display_name(skill), skill ] }, { include_blank: "Do not move a point" }, class: "choice-select" %>
-        <span class="field-hint">Move 1 point from this skill to the skill above; it cannot become negative.</span>
+        <span class="field-hint">Move <%= @planner.skill_point_transfers_per_level_description %> from this skill to the skill above; it cannot become negative.</span>
       </div>
 
       <div class="field">
@@ -101,15 +101,15 @@
 
       <% if @planner.stat_increase_type.present? %>
         <div class="field">
-          <%= form.label :stat_name, "Stat increase · #{@planner.stat_increase_type.capitalize} Stat" %>
+          <%= form.label :stat_name, "Stat increase · #{@planner.stat_increase_label}" %>
           <%= form.select :stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a stat" }, class: "choice-select" %>
-          <span class="field-hint">Chapter 3: <%= @planner.stat_increase_type == "any_two" ? "Choose two different stats" : @planner.stat_increase_type.capitalize %> applies at level <%= @planner.target_level %>.</span>
+          <span class="field-hint"><%= @planner.stat_increase_choice_description %> At level <%= @planner.target_level %>.</span>
         </div>
-        <% if @planner.stat_increase_type == "any_two" %>
+        <% if @planner.stat_increase_choice_count > 1 %>
           <div class="field">
             <%= form.label :second_stat_name, "Second stat increase" %>
             <%= form.select :second_stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a second stat" }, class: "choice-select" %>
-            <span class="field-hint">The two level-<%= Character::MAX_LEVEL %> increases must be different.</span>
+            <span class="field-hint">The selected stats must be different.</span>
           </div>
         <% end %>
       <% else %>

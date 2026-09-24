@@ -1325,16 +1325,17 @@ class Character < ApplicationRecord
       end
 
       if skill_points_spent > skill_point_budget
+        skill_rules = Rules::NimbleCatalog.derived_values
         issues << rule_issue(
           "You have spent #{skill_points_spent} skill points, but only #{skill_point_budget} are available.",
           "Chapter 3, Skills",
-          "New heroes receive 4 extra skill points; each later level adds 1."
+          "Heroes receive #{skill_rules.fetch('skill_points_at_level_one')} extra skill points at level 1 and #{skill_rules.fetch('skill_points_per_level')} per later level."
         )
       elsif skill_points_spent < skill_point_budget
         issues << rule_issue(
           "Spend #{skill_point_budget - skill_points_spent} more skill points before finalizing.",
           "Chapter 3, Skills",
-          "A starting hero must distribute all 4 extra skill points."
+          "All #{skill_point_budget} available skill points must be allocated."
         )
       end
     end

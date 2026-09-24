@@ -105,6 +105,66 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal "Core Rules 2.0.1, p. 6", stat_issue.fetch(:source_ref)
   end
 
+  test "stat increase count and amount from the rules catalog drive preview and persisted values" do
+    original_catalog_data = Rules::NimbleCatalog.data
+    overridden_catalog_data = original_catalog_data.deep_dup
+    key_mechanic = overridden_catalog_data.fetch("derived_values").fetch("stat_increase_mechanics").fetch("key")
+    key_mechanic["amount"] = 2
+    key_mechanic["choice_count"] = 2
+    original_strength = @character.stat_value("strength")
+    original_dexterity = @character.stat_value("dexterity")
+    original_might = @character.skill_value("might")
+    level_up = @character.level_ups.create!(
+      from_level: 3,
+      to_level: 4,
+      skill_name: "might",
+      stat_name: "strength",
+      second_stat_name: "dexterity",
+      feature_choices: legal_feature_choices_for(4),
+      hit_die_roll_one: 2,
+      hit_die_roll_two: 8
+    )
+
+    Rules::NimbleCatalog.instance_variable_set(:@data, overridden_catalog_data)
+    begin
+      planner = LevelUpPlanner.new(@character, level_up)
+      assert planner.valid?, planner.explanations.map { |explanation| explanation[:message] }.join(" | ")
+      assert_equal original_strength + 2, planner.preview.fetch("stats").fetch("strength")
+      assert_equal original_dexterity + 2, planner.preview.fetch("stats").fetch("dexterity")
+      assert_equal original_might + 3, planner.preview.fetch("skills").fetch("might")
+      assert_includes planner.preview.fetch("explanations").map { |explanation| explanation[:quote] },
+        "At levels 4, 8, 12, and 16, increase 2 different Key Stats (STR or DEX) by +2."
+
+      LevelUpService.finalize!(level_up)
+      assert_equal original_strength + 2, @character.reload.stat_value("strength")
+      assert_equal original_dexterity + 2, @character.stat_value("dexterity")
+      assert_equal original_might + 3, @character.skill_value("might")
+    ensure
+      Rules::NimbleCatalog.instance_variable_set(:@data, original_catalog_data)
+    end
+  end
+
+  test "skill choices exclude a target that stat and level increases would push past the cap" do
+    @character.update_columns(level: 15, status: "playable")
+    @character.skill_set.update!(might: 11, arcana: 9)
+    level_up = @character.level_ups.build(
+      from_level: 15,
+      to_level: 16,
+      skill_name: "might",
+      stat_name: "strength",
+      hit_die_roll_one: 2,
+      hit_die_roll_two: 8
+    )
+    planner = LevelUpPlanner.new(@character, level_up)
+
+    assert_equal 18, @character.skill_point_budget
+    assert_equal 18, @character.skill_points_spent
+    assert_equal 11, @character.skill_value("might")
+    assert_not_includes planner.skill_options, "might"
+    assert_includes planner.issues.map { |issue| issue.fetch(:message) },
+      "Might would exceed the +12 skill maximum after this level's increases."
+  end
+
   test "the catalog maximum level is enforced by the model and level-up planner" do
     maximum = Rules::NimbleCatalog.derived_values.fetch("max_level").to_i
     assert_equal maximum, Character::MAX_LEVEL
