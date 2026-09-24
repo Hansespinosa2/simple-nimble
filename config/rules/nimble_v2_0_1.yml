@@ -43,7 +43,14 @@ derived_values:
   max_stat: 5
   max_skill: 12
   hp_level_up_formula: "roll Hit Die with advantage"
-  hit_dice_formula: "current level"
+  hit_dice_formula: "level_one_maximum + (level - 1) * increase_per_level"
+  hit_dice_progression:
+    level_one_maximum: 1
+    level_one_source_ref: "Core Rules 2.0.1, p. 9"
+    level_one_source_quote: "Heroes start with a max of 1 Hit Die at level 1."
+    increase_per_level: 1
+    increase_source_ref: "Core Rules 2.0.1, p. 21"
+    increase_source_quote: "More Endurance. Your Hit Die max increases by 1 (it is typically equal to your level)."
 
 languages:
   source_ref: "Core Rules 2.0.1, pp. 20, 23-26"

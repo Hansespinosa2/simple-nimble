@@ -144,6 +144,12 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "The maximum a hero’s stat can typically go is +5.", derived.fetch("max_stat_source_quote")
     assert_equal "Core Rules 2.0.1, p. 8", derived.fetch("max_skill_source_ref")
     assert_equal "Roll 1d20 and add your skill (the max bonus a skill can ever have is +12).", derived.fetch("max_skill_source_quote")
+    hit_dice = @catalog.hit_dice_progression
+    assert_equal 1, hit_dice.fetch("level_one_maximum")
+    assert_equal "Core Rules 2.0.1, p. 9", hit_dice.fetch("level_one_source_ref")
+    assert_equal 1, hit_dice.fetch("increase_per_level")
+    assert_equal "Core Rules 2.0.1, p. 21", hit_dice.fetch("increase_source_ref")
+    assert_includes hit_dice.fetch("increase_source_quote"), "max increases by 1"
     assert_equal 4, derived.fetch("skill_points_at_level_one")
     assert_equal 1, derived.fetch("skill_points_per_level")
     assert_equal 1, derived.fetch("skill_point_transfers_per_level")

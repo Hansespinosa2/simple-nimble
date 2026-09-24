@@ -62,6 +62,47 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 4, level_up.preview.fetch("level")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-07:AC-2 S-09:AC-3
+  test "Hit Dice maximum and level-up gain follow the catalog progression" do
+    original_catalog = Rules::NimbleCatalog.data
+    changed_catalog = original_catalog.deep_dup
+    progression = changed_catalog.fetch("derived_values").fetch("hit_dice_progression")
+    progression["increase_per_level"] = 2
+    progression["increase_source_ref"] = "Test rules, p. 99"
+    progression["increase_source_quote"] = "Test rule: max Hit Dice grow by 2."
+    Rules::NimbleCatalog.instance_variable_set(:@data, changed_catalog)
+
+    begin
+      @character.trait_set.update!(max_hit_dice: 3, current_hit_dice: 1)
+      level_up = @character.level_ups.create!(
+        from_level: 3,
+        to_level: 4,
+        skill_name: "might",
+        stat_name: "strength",
+        feature_choices: legal_feature_choices_for(4),
+        hit_die_roll_one: 2,
+        hit_die_roll_two: 8
+      )
+      planner = LevelUpPlanner.new(@character, level_up)
+      preview = planner.preview
+      hit_dice_explanation = preview.fetch("explanations").find { |explanation| explanation.fetch(:message).include?("Max Hit Dice") }
+
+      assert planner.valid?, planner.explanations.map { |explanation| explanation[:message] }.join(" | ")
+      assert_equal 7, preview.fetch("traits").fetch("max_hit_dice")
+      assert_equal 3, preview.fetch("traits").fetch("current_hit_dice")
+      assert_equal "Test rules, p. 99", hit_dice_explanation.fetch(:source_ref)
+      assert_equal "Test rule: max Hit Dice grow by 2.", hit_dice_explanation.fetch(:quote)
+
+      LevelUpService.finalize!(level_up)
+      @character.reload
+
+      assert_equal 7, @character.trait_set.max_hit_dice
+      assert_equal 3, @character.trait_set.current_hit_dice
+    ensure
+      Rules::NimbleCatalog.instance_variable_set(:@data, original_catalog)
+    end
+  end
+
   test "an illegal stat choice cannot be finalized" do
     level_up = @character.level_ups.create!(
       from_level: 3,

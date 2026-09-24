@@ -374,8 +374,10 @@ class LevelUpPlanner
       target_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: target_level, subclass_name: selected_subclass_name)
       traits["max_hp"] += target_max_hp_modifier - current_max_hp_modifier
       traits["current_hp"] = traits["max_hp"] if character.trait_set.current_hp.to_i >= character.trait_set.max_hp.to_i
-      traits["max_hit_dice"] = target_level + character.derived_modifier_for(:max_hit_dice_modifier, level: target_level, subclass_name: selected_subclass_name)
-      traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + 1, traits["max_hit_dice"] ].min
+      hit_dice_progression = Rules::NimbleCatalog.hit_dice_progression
+      hit_dice_gain = hit_dice_progression.fetch("increase_per_level").to_i
+      traits["max_hit_dice"] = character.max_hit_dice_for(level: target_level, subclass_name: selected_subclass_name)
+      traits["current_hit_dice"] = [ character.trait_set.current_hit_dice.to_i + hit_dice_gain, traits["max_hit_dice"] ].min
       traits["initiative"] = character.initiative_for(stats, level: target_level, subclass_name: selected_subclass_name)
       traits["speed"] = character.speed_for(level: target_level, subclass_name: selected_subclass_name)
       traits["hit_die"] = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
@@ -790,6 +792,9 @@ class LevelUpPlanner
     end
 
     def applied_explanations(stats, hp_gain)
+      hit_dice_progression = Rules::NimbleCatalog.hit_dice_progression
+      hit_dice_increase = hit_dice_progression.fetch("increase_per_level").to_i
+      max_hit_dice = character.max_hit_dice_for(level: target_level, subclass_name: selected_subclass_name)
       explanations = [
         {
           type: "applied",
@@ -803,6 +808,12 @@ class LevelUpPlanner
           message: "Max HP increases by #{hp_gain} (higher of #{level_up.hit_die_roll_one} and #{level_up.hit_die_roll_two} on #{character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)}).",
           source_ref: "Chapter 3, Derived Values",
           quote: "HP Increase. Roll your Hit Die with advantage and increase your max HP by that much."
+        },
+        {
+          type: "auto_applied",
+          message: "Max Hit Dice increases by #{hit_dice_increase} to #{max_hit_dice}.",
+          source_ref: hit_dice_progression.fetch("increase_source_ref"),
+          quote: hit_dice_progression.fetch("increase_source_quote")
         }
       ]
       [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|

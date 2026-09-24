@@ -974,6 +974,14 @@ class Character < ApplicationRecord
     derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die || "1d6")
   end
 
+  def max_hit_dice_for(level: self.level, subclass_name: self.subclass_name)
+    progression = Rules::NimbleCatalog.hit_dice_progression
+    level_one_maximum = progression.fetch("level_one_maximum").to_i
+    increase_per_level = progression.fetch("increase_per_level").to_i
+    level_based_maximum = level_one_maximum + [ level.to_i - 1, 0 ].max * increase_per_level
+    level_based_maximum + derived_modifier_for(:max_hit_dice_modifier, level:, subclass_name:)
+  end
+
   def hit_die_sides
     trait_set&.hit_die.to_s[/d(\d+)/i, 1]&.to_i
   end
@@ -1775,7 +1783,7 @@ class Character < ApplicationRecord
       level_value = level.to_i.positive? ? level.to_i : 1
       subclass_for_effects = self.subclass_name
       starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
-      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_hit_dice = max_hit_dice_for(level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value, subclass_name: subclass_for_effects)
@@ -2149,7 +2157,7 @@ class Character < ApplicationRecord
       stat_values = current_stat_values
       initiative = initiative_for(stat_values, level: level_value, subclass_name: subclass_for_effects)
       speed = speed_for(level: level_value, subclass_name: subclass_for_effects)
-      max_hit_dice = level_value + derived_modifier_for(:max_hit_dice_modifier, level: level_value, subclass_name: subclass_for_effects)
+      max_hit_dice = max_hit_dice_for(level: level_value, subclass_name: subclass_for_effects)
       armor = armor_for(stat_values, level: level_value, subclass_name: subclass_for_effects).to_i + derived_modifier_for(:armor_modifier, level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
       resource_values = derived_resource_values_for(stat_values: stat_values, level: level_value, subclass_name: subclass_for_effects)

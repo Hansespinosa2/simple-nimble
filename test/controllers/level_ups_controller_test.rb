@@ -24,6 +24,9 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", /Level up to 2/
     assert_select "select[name='level_up[skill_name]']"
+    assert_select ".preview-list", /Hit Dice\s*2 \/ 2/
+    assert_select ".explanation-stack", /Max Hit Dice increases by 1 to 2/
+    assert_select ".explanation-stack", /Core Rules 2\.0\.1, p\. 21.*More Endurance\. Your Hit Die max increases by 1/
     assert_select ".skill-rule-note", /explicitly grant.*Songweaver's Jack of All Trades.*Safe Rest.*Core Rules 2\.0\.1, p\. 21/
     assert_select ".progression-preview", /Intensifying Fury/
     assert_select ".progression-preview .source-note", /Heroes 2.0.1/

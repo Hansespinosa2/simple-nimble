@@ -151,7 +151,7 @@
       </div>
       <div class="preview-list">
         <div><span>Max HP</span><strong><%= preview.fetch("traits").fetch("max_hp") %> <small>+<%= preview.fetch("hp_gain") %> (rolls <%= preview.fetch("hit_die_rolls").join(" / ") %>)</small></strong></div>
-        <div><span>Max Hit Dice</span><strong><%= preview.fetch("traits").fetch("max_hit_dice") %></strong></div>
+        <div><span>Hit Dice</span><strong><%= preview.fetch("traits").fetch("current_hit_dice") %> / <%= preview.fetch("traits").fetch("max_hit_dice") %></strong></div>
         <div><span>Languages</span><strong><%= preview.fetch("languages").join(", ") %></strong></div>
         <div><span>Armor</span><strong><%= preview.fetch("traits").fetch("armor") %></strong></div>
         <div><span>Initiative</span><strong><%= signed_value(preview.fetch("traits").fetch("initiative")) %></strong></div>
