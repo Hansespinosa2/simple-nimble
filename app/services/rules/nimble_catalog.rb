@@ -46,6 +46,12 @@ module Rules
         data.fetch("stats")
       end
 
+      def stat_name_for_abbreviation(abbreviation)
+        stats.find do |_name, definition|
+          definition.fetch("abbreviation").casecmp?(abbreviation.to_s)
+        end&.first
+      end
+
       def skills
         data.fetch("skills")
       end

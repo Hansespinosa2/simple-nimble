@@ -193,6 +193,28 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the Zephyr builder preview applies level-based Speed and Initiative and matches the saved sheet" do
+    visit new_character_url
+
+    fill_in "Character name", with: "Swift Zephyr Preview"
+    select "Zephyr", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Fearless", from: "Background"
+    select "Standard", from: "Stat array"
+    fill_in "Level", with: "2"
+
+    assert_selector "[data-character-builder-target='speedPreview']", text: "8"
+    assert_selector "[data-character-builder-target='initiativePreview']", text: "+6"
+
+    click_on "Save draft"
+    assert_text "Draft saved"
+
+    created = Character.find_by!(name: "Swift Zephyr Preview")
+    assert_equal 8, created.trait_set.speed
+    assert_equal 6, created.trait_set.initiative
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "equipping catalog armor updates Armor, slots, source details, and proficiency guidance" do
     character = Character.create!(
       name: "Armored Mage",

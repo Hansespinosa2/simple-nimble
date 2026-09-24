@@ -155,15 +155,17 @@ export default class extends Controller {
 
   updateDerived(characterClass, ancestry, background, array) {
     const stats = this.statValues || {}
-    const dexterity = stats.dexterity || 0
     const intelligence = stats.intelligence || 0
     const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
-    const initiative = dexterity + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0)
+    const derived = this.rulesValue.derived_values || {}
+    const classEffects = this.classDerivedEffectsFor(characterClass, level)
+    const initiativeStat = this.statNameForAbbreviation(derived.initiative_formula)
+    const initiative = Number(stats[initiativeStat] || 0) + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0) +
+      Number(classEffects.initiative_modifier || 0) + (classEffects.initiative_level_bonus ? level : 0)
     const startingEquipmentChoice = this.hasStartingEquipmentChoiceTarget ? this.startingEquipmentChoiceTarget.value : "class_gear"
     const armor = this.armorValue(characterClass, stats, startingEquipmentChoice, level) + (ancestry?.armor_modifier || 0) + (background?.armor_modifier || 0)
-    const derived = this.rulesValue.derived_values || {}
-    const speed = Number(derived.base_speed || 0) + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
-    const wounds = Number(derived.default_max_wounds || 0) + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
+    const speed = Number(derived.base_speed || 0) + Number(classEffects.speed_modifier || 0) + (ancestry?.speed_modifier || 0) + (background?.speed_modifier || 0)
+    const wounds = Number(derived.default_max_wounds || 0) + Number(classEffects.max_wounds_modifier || 0) + (ancestry?.max_wounds_modifier || 0) + (background?.max_wounds_modifier || 0)
     const keyStats = characterClass?.key_stats || []
     const saveDc = array && keyStats.length ? Number(derived.save_dc_base || 0) + Math.max(...keyStats.map((stat) => stats[stat] || 0)) : "—"
     const saves = characterClass ? `${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : "—"
@@ -182,6 +184,26 @@ export default class extends Controller {
     this.setTargetText("speedPreview", array ? speed : "—")
     this.setTargetText("woundsPreview", array ? wounds : "—")
     this.setTargetText("resourcePreview", characterClass?.resource?.name || "—")
+  }
+
+  classDerivedEffectsFor(characterClass, level) {
+    return Object.entries(characterClass?.derived_effects || {})
+      .filter(([effectLevel]) => Number(effectLevel) <= level)
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .reduce((combined, [_effectLevel, effects]) => {
+        Object.entries(effects).forEach(([name, value]) => {
+          if (name.endsWith("_modifier")) combined[name] = Number(combined[name] || 0) + Number(value || 0)
+          else if (name === "armor_multiplier") combined[name] = Number(value)
+          else if (typeof value === "boolean") combined[name] = value
+        })
+        return combined
+      }, {})
+  }
+
+  statNameForAbbreviation(abbreviation) {
+    return Object.entries(this.rulesValue.stats || {}).find(([_name, rule]) =>
+      rule.abbreviation?.toLowerCase() === String(abbreviation || "").toLowerCase()
+    )?.[0]
   }
 
   updateHints(characterClass, ancestry, background) {
@@ -289,12 +311,7 @@ export default class extends Controller {
       : armorRules.unarmored_formula === "dexterity_plus_strength" ? dexterity + (stats.strength || 0) : dexterity
     armor += shields.reduce((total, item) => total + Number(item.rules.armor_value || 0), 0)
 
-    if (!bodyArmor) {
-      const multiplier = Object.entries(characterClass?.derived_effects || {})
-        .filter(([effectLevel]) => Number(effectLevel) <= level)
-        .reduce((current, [_effectLevel, effects]) => effects.armor_multiplier ? Number(effects.armor_multiplier) : current, 1)
-      armor *= multiplier
-    }
+    if (!bodyArmor) armor *= Number(this.classDerivedEffectsFor(characterClass, level).armor_multiplier || 1)
     return armor
   }
 

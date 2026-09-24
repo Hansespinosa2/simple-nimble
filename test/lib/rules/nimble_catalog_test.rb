@@ -89,6 +89,8 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 10, derived.fetch("base_inventory_slots")
     assert_equal "roll Hit Die with advantage", derived.fetch("hp_level_up_formula")
     assert_equal 10, derived.fetch("save_dc_base")
+    assert_equal "DEX", derived.fetch("initiative_formula")
+    assert_equal "dexterity", @catalog.stat_name_for_abbreviation(derived.fetch("initiative_formula"))
     assert_equal 4, derived.fetch("skill_points_at_level_one")
     assert_equal 1, derived.fetch("skill_points_per_level")
   end

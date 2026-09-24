@@ -921,7 +921,8 @@ class Character < ApplicationRecord
     values = stat_values || current_stat_values
     level_value = level.to_i.positive? ? level.to_i : 1
     level_bonus = derived_feature_effects(level:, subclass_name:)["initiative_level_bonus"] ? level_value : 0
-    value_for_stat(values, "dexterity") + derived_modifier_for(:initiative_modifier, level:, subclass_name:) + level_bonus
+    initiative_stat = Rules::NimbleCatalog.stat_name_for_abbreviation(Rules::NimbleCatalog.derived_values.fetch("initiative_formula"))
+    value_for_stat(values, initiative_stat) + derived_modifier_for(:initiative_modifier, level:, subclass_name:) + level_bonus
   end
 
   def speed_for(level: self.level, subclass_name: self.subclass_name)
