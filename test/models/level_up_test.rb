@@ -88,6 +88,8 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_not planner.skill_options.include?("might")
     assert_not planner.valid?
     assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Might is already at the +#{max_skill} skill maximum."
+    skill_issue = planner.issues.find { |issue| issue.fetch(:message).include?("skill maximum") }
+    assert_equal "Core Rules 2.0.1, p. 8", skill_issue.fetch(:source_ref)
   end
 
   test "stat maximum validation follows the structured rules value" do
@@ -99,6 +101,26 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal max_stat, planner.max_stat_value
     assert_not planner.valid?
     assert_includes planner.explanations.map { |explanation| explanation[:message] }, "Strength is already at the +#{max_stat} stat maximum."
+    stat_issue = planner.issues.find { |issue| issue.fetch(:message).include?("stat maximum") }
+    assert_equal "Core Rules 2.0.1, p. 6", stat_issue.fetch(:source_ref)
+  end
+
+  test "the catalog maximum level is enforced by the model and level-up planner" do
+    maximum = Rules::NimbleCatalog.derived_values.fetch("max_level").to_i
+    assert_equal maximum, Character::MAX_LEVEL
+
+    overleveled = Character.new(level: maximum + 1)
+    assert_not overleveled.valid?
+    assert_includes overleveled.errors.attribute_names, :level
+
+    @character.update_columns(level: maximum, status: "playable")
+    level_up = @character.level_ups.build(from_level: maximum, to_level: maximum + 1)
+    planner = LevelUpPlanner.new(@character, level_up)
+    maximum_issue = planner.issues.find { |issue| issue.fetch(:message) == "This character is already at the maximum level." }
+
+    assert_equal maximum, planner.max_level_value
+    assert_equal "Heroes 2.0.1, class progressions", maximum_issue.fetch(:source_ref)
+    assert_equal "Each published class progression ends at level 20.", maximum_issue.fetch(:quote)
   end
 
   test "a finalized transition cannot be applied twice" do
@@ -143,12 +165,13 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 3, @character.trait_set.temp_hp
   end
 
-  test "level twenty requires and applies two different stat increases" do
-    @character.update_columns(level: 19, status: "playable")
+  test "the catalog maximum level requires and applies two different stat increases" do
+    maximum_level = Character::MAX_LEVEL
+    @character.update_columns(level: maximum_level - 1, status: "playable")
     @character.skill_set.update!(lore: 12, examination: 4)
     level_up = @character.level_ups.create!(
-      from_level: 19,
-      to_level: 20,
+      from_level: maximum_level - 1,
+      to_level: maximum_level,
       skill_name: "might",
       stat_name: "strength",
       second_stat_name: "dexterity",
@@ -159,7 +182,7 @@ class LevelUpTest < ActiveSupport::TestCase
     LevelUpService.finalize!(level_up)
     @character.reload
 
-    assert_equal 20, @character.level
+    assert_equal maximum_level, @character.level
     assert_equal 3, @character.stat_set.strength
     assert_equal 3, @character.stat_set.dexterity
     assert_equal "any_two", level_up.preview.fetch("stat_increase_type")
@@ -183,12 +206,13 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 2, planner.preview.fetch("skills").fetch("might")
   end
 
-  test "level twenty rejects a duplicate second stat" do
-    @character.update_columns(level: 19, status: "playable")
+  test "the catalog maximum level rejects a duplicate second stat" do
+    maximum_level = Character::MAX_LEVEL
+    @character.update_columns(level: maximum_level - 1, status: "playable")
     @character.skill_set.update!(lore: 12, examination: 4)
     level_up = @character.level_ups.build(
-      from_level: 19,
-      to_level: 20,
+      from_level: maximum_level - 1,
+      to_level: maximum_level,
       skill_name: "might",
       stat_name: "strength",
       second_stat_name: "strength",

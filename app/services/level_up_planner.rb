@@ -31,6 +31,10 @@ class LevelUpPlanner
     Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i
   end
 
+  def max_level_value
+    Character::MAX_LEVEL
+  end
+
   def subclass_options
     character.subclass_options
   end
@@ -146,7 +150,7 @@ class LevelUpPlanner
     result = []
     result << issue("This character is not in a playable state.", "Chapter 4, Character Lifecycle", "Level-up begins from a PlayableValid character.") unless character.playable? || character.level_up_in_progress?
     result << issue("Resolve the character's creation checks before leveling up.", "Chapter 3, Character Creation", "A level-up can only begin from a legal character state.") unless character.creation_issues.empty?
-    result << issue("This character is already at the maximum level.", "Chapter 3, Character Progression", "Characters advance from level 1 through level 20.") if character.level.to_i >= 20
+    result << issue("This character is already at the maximum level.", max_level_source_ref, max_level_source_quote) if character.level.to_i >= max_level_value
     result << issue("This level-up has already been finalized.", "Chapter 4, Character Lifecycle", "A finalized transition cannot be applied twice.") if level_up.finalized?
     result << issue("Level-up must start from the character's current level.", "Chapter 4, Character Lifecycle", "A transition records the exact level it advances from.") unless level_up.from_level.to_i == character.level.to_i
     result << issue("Level-up must advance exactly one level.", "Chapter 3, Character Progression", "Level-up is an explicit one-level transition.") unless target_level == character.level.to_i + 1
@@ -176,7 +180,7 @@ class LevelUpPlanner
     elsif !Character::SKILL_NAMES.include?(level_up.skill_name)
       result << issue("#{level_up.skill_name.to_s.humanize} is not a recognized skill.", "Chapter 3, Skills", "Choose one of the ten skills listed in the character rules.")
     elsif !skill_options.include?(level_up.skill_name)
-      result << issue("#{level_up.skill_name.to_s.humanize} is already at the +#{max_skill_value} skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +#{max_skill_value}.")
+      result << issue("#{level_up.skill_name.to_s.humanize} is already at the +#{max_skill_value} skill maximum.", max_skill_source_ref, max_skill_source_quote)
     end
 
     if level_up.skill_from.present?
@@ -203,7 +207,7 @@ class LevelUpPlanner
         if !stat_options.include?(stat_name)
           result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", stat_increase_source_ref, stat_increase_quote)
         elsif character.stat_value(stat_name) >= max_stat_value
-          result << issue("#{stat_name.to_s.humanize} is already at the +#{max_stat_value} stat maximum.", "Chapter 3, Stats", "Stats cannot exceed +#{max_stat_value}.")
+          result << issue("#{stat_name.to_s.humanize} is already at the +#{max_stat_value} stat maximum.", max_stat_source_ref, max_stat_source_quote)
         end
       end
     elsif level_up.stat_name.present? || level_up.second_stat_name.present?
@@ -221,7 +225,7 @@ class LevelUpPlanner
       result << issue("#{level_up.skill_from.to_s.humanize} cannot become negative when moving a skill point.", "Chapter 3, Skills", "You may move 1 point only as long as the source skill does not become negative.")
     end
     if level_up.skill_name.present? && Character::SKILL_NAMES.include?(level_up.skill_name) && projected_skills.fetch(level_up.skill_name) > max_skill_value
-      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +#{max_skill_value} skill maximum.", "Chapter 3, Skills", "Skill values cannot exceed +#{max_skill_value}.")
+      result << issue("#{level_up.skill_name.to_s.humanize} would exceed the +#{max_skill_value} skill maximum.", max_skill_source_ref, max_skill_source_quote)
     end
 
     character.language_issues_for(
@@ -349,6 +353,30 @@ class LevelUpPlanner
   end
 
   private
+    def max_level_source_ref
+      Rules::NimbleCatalog.derived_values.fetch("max_level_source_ref")
+    end
+
+    def max_level_source_quote
+      Rules::NimbleCatalog.derived_values.fetch("max_level_source_quote")
+    end
+
+    def max_stat_source_ref
+      Rules::NimbleCatalog.derived_values.fetch("max_stat_source_ref")
+    end
+
+    def max_stat_source_quote
+      Rules::NimbleCatalog.derived_values.fetch("max_stat_source_quote")
+    end
+
+    def max_skill_source_ref
+      Rules::NimbleCatalog.derived_values.fetch("max_skill_source_ref")
+    end
+
+    def max_skill_source_quote
+      Rules::NimbleCatalog.derived_values.fetch("max_skill_source_quote")
+    end
+
     def projected_language_choices
       (Array(character.language_choices).compact_blank.map(&:to_s) + Array(level_up.language_choices).compact_blank.map(&:to_s)).uniq
     end

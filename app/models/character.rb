@@ -9,6 +9,7 @@ class Character < ApplicationRecord
   BASE_SPEED = Rules::NimbleCatalog.derived_values.fetch("base_speed").to_i
   DEFAULT_MAX_WOUNDS = Rules::NimbleCatalog.derived_values.fetch("default_max_wounds").to_i
   BASE_INVENTORY_SLOTS = Rules::NimbleCatalog.derived_values.fetch("base_inventory_slots").to_i
+  MAX_LEVEL = Rules::NimbleCatalog.derived_values.fetch("max_level").to_i
   STARTING_EQUIPMENT_CHOICES = %w[class_gear starting_gold].freeze
 
   # Nimble creation-time stat arrays (02-rules-canon.md S-1 #1). The builder
@@ -56,7 +57,7 @@ class Character < ApplicationRecord
   validates :status, inclusion: { in: STATUS_LABELS.keys }
   validates :starting_equipment_choice, inclusion: { in: STARTING_EQUIPMENT_CHOICES }
   validates :current_gold, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
-  validates :level, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }, allow_nil: true
+  validates :level, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: MAX_LEVEL }, allow_nil: true
   validate :stat_assignments_match_array
   validate :playable_state_is_legal, if: :playable?
   validate :starting_equipment_choice_only_changes_while_draft
@@ -247,7 +248,7 @@ class Character < ApplicationRecord
 
     level = level.presence || 1
 
-    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |feature_level|
       progression_features_for(feature_level).map do |name|
         { level: feature_level, name: name }
       end
@@ -269,7 +270,7 @@ class Character < ApplicationRecord
 
     level = level.presence || 1
 
-    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |feature_level|
       character_class.subclass_features_for(subclass_name, feature_level).map do |name|
         { level: feature_level, name: name }
       end
@@ -374,7 +375,7 @@ class Character < ApplicationRecord
   end
 
   def story_subclass_feature_choice_pools_through(subclass_name:, level: self.level, ledger: feature_choice_ledger)
-    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |choice_level|
       feature_choice_pools_for(choice_level, subclass_name:).select { |pool| pool["story_source_ref"].present? }.map do |pool|
         pool.merge(
           "level" => choice_level,
@@ -482,7 +483,7 @@ class Character < ApplicationRecord
     level = level.presence || 1
     ledger = feature_choice_ledger
 
-    1.upto([ level.to_i, 20 ].min).flat_map do |feature_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |feature_level|
       feature_choice_pools_for(feature_level).map do |pool|
         pool.merge(
           "level" => feature_level,
@@ -513,7 +514,7 @@ class Character < ApplicationRecord
     return selections_by_level.fetch(level.to_i.to_s, []) if selections_by_level.key?(level.to_i.to_s)
     return [] unless selections_by_level.key?("legacy")
 
-    first_level = 1.upto([ level.to_i, 20 ].min).find do |candidate_level|
+    first_level = 1.upto([ level.to_i, MAX_LEVEL ].min).find do |candidate_level|
       feature_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
     end
     level.to_i == first_level ? selections_by_level.fetch("legacy") : []
@@ -576,7 +577,7 @@ class Character < ApplicationRecord
   end
 
   def story_subclass_spell_choice_pools_through(subclass_name:, level: self.level, ledger: spell_choice_ledger)
-    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |choice_level|
       spell_choice_pools_for(choice_level, subclass_name:).select { |pool| pool["story_subclass"].present? }.map do |pool|
         pool.merge(
           "selected" => spell_choice_selections_for(pool.fetch("name"), choice_level, ledger)
@@ -588,7 +589,7 @@ class Character < ApplicationRecord
   def spell_choice_pools_through(level = self.level, ledger: spell_choice_ledger)
     level = level.presence || 1
 
-    1.upto([ level.to_i, 20 ].min).flat_map do |choice_level|
+    1.upto([ level.to_i, MAX_LEVEL ].min).flat_map do |choice_level|
       spell_choice_pools_for(choice_level).map do |pool|
         pool.merge(
           "level" => choice_level,
@@ -617,7 +618,7 @@ class Character < ApplicationRecord
     return selections_by_level.fetch(level.to_i.to_s, []) if selections_by_level.key?(level.to_i.to_s)
     return [] unless selections_by_level.key?("legacy")
 
-    first_level = 1.upto([ level.to_i, 20 ].min).find do |candidate_level|
+    first_level = 1.upto([ level.to_i, MAX_LEVEL ].min).find do |candidate_level|
       spell_choice_pools_for(candidate_level).any? { |pool| pool.fetch("name") == pool_name.to_s }
     end
     level.to_i == first_level ? selections_by_level.fetch("legacy") : []
@@ -1323,7 +1324,7 @@ class Character < ApplicationRecord
   end
 
   def level_up_eligible?
-    playable? && level.to_i < 20 && creation_issues.empty?
+    playable? && level.to_i < MAX_LEVEL && creation_issues.empty?
   end
 
   def apply_level_up_transition!(new_level)

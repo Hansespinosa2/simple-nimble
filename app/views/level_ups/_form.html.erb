@@ -109,7 +109,7 @@
           <div class="field">
             <%= form.label :second_stat_name, "Second stat increase" %>
             <%= form.select :second_stat_name, @planner.stat_options.map { |stat| [ stat_display_name(stat), stat ] }, { include_blank: "Choose a second stat" }, class: "choice-select" %>
-            <span class="field-hint">The two level-20 increases must be different.</span>
+            <span class="field-hint">The two level-<%= Character::MAX_LEVEL %> increases must be different.</span>
           </div>
         <% end %>
       <% else %>

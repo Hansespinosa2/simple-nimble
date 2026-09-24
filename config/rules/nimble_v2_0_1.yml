@@ -23,6 +23,13 @@ derived_values:
   skill_points_per_level: 1
   skill_point_source_ref: "Core Rules 2.0.1, p. 20"
   skill_point_source_quote: "At level 1 ... may place 4 additional skill points wherever you like."
+  max_level: 20
+  max_level_source_ref: "Heroes 2.0.1, class progressions"
+  max_level_source_quote: "Each published class progression ends at level 20."
+  max_stat_source_ref: "Core Rules 2.0.1, p. 6"
+  max_stat_source_quote: "The maximum a hero’s stat can typically go is +5."
+  max_skill_source_ref: "Core Rules 2.0.1, p. 8"
+  max_skill_source_quote: "Roll 1d20 and add your skill (the max bonus a skill can ever have is +12)."
   armor_unarmored_formula: "DEX"
   initiative_formula: "DEX"
   max_stat: 5

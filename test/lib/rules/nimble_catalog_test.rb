@@ -49,11 +49,12 @@ class NimbleCatalogTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
-  test "every published class follows its source-defined stat schedule at all twenty levels" do
+  test "every published class follows its source-defined stat schedule through the catalog maximum" do
+    max_level = @catalog.derived_values.fetch("max_level").to_i
     expected_schedule = {
       "key" => [ 4, 8, 12, 16 ],
       "secondary" => [ 5, 9, 13, 17 ],
-      "any_two" => [ 20 ]
+      "any_two" => [ max_level ]
     }
     expected_types = expected_schedule.each_with_object({}) do |(type, levels), types|
       levels.each { |level| types[level] = type }
@@ -64,7 +65,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     class_names.each do |class_name|
       assert_equal expected_schedule, @catalog.class_for(class_name).fetch("stat_increases"), class_name
-      (1..20).each do |level|
+      (1..max_level).each do |level|
         expected_type = expected_types[level]
         actual_catalog_type = @catalog.stat_increase_for(class_name, level)
         actual_model_type = CharacterClass.find_by!(name: class_name).stat_increase_type_for(level)
@@ -93,6 +94,13 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "dexterity", @catalog.stat_name_for_abbreviation(derived.fetch("initiative_formula"))
     assert_equal 5, derived.fetch("max_stat")
     assert_equal 12, derived.fetch("max_skill")
+    assert_equal 20, derived.fetch("max_level")
+    assert_equal "Heroes 2.0.1, class progressions", derived.fetch("max_level_source_ref")
+    assert_equal "Each published class progression ends at level 20.", derived.fetch("max_level_source_quote")
+    assert_equal "Core Rules 2.0.1, p. 6", derived.fetch("max_stat_source_ref")
+    assert_equal "The maximum a hero’s stat can typically go is +5.", derived.fetch("max_stat_source_quote")
+    assert_equal "Core Rules 2.0.1, p. 8", derived.fetch("max_skill_source_ref")
+    assert_equal "Roll 1d20 and add your skill (the max bonus a skill can ever have is +12).", derived.fetch("max_skill_source_quote")
     assert_equal 4, derived.fetch("skill_points_at_level_one")
     assert_equal 1, derived.fetch("skill_points_per_level")
   end

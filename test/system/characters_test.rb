@@ -41,6 +41,8 @@ class CharactersTest < ApplicationSystemTestCase
   test "the guided builder previews derived values and finalizes a legal character" do
     visit new_character_url
 
+    assert_equal Character::MAX_LEVEL.to_s, find("#character_level")["max"]
+
     fill_in "character_name", with: "Preview Hero"
     select @character_class.name, from: "Class"
     select @ancestry.name, from: "Ancestry"
