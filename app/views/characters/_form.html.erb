@@ -186,6 +186,7 @@
             <p class="eyebrow">Your edge</p>
             <h2>Skill points</h2>
             <p class="panel-subtitle">Spend <strong><%= character.skill_point_budget %></strong> extra points at level <%= character.level || 1 %>. Skills cannot exceed +12.</p>
+            <small class="source-note skill-rule-note">Rules basis: <%= Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_note") %> (<%= Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_source_ref") %>).</small>
           </div>
           <span class="step-number">04</span>
         </div>

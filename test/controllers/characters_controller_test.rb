@@ -33,6 +33,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[ancestry_id]']"
     assert_select "select[name='character[background_id]']"
     assert_select "select[name='character[stat_array]']"
+    assert_select ".skill-rule-note", /parsed texts do not specify a general per-level award or transfer/
     assert_select "select[name='character[starting_equipment_choice]'] option[value='starting_gold']", text: "Starting gold instead (50 gp per level)"
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
