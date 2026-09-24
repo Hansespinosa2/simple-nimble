@@ -187,7 +187,7 @@ module Rules
       end
 
       def choice_pools_for(class_name, level)
-        choice_pools_for_class(class_name).filter_map do |pool_name, definition|
+        shared_choice_pools_for(level) + choice_pools_for_class(class_name).filter_map do |pool_name, definition|
           count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
           next if count.nil?
 
@@ -196,7 +196,7 @@ module Rules
       end
 
       def choice_pool_for(class_name, pool_name)
-        choice_pools_for_class(class_name).fetch(pool_name.to_s, nil)
+        choice_pools_for_class(class_name).fetch(pool_name.to_s, nil) || data.fetch("shared_choice_pools", {}).fetch(pool_name.to_s, nil)
       end
 
       def feature_choice_effects_for(class_name, selections_by_pool)
@@ -437,6 +437,15 @@ module Rules
       end
 
       private
+        def shared_choice_pools_for(level)
+          data.fetch("shared_choice_pools", {}).filter_map do |pool_name, definition|
+            count = definition.to_h.fetch("choices", {}).fetch(level.to_i, nil)
+            next if count.nil?
+
+            definition.merge("name" => pool_name.to_s, "level" => level.to_i, "count" => count.to_i)
+          end
+        end
+
         def choice_pools_for_class(class_name)
           data.fetch("choice_pools", {}).fetch(class_name.to_s, {})
         end

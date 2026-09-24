@@ -533,7 +533,7 @@ class LevelUpPlanner
           result << issue(
             "Choose #{expected_count} #{pool_name} #{plural} at level #{target_level}.",
             pool.fetch("source_ref"),
-            "Choose #{expected_count} option#{expected_count == 1 ? '' : 's'} from the #{pool_name} list."
+            pool.fetch("source_quote", "Choose #{expected_count} option#{expected_count == 1 ? '' : 's'} from the #{pool_name} list.")
           )
         end
 

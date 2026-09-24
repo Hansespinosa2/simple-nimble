@@ -425,6 +425,41 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal({ "resource_max_modifiers" => { "combat_dice" => 2 } }, effects)
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-4 S-09:AC-3
+  test "all classes unlock one source-backed level-nineteen Epic Boon from the twelve published options" do
+    expected_options = [
+      "Epic Agility", "Epic Criticals", "Epic Defense", "Epic Foresight",
+      "Epic Knowledge", "Epic Mana", "Epic Mind", "Epic Resistance",
+      "Epic Senses", "Epic Speed", "Epic Stamina", "Epic Stats"
+    ]
+    expected_descriptions = {
+      "Epic Agility" => "Gain 1 action once per encounter.",
+      "Epic Criticals" => "When rolling critical-hit damage, you may replace one die with a d20.",
+      "Epic Defense" => "Your shields gain +3 Armor.",
+      "Epic Foresight" => "+5 Initiative and advantage on your first attack each encounter.",
+      "Epic Knowledge" => "Once per day, call on profound insight for hidden knowledge about a legendary person or object.",
+      "Epic Mana" => "Whenever you are healed, you may instead recover 1 mana for every 5 HP you would have been healed.",
+      "Epic Mind" => "+8 mana.",
+      "Epic Resistance" => "Once per encounter, when you would suffer damage or fail a save, you may choose not to.",
+      "Epic Senses" => "Gain Blindsight 6 or Darkvision 16.",
+      "Epic Speed" => "+4 Speed and +4 Initiative.",
+      "Epic Stamina" => "Rolling 4 or higher on a Hit Die during a Field Rest heals 1 Wound.",
+      "Epic Stats" => "Increase 3 different stats by 1."
+    }
+
+    @catalog.classes.each_key do |class_name|
+      pools = @catalog.choice_pools_for(class_name, 19)
+      assert_equal [ "Epic Boon" ], pools.map { |pool| pool.fetch("name") }, "#{class_name} level 19 should require the shared boon choice"
+      assert_equal 1, pools.sole.fetch("count"), "#{class_name} should choose exactly one boon"
+      assert_equal expected_options, pools.sole.fetch("options")
+      assert_equal expected_descriptions, pools.sole.fetch("option_descriptions")
+      assert_match(/Heroes 2\.0\.1, level 19.*Gamemaster's Guide 2\.0, p\. 23/, pools.sole.fetch("source_ref"))
+      assert_includes pools.sole.fetch("source_quote"), "Choose an Epic Boon"
+    end
+
+    assert_empty @catalog.choice_pools_for("Berserker", 18)
+  end
+
   test "Academy Dropout's starting Utility Spell is source-backed" do
     pool = @catalog.background_spell_choice_for("Academy Dropout")
 

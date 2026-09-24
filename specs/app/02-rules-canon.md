@@ -447,7 +447,14 @@ Chosen at level 19 (Epic Boon). Minor and Major Boons are optionally used as que
 |---|---|---|
 | Minor | ~9 | +1 Initiative, +1 max mana, +4 HP, +1 Speed, +1 skill point |
 | Major | ~20 | +2 Armor, +4 max mana, learn 1 Cantrip, advantage on attacks vs unengaged targets |
-| Epic | 12 | Epic Agility (1 action/encounter), Epic Speed (+4 Speed/+4 Initiative), Epic Stats (+1 to 3 stats), etc. |
+| Epic | 12 | Chosen at level 19; see the 12 source-defined options below. |
+
+All classes grant one Epic Boon at level 19. The level-up flow requires one of
+the 12 options on Gamemaster's Guide 2.0, p. 23, records the choice with the
+Heroes 2.0.1 progression citation, and displays its source-described effect on
+the character sheet. The chosen boon and its text are tracked; passive boon
+bonuses are not yet fully applied to derived values, and the tactical effects
+are not resolved by the game-state tracker.
 
 ---
 

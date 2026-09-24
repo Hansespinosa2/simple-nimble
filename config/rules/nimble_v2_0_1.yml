@@ -1056,6 +1056,38 @@ progression:
         11: ["Chain Reaction"]
         15: ["Burning Soul"]
 
+shared_choice_pools:
+  "Epic Boon":
+    source_ref: "Heroes 2.0.1, level 19 class progression; Gamemaster's Guide 2.0, p. 23"
+    source_quote: "Level 19 Epic Boon. Choose an Epic Boon (see pg. 23 of the GM's Guide)."
+    choices: {19: 1}
+    options:
+      - Epic Agility
+      - Epic Criticals
+      - Epic Defense
+      - Epic Foresight
+      - Epic Knowledge
+      - Epic Mana
+      - Epic Mind
+      - Epic Resistance
+      - Epic Senses
+      - Epic Speed
+      - Epic Stamina
+      - Epic Stats
+    option_descriptions:
+      "Epic Agility": "Gain 1 action once per encounter."
+      "Epic Criticals": "When rolling critical-hit damage, you may replace one die with a d20."
+      "Epic Defense": "Your shields gain +3 Armor."
+      "Epic Foresight": "+5 Initiative and advantage on your first attack each encounter."
+      "Epic Knowledge": "Once per day, call on profound insight for hidden knowledge about a legendary person or object."
+      "Epic Mana": "Whenever you are healed, you may instead recover 1 mana for every 5 HP you would have been healed."
+      "Epic Mind": "+8 mana."
+      "Epic Resistance": "Once per encounter, when you would suffer damage or fail a save, you may choose not to."
+      "Epic Senses": "Gain Blindsight 6 or Darkvision 16."
+      "Epic Speed": "+4 Speed and +4 Initiative."
+      "Epic Stamina": "Rolling 4 or higher on a Hit Die during a Field Rest heals 1 Wound."
+      "Epic Stats": "Increase 3 different stats by 1."
+
 choice_pools:
   Berserker:
     "Savage Arsenal":

@@ -51,10 +51,13 @@
         <% selected_options = pool.fetch("selected") %>
         <% already_chosen = @character.recorded_feature_choices.fetch(pool.fetch("name"), []) %>
         <% multiple_choices = pool.fetch("count").to_i > 1 %>
+        <% option_descriptions = pool.fetch("option_descriptions", {}) %>
+        <% option_labels = pool.fetch("options").map { |option| [ [ option, option_descriptions[option] ].compact.join(" · "), option ] } %>
         <div class="field feature-choice-field">
           <%= label_tag field_name, "#{pool.fetch('name')} · choose #{pool.fetch('count')}" %>
-          <%= select_tag field_name, options_for_select(pool.fetch("options").map { |option| [ option, option ] }, selected_options), include_blank: (multiple_choices ? nil : "Choose an option"), multiple: multiple_choices, class: "choice-select" %>
+          <%= select_tag field_name, options_for_select(option_labels, selected_options), include_blank: (multiple_choices ? nil : "Choose an option"), multiple: multiple_choices, class: "choice-select" %>
           <span class="field-hint"><%= pool.fetch("source_ref") %> · choose <%= pool.fetch("count") %> option<%= pool.fetch("count").to_i == 1 ? "" : "s" %> from the printed list.</span>
+          <% if pool["source_quote"].present? %><span class="field-hint"><%= pool.fetch("source_quote") %></span><% end %>
           <% if already_chosen.any? %>
             <span class="field-hint">Already recorded: <%= already_chosen.join(", ") %>. Choose a different option.</span>
           <% end %>

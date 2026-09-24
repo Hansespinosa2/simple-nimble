@@ -44,7 +44,7 @@
         <div class="progression-entry progression-entry-subclass"><span>Level <%= note.fetch("unlock_level") %> · <%= note.fetch("source_ref") %></span><strong><%= note.fetch("name") %></strong><em><%= note.fetch("effect") %></em><% if note["source_quote"].present? %><small><%= note.fetch("source_quote") %></small><% end %></div>
       <% end %>
       <% feature_choices.each do |choice| %>
-        <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>
+        <div class="progression-entry progression-entry-choice"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><% choice.fetch(:selected_descriptions, {}).each_value do |description| %><small><%= description %></small><% end %><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>
       <% end %>
       <% spell_choices.each do |choice| %>
         <div class="progression-entry progression-entry-choice progression-entry-spell"><span>Level <%= choice.fetch(:level) %></span><strong><%= choice.fetch(:name) %></strong><em><%= choice.fetch(:selected).join(", ") %></em><small><%= choice.fetch(:source_refs).join(" · ") %></small></div>

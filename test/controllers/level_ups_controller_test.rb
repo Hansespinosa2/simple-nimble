@@ -106,6 +106,49 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Death Blow" ], @character.reload.recorded_feature_choices.fetch("Savage Arsenal")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-4 S-09:AC-1 S-09:AC-3
+  test "level-nineteen finalization requires and records a source-defined Epic Boon" do
+    level_eighteen_berserker!
+
+    get new_character_level_up_url(@character)
+
+    assert_response :success
+    assert_select "select[name='level_up[feature_choices][Epic Boon][]'] option[value='Epic Speed']", text: /Epic Speed.*\+4 Speed and \+4 Initiative/
+    assert_select ".feature-choice-field", /Gamemaster's Guide 2\.0, p\. 23/
+    assert_select ".feature-choice-field", /Level 19 Epic Boon\. Choose an Epic Boon/
+
+    post character_level_ups_url(@character), params: {
+      level_up: { from_level: 18, to_level: 19, skill_name: "might" },
+      finalize: "1"
+    }
+
+    assert_response :unprocessable_entity
+    assert_select ".blocked-choice-list .blocked-choice strong", text: "Choose 1 Epic Boon option at level 19."
+    assert_select ".blocked-choice-list .blocked-choice small", /Gamemaster's Guide 2\.0, p\. 23/
+    assert_select ".blocked-choice-list .blocked-choice small", /Choose an Epic Boon \(see pg\. 23/
+    assert_equal 18, @character.reload.level
+    assert LevelUp.last.draft?
+
+    post character_level_ups_url(@character), params: {
+      level_up: {
+        from_level: 18,
+        to_level: 19,
+        skill_name: "might",
+        feature_choices: { "Epic Boon" => [ "Epic Speed" ] }
+      },
+      finalize: "1"
+    }
+
+    assert_redirected_to character_url(@character)
+    assert_equal 19, @character.reload.level
+    assert_equal [ "Epic Speed" ], @character.recorded_feature_choices.fetch("Epic Boon")
+
+    get character_url(@character)
+    assert_select ".progression-entry-choice", /Epic Speed/
+    assert_select ".progression-entry-choice", /\+4 Speed and \+4 Initiative/
+    assert_select ".progression-entry-choice", /Gamemaster's Guide 2\.0, p\. 23/
+  end
+
   test "level-three Mage page exposes the utility-school choice" do
     Rails.application.load_seed
     mage = Character.create!(
@@ -205,4 +248,26 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, @character.reload.level
     assert level_up.reload.draft?
   end
+
+  private
+    def level_eighteen_berserker!
+      @character.update_columns(level: 18, status: "playable", subclass_name: "Path of the Red Mist")
+      remaining_points = @character.skill_point_budget - @character.skill_points_spent
+      maximum_skill = Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i
+      skill_updates = {}
+
+      Character::SKILL_NAMES.each do |skill|
+        current_value = @character.skill_value(skill).to_i
+        increase = [ remaining_points, maximum_skill - current_value ].min
+        next unless increase.positive?
+
+        skill_updates[skill] = current_value + increase
+        remaining_points -= increase
+        break if remaining_points.zero?
+      end
+
+      @character.skill_set.update!(skill_updates)
+      assert_equal 0, remaining_points, "fixture has enough legal skill capacity to represent level 18"
+      assert @character.reload.level_up_eligible?, @character.reload.creation_issues.map { |issue| issue.fetch(:message) }.join(" | ")
+    end
 end

@@ -548,6 +548,7 @@ class Character < ApplicationRecord
         level: pool.fetch("level"),
         name: pool.fetch("name"),
         selected: pool.fetch("selected"),
+        selected_descriptions: pool.fetch("option_descriptions", {}).slice(*pool.fetch("selected")),
         source_refs: source_refs.uniq
       }
     end
