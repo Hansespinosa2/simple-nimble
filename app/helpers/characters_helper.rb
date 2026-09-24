@@ -12,6 +12,12 @@ module CharactersHelper
     number.positive? ? "+#{number}" : number.to_s
   end
 
+  def stat_array_rules_summary
+    Rules::NimbleCatalog.stat_arrays.map do |name, values|
+      "#{name.humanize} #{values.map { |value| signed_value(value) }.join("/")}"
+    end.join(" · ")
+  end
+
   def stat_display_name(stat)
     { "strength" => "STR", "dexterity" => "DEX", "intelligence" => "INT", "will" => "WIL" }.fetch(stat.to_s, stat.to_s.humanize)
   end

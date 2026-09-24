@@ -357,6 +357,8 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_includes shadowmancer.story_subclass_feature_note_entries.map { |note| note.fetch("name") }, "Shadow Exploit"
     weapon = shadowmancer.story_subclass_weapon_entry
     assert_equal "2d12", weapon.fetch(:damage_dice)
+    assert_equal 1, weapon.fetch(:additional_dice_per_interval)
+    assert_equal 5, weapon.fetch(:damage_dice_interval)
     assert_includes weapon.fetch(:damage_effect), "DEX (2) necrotic damage per die"
     assert_equal 2, weapon.fetch(:reach)
 

@@ -125,7 +125,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "strength", "dexterity", "intelligence", "will" ], CharacterClass.find_by!(name: "Mage").stat_options_for("any_two")
   end
 
-  test "the catalog exposes derived values and identifies the skill progression interpretation" do
+  test "the catalog exposes derived values and the source-backed skill progression" do
     derived = @catalog.derived_values
 
     assert_equal 6, derived.fetch("base_speed")
@@ -147,9 +147,10 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 4, derived.fetch("skill_points_at_level_one")
     assert_equal 1, derived.fetch("skill_points_per_level")
     assert_equal 1, derived.fetch("skill_point_transfers_per_level")
-    assert_equal "App rules canon, §2 Skills; Heroes 2.0.1, p. 56", derived.fetch("skill_point_progression_source_ref")
-    assert_equal "Jack of All Trades. When you Safe Rest, you may move a skill point as if you just leveled up.", derived.fetch("skill_point_progression_source_quote")
-    assert_match(/parsed texts do not specify a general per-level award or transfer/, derived.fetch("skill_point_progression_note"))
+    assert_equal "Core Rules 2.0.1, p. 21", derived.fetch("skill_point_progression_source_ref")
+    assert_equal "More Skilled. Gain 1 skill point. Additionally, you may move 1 point from one skill to another (as long as the skill doesn’t become negative), reflecting your hero’s evolving expertise and priorities.", derived.fetch("skill_point_progression_source_quote")
+    assert_match(/explicitly grant 1 skill point and allow an optional 1-point transfer/, derived.fetch("skill_point_progression_note"))
+    assert_match(/Songweaver's Jack of All Trades.*Safe Rest/, derived.fetch("skill_point_progression_note"))
     assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Key Stat" }, @catalog.stat_increase_mechanic_for("key"))
     assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Secondary Stat" }, @catalog.stat_increase_mechanic_for("secondary"))
     assert_equal({ "choice_count" => 2, "amount" => 1, "distinct" => true, "label" => "stat" }, @catalog.stat_increase_mechanic_for("any_two"))
@@ -456,6 +457,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     weapon = @catalog.story_subclass_weapon_rules_for("Shadowmancer", "Reaver").fetch("Bonescythe")
     assert_equal 2, weapon.fetch("base_damage_dice")
+    assert_equal 1, weapon.fetch("additional_dice_per_interval")
     assert_equal 5, weapon.fetch("additional_die_every_levels")
     assert_equal "d12", weapon.fetch("damage_die")
     assert_equal 2, weapon.fetch("reach")

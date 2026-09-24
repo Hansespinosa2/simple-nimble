@@ -142,7 +142,7 @@ Maximum stat value: +5.
 
 Each skill is derived from a stat. Initial value = stat bonus. +4 extra skill points at level 1 distributed freely. +1 skill point per level; can also move 1 existing point per level. Maximum skill value: +12.
 
-**Source confidence:** The parsed Core Rules (p. 20) explicitly grants 4 additional skill points at level 1. The +1 award and one-point transfer at each later level are the app's current canonical interpretation, not a directly stated universal rule in the parsed 2.0.1 text. Heroes (p. 56) says a Songweaver may move a skill point "as if you just leveled up," which supports the terminology but does not establish the universal amount or transfer. Keep the app behavior, but surface this provenance caveat until verified against the complete primary rules.
+**Source confidence:** Core Rules 2.0.1 (p. 20) grants 4 additional skill points at level 1. Core Rules (p. 21) explicitly grants 1 skill point whenever a hero gains a level and allows an optional 1-point transfer, provided the skill losing the point remains nonnegative. The app's per-level skill-point grant and transfer match that rule. Heroes (p. 56) separately lets a Songweaver use the transfer on a Safe Rest.
 
 | Skill | Governing Stat |
 |---|---|

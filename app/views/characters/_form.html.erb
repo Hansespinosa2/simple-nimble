@@ -1,4 +1,5 @@
 <% builder_payload = defined?(@builder_rules) && @builder_rules.present? ? @builder_rules.to_json : {}.to_json %>
+<% max_skill = Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i %>
 
 <%= form_with(model: character, class: "builder-form", data: { controller: "character-builder", character_builder_rules_value: builder_payload }) do |form| %>
   <% if character.errors.any? %>
@@ -97,7 +98,7 @@
           <div class="field">
             <%= form.label :stat_array, "Stat array" %>
             <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: read_only, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
-            <span class="field-hint">Standard +2/+2/+0/−1 · Balanced +2/+1/+1/+0 · Min-Max +3/+1/−1/−1</span>
+            <span class="field-hint stat-array-rules-summary"><%= stat_array_rules_summary %></span>
           </div>
           <div class="field field-wide" data-character-builder-target="spellSchoolChoiceField">
             <%= form.label :spell_school_choice, "Additional spell school" %>
@@ -185,7 +186,7 @@
           <div>
             <p class="eyebrow">Your edge</p>
             <h2>Skill points</h2>
-            <p class="panel-subtitle">Spend <strong><%= character.skill_point_budget %></strong> extra points at level <%= character.level || 1 %>. Skills cannot exceed +12.</p>
+            <p class="panel-subtitle">Spend <strong><%= character.skill_point_budget %></strong> extra points at level <%= character.level || 1 %>. Skills cannot exceed +<%= max_skill %>.</p>
             <small class="source-note skill-rule-note">Rules basis: <%= Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_note") %> (<%= Rules::NimbleCatalog.derived_values.fetch("skill_point_progression_source_ref") %>).</small>
           </div>
           <span class="step-number">04</span>
@@ -195,7 +196,7 @@
             <% Character::SKILL_NAMES.each do |skill| %>
               <div class="skill-field">
                 <%= skill_fields.label skill, skill_display_name(skill) %>
-                <%= skill_fields.number_field skill, min: -5, max: 12, disabled: read_only, data: { skill: skill } %>
+                <%= skill_fields.number_field skill, min: -5, max: max_skill, disabled: read_only, data: { skill: skill } %>
                 <span data-skill-base="<%= skill %>">base <%= signed_value(character.skill_initial_value(skill)) %></span>
               </div>
             <% end %>

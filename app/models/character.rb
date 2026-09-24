@@ -466,11 +466,14 @@ class Character < ApplicationRecord
     return if weapon.blank?
 
     dice_interval = weapon.fetch("additional_die_every_levels").to_i
-    dice_count = weapon.fetch("base_damage_dice").to_i + level.to_i / dice_interval
+    dice_increase = weapon.fetch("additional_dice_per_interval").to_i
+    dice_count = weapon.fetch("base_damage_dice").to_i + (level.to_i / dice_interval * dice_increase)
     dexterity = stat_value(weapon.fetch("bonus_damage_stat"))
     {
       name: "Bonescythe",
       damage_dice: "#{dice_count}#{weapon.fetch('damage_die')}",
+      additional_dice_per_interval: dice_increase,
+      damage_dice_interval: dice_interval,
       damage_effect: "#{weapon.fetch('damage_type').capitalize} damage plus DEX (#{dexterity}) #{weapon.fetch('bonus_damage_type')} damage per die",
       reach: weapon.fetch("reach"),
       action_cost: weapon.fetch("action_cost"),

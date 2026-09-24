@@ -33,7 +33,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[ancestry_id]']"
     assert_select "select[name='character[background_id]']"
     assert_select "select[name='character[stat_array]']"
-    assert_select ".skill-rule-note", /parsed texts do not specify a general per-level award or transfer/
+    assert_select ".skill-rule-note", /explicitly grant.*Songweaver's Jack of All Trades.*Safe Rest.*Core Rules 2\.0\.1, p\. 21/
     assert_select "select[name='character[starting_equipment_choice]'] option[value='starting_gold']", text: "Starting gold instead (50 gp per level)"
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
@@ -43,6 +43,28 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     rules_payload = JSON.parse(Nokogiri::HTML(response.body).at_css("form.builder-form")["data-character-builder-rules-value"])
     academy_background_id = Background.find_by!(name: "Academy Dropout").id.to_s
     assert_equal true, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice")
+  end
+
+  test "creation rule hints and skill input limits follow the catalog" do
+    catalog = Rules::NimbleCatalog.data
+    original_arrays = catalog.fetch("stat_arrays")
+    original_derived_values = catalog.fetch("derived_values")
+    changed_arrays = original_arrays.deep_dup
+    changed_arrays["standard"] = [ 4, 2, 1, -2 ]
+    catalog["stat_arrays"] = changed_arrays
+    catalog["derived_values"] = original_derived_values.merge("max_skill" => 17)
+
+    begin
+      get new_character_url
+
+      assert_response :success
+      assert_select ".stat-array-rules-summary", /Standard \+4\/\+2\/\+1\/-2/
+      assert_select ".panel-subtitle", /Skills cannot exceed \+17\./
+      assert_select "input[data-skill='might'][max='17']"
+    ensure
+      catalog["stat_arrays"] = original_arrays
+      catalog["derived_values"] = original_derived_values
+    end
   end
 
   test "should embed structured origin rules in the builder payload" do
@@ -545,6 +567,23 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select ".safe-rest-action .field-hint", /Any Invocations affecting Shadow Blast affect your Bonescythe instead.*Heroes 2\.0\.1, p\. 78/
     assert_select "form[action='#{begin_encounter_character_path(reaver)}']", count: 0
     assert_select "form[action='#{game_feature_character_path(reaver)}'] button[type='submit']", text: "Summon Bonescythe · spend 1 action"
+
+    catalog_weapon_rules = Rules::NimbleCatalog.data.dig("story_subclass_weapon_rules", "Shadowmancer", "Reaver")
+    original_weapon_rules = catalog_weapon_rules.fetch("Bonescythe")
+    catalog_weapon_rules["Bonescythe"] = original_weapon_rules.merge(
+      "base_damage_dice" => 4,
+      "additional_dice_per_interval" => 2,
+      "additional_die_every_levels" => 2
+    )
+
+    begin
+      get character_url(reaver)
+      assert_response :success
+      assert_select ".progression-entry-subclass", /Bonescythe · 6d12/
+      assert_select ".progression-entry-subclass small", /\+2 damage dice every 2 levels/
+    ensure
+      catalog_weapon_rules["Bonescythe"] = original_weapon_rules
+    end
 
     patch game_feature_character_url(reaver), params: { game_feature: { action: "summon_bonescythe" } }
     assert_redirected_to character_url(reaver)

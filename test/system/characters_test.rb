@@ -41,7 +41,7 @@ class CharactersTest < ApplicationSystemTestCase
   test "the guided builder previews derived values and finalizes a legal character" do
     visit new_character_url
 
-    assert_selector ".skill-rule-note", text: /parsed texts do not specify a general per-level award or transfer/
+    assert_selector ".skill-rule-note", text: /explicitly grant.*Songweaver's Jack of All Trades.*Safe Rest.*Core Rules 2\.0\.1, p\. 21/
     assert_equal Character::MAX_LEVEL.to_s, find("#character_level")["max"]
 
     fill_in "character_name", with: "Preview Hero"
