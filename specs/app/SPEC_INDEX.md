@@ -19,13 +19,17 @@ The core product promise is:
 
 ## What the current repo already shows
 
-- Character CRUD exists today. `[Validated - repo state]`
-- A character currently stores summary fields plus nested `StatSet`, `SkillSet`,
-  and `TraitSet`. `[Validated - schema.rb]`
-- Spells exist as a reference table and can be linked to characters. `[Validated - schema.rb]`
-- The current UI is generic CRUD, not rules-aware creation or level-up. `[Validated - app/views/characters/*]`
-- There is no user/account model yet, even though the intended product now
-  requires login and collaboration. `[Validated - schema.rb][Open gap]`
+- Guided character creation and explicit level-up workflows use source-backed
+  Nimble rule data and block incomplete or illegal choices. `[Validated - app, config/rules, tests]`
+- Character stats, skills, derived traits, structured inventory, game tracking,
+  and revisions are persisted separately from the character identity.
+  `[Validated - schema.rb and lifecycle tests]`
+- Accounts, campaigns, campaign roles, and read-only character shares preserve
+  player ownership. A campaign GM has only the audited story-subclass action
+  recorded in S-08. `[Validated - collaboration tests; S-08:AC-4]`
+- The rule catalog and coverage are still intentionally partial: each spec's
+  open criteria and source gaps remain the authority for remaining work.
+  `[See S-02, S-05, S-06, and S-09]`
 
 ## Spec graph
 
@@ -60,7 +64,7 @@ These are worth direct product attention because they change multiple downstream
 |---|---|---|
 | Exact first-release scope between creation, editing, import, and level-up | Changes lifecycle, permissions, and evaluation scope | `[Validated: v1 anchor is create + level-up]` |
 | House-rule model depth | Changes rules canon, domain model, and explanation system | `[Validated: out of scope for v1, see 02-rules-canon.md X-4]` |
-| GM edit permissions | Changes sharing, ownership, audit history, and conflict rules | `[Unknown: TBD]` |
+| GM edit permissions | Changes sharing, ownership, audit history, and conflict rules | `[Resolved: general editing is out; S-08 permits a narrow, auditable story-subclass replacement]` |
 | Import strategy for existing characters | Changes creation and lifecycle significantly | `[Unknown: TBD]` |
 
 

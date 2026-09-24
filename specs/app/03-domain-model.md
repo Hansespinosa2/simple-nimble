@@ -4,16 +4,15 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-23
+> **Last updated:** 2026-09-24
 
 ---
 
 ## 1. Why this spec exists
 
-The current schema stores a single character shape, but the intended product now
-requires accounts, ownership, collaboration, rules versioning, and auditable
-state transitions. This spec defines the product entities before the app grows
-further.
+The app now has accounts, character ownership, campaign sharing, rules context,
+and revision history. This spec keeps those domain boundaries explicit as
+collaboration and source-backed character changes expand.
 
 ## 2. Outcome statement
 
@@ -31,7 +30,7 @@ specs can be expressed without inventing hidden entities.
 | Accounts and login are required from the start of shared functionality | `[Validated]` | Direct user answer |
 | Player-owned characters are primary | `[Validated]` | Direct user answer |
 | GM read access is the first collaboration behavior | `[Validated]` | User prioritized read-only sharing first |
-| GM edit access may matter later | `[Assumed: verify]` | User liked it, but did not promote it to first priority |
+| General GM sheet editing remains out of scope; a campaign GM may only apply the story-based subclass replacement described in S-08 | `[Validated]` | Direct user answer; that narrow action is story-noted and audited |
 | Characters maintain full revision history at every lifecycle stage | `[Validated]` | Direct user answer — enables health/inventory tracking over time |
 | Revision strategy: full snapshots at lifecycle milestones + deltas within states | `[Validated]` | Direct user answer |
 | A character can belong to multiple campaigns simultaneously | `[Validated]` | Direct user answer |
@@ -46,7 +45,7 @@ specs can be expressed without inventing hidden entities.
 | S-2 | Character ownership and state | Character belongs to an account and may exist in multiple workflow states |
 | S-3 | Rules context entity | Character legality should depend on canon plus optional overrides |
 | S-4 | Campaign and membership entities | Needed for sharing and GM visibility |
-| S-5 | Revision/audit shape | Needed for strict legality and later overrides |
+| S-5 | Revision/audit shape | Needed for strict legality, character history, and narrowly authorized story changes |
 
 ## 5. Out of scope
 
@@ -61,7 +60,7 @@ specs can be expressed without inventing hidden entities.
 | Actor | Goal | Notes |
 |---|---|---|
 | Account holder | Own characters and collaborate in campaigns | Primary owner |
-| GM | View linked characters and campaign context | Secondary actor |
+| GM | View linked characters and campaign context; approve the narrow story-subclass change | Secondary actor |
 | Rules admin | Publish canon and overrides | Product support role |
 
 ## 7. Flow / state changes
@@ -76,7 +75,8 @@ Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
 6. `Campaign`
 7. `CampaignMembership`
 8. `CharacterShare` or equivalent join model
-9. Rule content entities:
+9. `StorySubclassChange` — links a character, campaign, approving GM, and resulting character revision; stores the replaced and granted subclasses, required story note, and rule citation. It is an auditable exception, not general edit permission.
+10. Rule content entities:
    - `Class` (11 classes with full level 1–20 progression tables)
    - `Ancestry` *(formerly "Race")* — 5 common + 14 exotic
    - `Spell` (6 schools × up to 9 tiers + cantrips; see schema in 02-rules-canon.md §12)
@@ -93,7 +93,7 @@ Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
    - `Background` (~24, some with stat prerequisites)
    - `StatArray` — Standard, Balanced, Min-Max creation-time choices
    - `DerivedValueFormula` — Armor, Initiative, Speed, MaxWounds, InventorySlots, ManaPool, LanguageCount, HP-on-levelup, SaveDC
-   - `Language` (10 named languages; grant formula: 1 + max(INT, 0))
+   - `Language` (10 named languages; Common by default, one explicit player choice per positive INT, plus source-defined ancestry, class, and feature grants)
    - `Prerequisite` — stat minimums, proficiency requirements, background stat gates
    - `Boon` — Minor, Major, Epic; epic boons chosen at level 19
    - `Equipment` — Weapon, Armor, Shield categories with properties and STR requirements

@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-02:AC-4 S-08:AC-4 S-09:AC-1
+# S-02:AC-4 S-03:AC-3 S-03:AC-5 S-08:AC-4 S-09:AC-1
 class StorySubclassChangeTest < ActiveSupport::TestCase
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Oathsworn")

@@ -60,7 +60,7 @@ taking ownership or gaining general edit access.
 | Actor | Goal | Notes |
 |---|---|---|
 | Player | Share character into campaign while staying owner | Primary actor |
-| GM | Inspect player sheets and campaign context | Secondary actor |
+| GM | Inspect player sheets and campaign context; apply the story-subclass replacement when a story warrants it | Secondary actor |
 | Campaign member | Participate in shared campaign workspace | Future-important actor |
 
 ## 7. Flow / state changes
