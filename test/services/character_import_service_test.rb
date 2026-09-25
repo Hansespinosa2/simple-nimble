@@ -143,18 +143,39 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
 
   test "the CSV interchange contract imports the same structured character data" do
     source = build_payload(create_valid_character)
-    csv = CSV.generate do |writer|
-      writer << CharacterImportService::CSV_HEADERS
-      writer << CharacterImportService::CSV_HEADERS.map do |field|
-        %w[format format_version].include?(field) ? source.fetch(field) : source[field].nil? ? "" : JSON.generate(source[field])
-      end
-    end
-
-    result = CharacterImportService.call(upload: upload(csv, "csv"), account: @account)
+    result = CharacterImportService.call(upload: upload(csv_for(source), "csv"), account: @account)
 
     assert result.success?, result.errors.to_sentence
     assert result.character.draft?
     assert_equal source.dig("rules", "class"), result.character.character_class.name
+  end
+
+  # S-10:AC-3 S-10:AC-4 S-10:AC-8 S-10:AC-9
+  test "a higher-level CSV import replays complete level-up history and rejects omissions" do
+    source = build_payload(create_level_two_character)
+    result = CharacterImportService.call(upload: upload(csv_for(source), "csv"), account: @account)
+
+    assert result.success?, result.errors.to_sentence
+    assert_equal 2, result.character.level
+    assert_equal source.fetch("level_ups"), result.character.interchange_level_ups
+    assert_equal "draft", result.character.status
+
+    incomplete_history = source.deep_dup
+    incomplete_history["level_ups"] = []
+    counts = [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+    rejected = CharacterImportService.call(upload: upload(csv_for(incomplete_history), "csv"), account: @account)
+
+    assert_not rejected.success?
+    assert_includes rejected.errors.join(" "), "exactly 1 finalized level-up record"
+    assert_equal counts, [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+
+    missing_baseline = source.deep_dup
+    missing_baseline.delete("creation")
+    rejected_baseline = CharacterImportService.call(upload: upload(csv_for(missing_baseline), "csv"), account: @account)
+
+    assert_not rejected_baseline.success?
+    assert_includes rejected_baseline.errors.join(" "), "requires its level-1 creation snapshot and complete level-up history"
+    assert_equal counts, [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
   end
 
   test "a level-two import without its transition is rejected without creating rows" do
@@ -334,6 +355,15 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
       payload["creation"] = character.import_creation_snapshot
       payload["level_ups"] = character.interchange_level_ups
       payload
+    end
+
+    def csv_for(source)
+      CSV.generate do |writer|
+        writer << CharacterImportService::CSV_HEADERS
+        writer << CharacterImportService::CSV_HEADERS.map do |field|
+          %w[format format_version].include?(field) ? source.fetch(field) : source[field].nil? ? "" : JSON.generate(source[field])
+        end
+      end
     end
 
     def upload(content, extension = "json")
