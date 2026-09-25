@@ -372,6 +372,47 @@ class CharacterTest < ActiveSupport::TestCase
     assert_not_equal 2 * zephyr.armor_for, zephyr.armor_for, "Iron Defense doubles unarmored Armor, not worn plate"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-06:AC-3 S-09:AC-3
+  test "Zephyr gains its level-based Speed and Initiative only while unarmored" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Zephyr")
+    character_class = CharacterClass.find_by!(name: "Zephyr")
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Raised by Goblins")
+    unarmored = Character.create!(
+      name: "Unarmored Swift Zephyr",
+      character_class:,
+      ancestry:,
+      background:,
+      level: 9,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+    armored = Character.create!(
+      name: "Armored Swift Zephyr",
+      character_class:,
+      ancestry:,
+      background:,
+      level: 9,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
+    worn_armor = armored.inventory_items.create!(name: "Rusty Mail", equipped: true)
+
+    assert unarmored.unarmored?
+    assert_not armored.unarmored?
+    assert_equal 8, unarmored.speed_for(level: 2)
+    assert_equal armored.initiative_for(level: 2) + 2, unarmored.initiative_for(level: 2)
+    assert_equal 10, unarmored.trait_set.speed
+    assert_equal armored.trait_set.initiative + 9, unarmored.trait_set.initiative
+    assert_equal 6, armored.trait_set.speed
+    assert_equal armored.initiative_for(level: 2), armored.trait_set.initiative
+
+    worn_armor.destroy!
+    assert armored.reload.unarmored?
+    assert_equal 10, armored.trait_set.speed
+    assert_equal unarmored.trait_set.initiative, armored.trait_set.initiative
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-05:AC-2 S-09:AC-3
   test "equipped armor replaces the body-armor formula, uses source slots, and recalculates the sheet" do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")

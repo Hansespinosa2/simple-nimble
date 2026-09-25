@@ -218,6 +218,31 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the Zephyr builder preview applies Speed and Initiative bonuses only with unarmored class gear" do
+    zephyr_rules = Rules::NimbleCatalog.classes.fetch("Zephyr")
+    original_gear = zephyr_rules.fetch("starting_gear")
+
+    begin
+      zephyr_rules["starting_gear"] = original_gear + [ "Rusty Mail" ]
+      visit new_character_url
+      select "Zephyr", from: "Class"
+      select "Human", from: "Ancestry"
+      select "Fearless", from: "Background"
+      select "Standard", from: "Stat array"
+      fill_in "Level", with: "2"
+
+      assert_selector "[data-character-builder-target='speedPreview']", text: "6"
+      assert_selector "[data-character-builder-target='initiativePreview']", text: "+4"
+
+      select "Starting gold instead (50 gp per level)", from: "Starting equipment"
+      assert_selector "[data-character-builder-target='speedPreview']", text: "8"
+      assert_selector "[data-character-builder-target='initiativePreview']", text: "+6"
+    ensure
+      zephyr_rules["starting_gear"] = original_gear
+    end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "equipping catalog armor updates Armor, slots, source details, and proficiency guidance" do
     character = Character.create!(
       name: "Armored Mage",

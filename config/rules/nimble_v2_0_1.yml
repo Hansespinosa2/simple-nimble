@@ -1949,10 +1949,16 @@ derived_effects:
         speed_modifier: 2
     Zephyr:
       2:
-        speed_modifier: 2
-        initiative_level_bonus: true
+        unarmored_speed_modifier: 2
+        unarmored_speed_modifier_source_ref: Heroes 2.0.1, p. 67
+        unarmored_speed_modifier_source_quote: "While unarmored, gain +2 speed and +LVL Initiative."
+        unarmored_initiative_level_bonus: true
+        unarmored_initiative_level_bonus_source_ref: Heroes 2.0.1, p. 67
+        unarmored_initiative_level_bonus_source_quote: "While unarmored, gain +2 speed and +LVL Initiative."
       9:
-        speed_modifier: 2
+        unarmored_speed_modifier: 2
+        unarmored_speed_modifier_source_ref: Heroes 2.0.1, pp. 67–68
+        unarmored_speed_modifier_source_quote: "While unarmored, gain +2 speed and +LVL Initiative. Gain an additional +2 speed as long as you are unarmored."
       13:
         armor_multiplier: 2
         armor_multiplier_source_ref: Heroes 2.0.1, p. 68

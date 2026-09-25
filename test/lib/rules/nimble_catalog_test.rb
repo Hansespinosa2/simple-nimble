@@ -305,6 +305,22 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 68", effects.fetch("armor_multiplier_source_ref")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "Zephyr's speed and Initiative bonuses carry their unarmored condition and source" do
+    level_one = @catalog.derived_effects_for("Zephyr", nil, 1)
+    level_two = @catalog.derived_effects_for("Zephyr", nil, 2)
+    level_nine = @catalog.derived_effects_for("Zephyr", nil, 9)
+
+    assert_equal 0, level_one.fetch("unarmored_speed_modifier", 0)
+    assert_equal 2, level_two.fetch("unarmored_speed_modifier")
+    assert_equal true, level_two.fetch("unarmored_initiative_level_bonus")
+    assert_equal "Heroes 2.0.1, p. 67", level_two.fetch("unarmored_speed_modifier_source_ref")
+    assert_includes level_two.fetch("unarmored_initiative_level_bonus_source_quote"), "While unarmored"
+    assert_equal 4, level_nine.fetch("unarmored_speed_modifier")
+    assert_equal "Heroes 2.0.1, pp. 67–68", level_nine.fetch("unarmored_speed_modifier_source_ref")
+    assert_includes level_nine.fetch("unarmored_speed_modifier_source_quote"), "additional +2 speed"
+  end
+
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-09:AC-3
   test "Zephyr's level-twenty Windborne action increase is structured with its source" do
     assert_equal 0, @catalog.derived_effects_for("Zephyr", nil, 19).fetch("max_actions_modifier", 0)

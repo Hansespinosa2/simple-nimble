@@ -1045,13 +1045,21 @@ class Character < ApplicationRecord
   def initiative_for(stat_values = nil, level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
     values = stat_values || current_stat_values
     level_value = level.to_i.positive? ? level.to_i : 1
-    level_bonus = derived_feature_effects(level:, subclass_name:)["initiative_level_bonus"] ? level_value : 0
+    effects = derived_feature_effects(level:, subclass_name:)
+    gains_level_bonus = effects["initiative_level_bonus"] || (unarmored? && effects["unarmored_initiative_level_bonus"])
+    level_bonus = gains_level_bonus ? level_value : 0
     initiative_stat = Rules::NimbleCatalog.stat_name_for_abbreviation(Rules::NimbleCatalog.derived_values.fetch("initiative_formula"))
     value_for_stat(values, initiative_stat) + derived_modifier_for(:initiative_modifier, level:, subclass_name:, feature_choices:) + level_bonus
   end
 
   def speed_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
-    BASE_SPEED + derived_modifier_for(:speed_modifier, level:, subclass_name:, feature_choices:)
+    effects = derived_feature_effects(level:, subclass_name:)
+    unarmored_bonus = unarmored? ? effects.fetch("unarmored_speed_modifier", 0).to_i : 0
+    BASE_SPEED + derived_modifier_for(:speed_modifier, level:, subclass_name:, feature_choices:) + unarmored_bonus
+  end
+
+  def unarmored?
+    equipped_armor_profiles.none? { |item| item.fetch("rules").fetch("kind") == "armor" }
   end
 
   def save_dc_for(stat_values = nil)
@@ -1133,10 +1141,14 @@ class Character < ApplicationRecord
     proficiencies.include?("all") || proficiencies.include?(armor_rules.fetch("proficiency"))
   end
 
-  def recalculate_armor!
+  def recalculate_equipment_derived_values!
     return unless persisted? && trait_set.present? && character_class.present?
 
-    trait_set.update!(armor: armor_for + derived_modifier_for(:armor_modifier))
+    trait_set.update!(
+      armor: armor_for + derived_modifier_for(:armor_modifier),
+      initiative: initiative_for,
+      speed: speed_for
+    )
   end
 
   def mana_max_for(stat_values: nil, level: self.level)

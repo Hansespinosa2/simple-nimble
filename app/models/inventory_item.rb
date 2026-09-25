@@ -5,8 +5,8 @@ class InventoryItem < ApplicationRecord
   before_validation :clear_starting_gear_source_if_renamed
   before_validation :sync_catalog_armor_metadata
   after_save :unequip_conflicting_armor_items, if: :equipped?
-  after_save :recalculate_character_armor
-  after_destroy :recalculate_character_armor
+  after_save :recalculate_character_equipment_derived_values
+  after_destroy :recalculate_character_equipment_derived_values
 
   validates :name, presence: true, length: { maximum: 120 }
   validates :slots, numericality: { only_integer: true, greater_than: 0 }
@@ -66,8 +66,8 @@ class InventoryItem < ApplicationRecord
       end
     end
 
-    def recalculate_character_armor
-      character.recalculate_armor!
+    def recalculate_character_equipment_derived_values
+      character.recalculate_equipment_derived_values!
     end
 
     def catalog_slot_source_required?
