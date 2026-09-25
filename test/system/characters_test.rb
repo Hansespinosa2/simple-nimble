@@ -266,6 +266,20 @@ class CharactersTest < ApplicationSystemTestCase
       text: "Level 2: not applied while wearing body armor. While unarmored, gain +2 speed and +LVL Initiative. (Heroes 2.0.1, p. 67)", exact_text: true
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-3
+  test "the Hunter builder preview cites its level-four Speed increase" do
+    visit new_character_url
+    select "Hunter", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Fearless", from: "Background"
+    select "Standard", from: "Stat array"
+    fill_in "Level", with: "4"
+
+    assert_selector "[data-character-builder-target='speedPreview']", text: "8", exact_text: true
+    assert_selector "[data-character-builder-target='derivedEffectNote']",
+      text: "Level 4: Explorer of the Wilds. +2 speed; gain a climbing speed. (Heroes 2.0.1, p. 27)", exact_text: true
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "equipping catalog armor updates Armor, slots, source details, and proficiency guidance" do
     character = Character.create!(
