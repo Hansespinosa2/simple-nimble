@@ -303,6 +303,66 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     assert_equal 2, effects.fetch("armor_multiplier")
     assert_equal "Heroes 2.0.1, p. 68", effects.fetch("armor_multiplier_source_ref")
+    assert_equal "Your armor is doubled while unarmored.", effects.fetch("armor_multiplier_source_quote")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "class and subclass derived effects retain feature-specific source citations" do
+    hunter_speed = @catalog.derived_effects_for("Hunter", nil, 4)
+    assert_equal 2, hunter_speed.fetch("speed_modifier")
+    assert_equal "Heroes 2.0.1, p. 27", hunter_speed.fetch("speed_modifier_source_ref")
+    assert_equal "Explorer of the Wilds. +2 speed; gain a climbing speed.", hunter_speed.fetch("speed_modifier_source_quote")
+
+    commander_dice = @catalog.derived_effects_for("Commander", "Champion of the Vanguard", 11)
+    assert_equal({ "combat_dice" => 1 }, commander_dice.fetch("resource_max_modifiers"))
+    assert_equal "Heroes 2.0.1, p. 23", commander_dice.fetch("resource_max_modifiers_source_ref")
+    assert_equal "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice.", commander_dice.fetch("resource_max_modifiers_source_quote")
+
+    wild_heart_start = @catalog.derived_effects_for("Hunter", "Wild Heart", 3)
+    assert_equal 5, wild_heart_start.fetch("max_hp_modifier")
+    assert_equal "Heroes 2.0.1, p. 29", wild_heart_start.fetch("max_hp_modifier_source_ref")
+    assert_equal "Impressive Form. +5 max HP. Upgrade your Hit Dice to d10s.", wild_heart_start.fetch("max_hp_modifier_source_quote")
+    assert_equal "1d10", wild_heart_start.fetch("hit_die")
+    assert_equal "Heroes 2.0.1, p. 29", wild_heart_start.fetch("hit_die_source_ref")
+    assert_equal "Impressive Form. +5 max HP. Upgrade your Hit Dice to d10s.", wild_heart_start.fetch("hit_die_source_quote")
+
+    wild_heart_capstone = @catalog.derived_effects_for("Hunter", "Wild Heart", 15)
+    assert_equal "will", wild_heart_capstone.fetch("armor_stat_addition")
+    assert_equal "Heroes 2.0.1, p. 29", wild_heart_capstone.fetch("armor_stat_addition_source_ref")
+    assert_equal "Unparalleled Survivalist. Gain +WIL armor.", wild_heart_capstone.fetch("armor_stat_addition_source_quote")
+
+    oathbreaker = @catalog.derived_effects_for("Oathsworn", "Oathbreaker", 3)
+    assert_equal 2, oathbreaker.fetch("max_wounds_modifier")
+    assert_equal "Heroes 2.0.1, p. 75", oathbreaker.fetch("max_wounds_modifier_source_ref")
+    assert_equal "We All Suffer. Gain +2 max Wounds.", oathbreaker.fetch("max_wounds_modifier_source_quote")
+  end
+
+  # S-02:AC-2 S-09:AC-3
+  test "every structured class and subclass derived effect has a source reference and quote" do
+    effect_keys = %w[
+      speed_modifier unarmored_speed_modifier initiative_level_bonus unarmored_initiative_level_bonus
+      armor_multiplier max_actions_modifier max_hp_modifier max_wounds_modifier armor_stat_addition
+      resource_max_modifiers hit_die
+    ]
+    effect_count = 0
+    visit = lambda do |value, path|
+      case value
+      when Hash
+        (value.keys.map(&:to_s) & effect_keys).each do |effect_key|
+          source_ref = value["#{effect_key}_source_ref"] || value["source_ref"]
+          source_quote = value["#{effect_key}_source_quote"] || value["source_quote"]
+          assert source_ref.present?, "#{path}/#{effect_key} must have a source reference"
+          assert source_quote.present?, "#{path}/#{effect_key} must have a source quote"
+          effect_count += 1
+        end
+        value.each { |key, child| visit.call(child, "#{path}/#{key}") }
+      when Array
+        value.each_with_index { |child, index| visit.call(child, "#{path}/#{index}") }
+      end
+    end
+
+    visit.call(@catalog.data.fetch("derived_effects"), "derived_effects")
+    assert_operator effect_count, :>, 0
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3

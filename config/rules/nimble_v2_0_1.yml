@@ -1947,6 +1947,8 @@ derived_effects:
     Hunter:
       4:
         speed_modifier: 2
+        speed_modifier_source_ref: Heroes 2.0.1, p. 27
+        speed_modifier_source_quote: "Explorer of the Wilds. +2 speed; gain a climbing speed."
     Zephyr:
       2:
         unarmored_speed_modifier: 2
@@ -1962,6 +1964,7 @@ derived_effects:
       13:
         armor_multiplier: 2
         armor_multiplier_source_ref: Heroes 2.0.1, p. 68
+        armor_multiplier_source_quote: "Your armor is doubled while unarmored."
       20:
         max_actions_modifier: 1
         max_actions_modifier_source_ref: Heroes 2.0.1, p. 69
@@ -1973,14 +1976,25 @@ derived_effects:
           source_ref: Heroes 2.0.1, p. 23
           resource_max_modifiers:
             combat_dice: 1
+          resource_max_modifiers_source_ref: Heroes 2.0.1, p. 23
+          resource_max_modifiers_source_quote: "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice."
+          source_quote: "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice."
     Hunter:
       "Wild Heart":
         3:
           max_hp_modifier: 5
+          max_hp_modifier_source_ref: Heroes 2.0.1, p. 29
+          max_hp_modifier_source_quote: "Impressive Form. +5 max HP. Upgrade your Hit Dice to d10s."
           hit_die: 1d10
+          hit_die_source_ref: Heroes 2.0.1, p. 29
+          hit_die_source_quote: "Impressive Form. +5 max HP. Upgrade your Hit Dice to d10s."
         15:
           armor_stat_addition: will
+          armor_stat_addition_source_ref: Heroes 2.0.1, p. 29
+          armor_stat_addition_source_quote: "Unparalleled Survivalist. Gain +WIL armor."
     Oathsworn:
       Oathbreaker:
         3:
           max_wounds_modifier: 2
+          max_wounds_modifier_source_ref: Heroes 2.0.1, p. 75
+          max_wounds_modifier_source_quote: "We All Suffer. Gain +2 max Wounds."
