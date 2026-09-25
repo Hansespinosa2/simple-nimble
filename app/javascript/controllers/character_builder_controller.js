@@ -194,9 +194,10 @@ export default class extends Controller {
   }
 
   classDerivedEffectsFor(characterClass, level) {
-    return Object.entries(characterClass?.derived_effects || {})
-      .filter(([effectLevel]) => Number(effectLevel) <= level)
-      .sort(([left], [right]) => Number(left) - Number(right))
+    return this.derivedEffectSchedulesFor(characterClass)
+      .flatMap((schedule) => Object.entries(schedule)
+        .filter(([effectLevel]) => Number(effectLevel) <= level)
+        .sort(([left], [right]) => Number(left) - Number(right)))
       .reduce((combined, [_effectLevel, effects]) => {
         Object.entries(effects).forEach(([name, value]) => {
           if (name.endsWith("_modifier")) combined[name] = Number(combined[name] || 0) + Number(value || 0)
@@ -206,6 +207,10 @@ export default class extends Controller {
         })
         return combined
       }, {})
+  }
+
+  derivedEffectSchedulesFor(characterClass) {
+    return [characterClass?.derived_effects || {}, characterClass?.subclass_derived_effects || {}]
   }
 
   advanceHitDieSize(hitDie, steps) {
@@ -223,24 +228,25 @@ export default class extends Controller {
     if (!this.hasDerivedEffectNoteTarget) return
 
     const effectNamePattern = /(?:_modifiers?|_bonuses?|_multipliers?|_stat_addition)$/
-    const notes = Object.entries(characterClass?.derived_effects || {})
-      .filter(([effectLevel]) => Number(effectLevel) <= level)
-      .sort(([left], [right]) => Number(left) - Number(right))
-      .flatMap(([effectLevel, effects]) => Object.keys(effects)
-        .filter((name) => effectNamePattern.test(name) || name === "hit_die")
-        .filter((name) => effects[name] !== false && effects[name] !== 0 && effects[name] !== null)
-        .flatMap((name) => {
-          const sourceQuote = effects[`${name}_source_quote`] || effects.source_quote
-          const sourceRef = effects[`${name}_source_ref`] || effects.source_ref
-          if (!sourceQuote || !sourceRef) return []
+    const notes = this.derivedEffectSchedulesFor(characterClass)
+      .flatMap((schedule) => Object.entries(schedule)
+        .filter(([effectLevel]) => Number(effectLevel) <= level)
+        .sort(([left], [right]) => Number(left) - Number(right))
+        .flatMap(([effectLevel, effects]) => Object.keys(effects)
+          .filter((name) => effectNamePattern.test(name) || name === "hit_die")
+          .filter((name) => effects[name] !== false && effects[name] !== 0 && effects[name] !== null)
+          .flatMap((name) => {
+            const sourceQuote = effects[`${name}_source_quote`] || effects.source_quote
+            const sourceRef = effects[`${name}_source_ref`] || effects.source_ref
+            if (!sourceQuote || !sourceRef) return []
 
-          const isUnarmoredCondition = name.startsWith("unarmored_") || sourceQuote.toLowerCase().includes("while unarmored")
-          const condition = isUnarmoredCondition
-            ? (unarmored ? "applies while unarmored" : "not applied while wearing body armor")
-            : null
-          const prefix = condition ? `Level ${effectLevel}: ${condition}. ` : `Level ${effectLevel}: `
-          return [`${prefix}${sourceQuote} (${sourceRef})`]
-        }))
+            const isUnarmoredCondition = name.startsWith("unarmored_") || sourceQuote.toLowerCase().includes("while unarmored")
+            const condition = isUnarmoredCondition
+              ? (unarmored ? "applies while unarmored" : "not applied while wearing body armor")
+              : null
+            const prefix = condition ? `Level ${effectLevel}: ${condition}. ` : `Level ${effectLevel}: `
+            return [`${prefix}${sourceQuote} (${sourceRef})`]
+          })))
 
     const uniqueNotes = [...new Set(notes)]
     this.derivedEffectNoteTarget.textContent = uniqueNotes.join(" ")

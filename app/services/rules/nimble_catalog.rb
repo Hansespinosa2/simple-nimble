@@ -140,6 +140,12 @@ module Rules
         data.fetch("derived_effects", {}).fetch("classes", {}).fetch(class_name.to_s, {})
       end
 
+      def subclass_derived_effects(class_name, subclass_name)
+        data.fetch("derived_effects", {}).fetch("subclasses", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+      end
+
       def class_for(name)
         data.fetch("classes")[name.to_s]
       end

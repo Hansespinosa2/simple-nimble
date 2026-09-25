@@ -94,6 +94,25 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the edit builder combines subclass Hit Die upgrades with ancestry advancement" do
+    hunter = Character.create!(
+      name: "Wild Heart Oozeling",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: Ancestry.find_by!(name: "Oozeling/Construct"),
+      background: @background,
+      stat_array: "balanced",
+      subclass_name: "Wild Heart"
+    )
+
+    assert_equal "1d12", hunter.trait_set.hit_die
+    visit edit_character_url(hunter)
+
+    assert_selector "[data-character-builder-target='hitDiePreview']", text: "1d12"
+    assert_text "Upgrade your Hit Dice to d10s."
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the builder explains Elf Initiative advantage without treating it as a numeric bonus" do
     visit new_character_url
 

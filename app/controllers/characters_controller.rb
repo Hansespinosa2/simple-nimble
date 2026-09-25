@@ -396,6 +396,12 @@ class CharactersController < ApplicationController
         equipment_armor: Rules::NimbleCatalog.equipment_armor_items,
         character_equipment_state:,
         classes: @character_classes.index_by(&:id).transform_values do |character_class|
+          subclass_derived_effects = if @character&.character_class_id == character_class.id
+            Rules::NimbleCatalog.subclass_derived_effects(character_class.name, @character.subclass_name)
+          else
+            {}
+          end
+
           {
             key_stats: character_class.key_stats,
             secondary_stats: character_class.secondary_stats,
@@ -412,6 +418,7 @@ class CharactersController < ApplicationController
             weapon_proficiencies: character_class.weapon_proficiencies,
             armor_rules: character_class.armor_rules,
             derived_effects: Rules::NimbleCatalog.class_derived_effects(character_class.name),
+            subclass_derived_effects:,
             resource: character_class.resource_rules
           }
         end,
