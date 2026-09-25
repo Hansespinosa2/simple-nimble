@@ -442,7 +442,7 @@ These must be calculable from structured data — no manual calculation required
 | Shield | Add the equipped shield's listed Armor to total Armor; optional Deflect can instead reduce one attack's damage by that value for free once per round. |
 | Initiative | DEX (default; some classes/ancestries modify) |
 | Speed | 6 (default; modified by ancestry/equipment/features) |
-| Max actions per turn | 3 by default; permanent class features modify this (Zephyr's level-20 Windborne grants +1 action, while Dying the maximum is 2). |
+| Max actions per turn | 3 by default; permanent class features modify this (Zephyr's level-20 Windborne grants +1 action). While Dying, the Core Rules limit is 1; Berserker's level-4 Enduring Rage and Zephyr's level-20 Windborne each raise the maximum to 2. |
 | Max Wounds | 6 (default; modified by ancestry/class features) |
 | Inventory Slots | 10 + STR |
 | Starting equipment | Listed class gear or 50 gp × starting level; carried currency uses 1 slot per 500 gp |
