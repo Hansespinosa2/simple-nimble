@@ -80,20 +80,67 @@ class NimbleCatalogTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-09:AC-3
-  test "Shepherd and Songweaver feature pools unlock at every printed choice level" do
-    shepherd_pool = @catalog.choice_pool_for("Shepherd", "Sacred Grace")
-    assert_equal "Heroes 2.0.1, p. 52", shepherd_pool.fetch("source_ref")
-    assert_equal({ 5 => 2, 9 => 1, 13 => 1 }, shepherd_pool.fetch("choices"))
+  test "all class feature-choice pool sizes and schedules match published progressions" do
+    source_pools = {
+      "Berserker" => {
+        "Savage Arsenal" => [ "Heroes 2.0.1, p. 10", 12, { 4 => 1, 6 => 1, 8 => 1, 10 => 1, 12 => 1, 14 => 1, 16 => 1 } ]
+      },
+      "The Cheat" => {
+        "Underhanded Ability" => [ "Heroes 2.0.1, p. 16", 10, { 4 => 1, 6 => 1, 8 => 1, 10 => 1, 12 => 1, 14 => 1, 16 => 1, 18 => 1 } ]
+      },
+      "Commander" => {
+        "Commander's Orders" => [ "Heroes 2.0.1, p. 19", 5, { 2 => 2 } ],
+        "Combat Tactics" => [ "Heroes 2.0.1, p. 22", 5, { 4 => 1 } ],
+        "Combat Ability" => [ "Heroes 2.0.1, pp. 20, 22", 11, { 6 => 1, 8 => 1, 10 => 1, 12 => 1, 16 => 1 } ],
+        "Weapon Mastery" => [ "Heroes 2.0.1, p. 22", 3, { 6 => 1, 10 => 1 } ]
+      },
+      "Hunter" => {
+        "Thrill of the Hunt" => [ "Heroes 2.0.1, p. 28", 14, { 2 => 2, 4 => 1, 6 => 1, 8 => 1, 12 => 1, 14 => 1 } ]
+      },
+      "Mage" => {
+        "Spellshaper" => [ "Heroes 2.0.1, p. 34", 8, { 4 => 2, 9 => 1, 13 => 1 } ]
+      },
+      "Oathsworn" => {
+        "Sacred Decree" => [ "Heroes 2.0.1, p. 40", 10, { 3 => 1, 6 => 1, 9 => 1, 12 => 1, 14 => 1, 16 => 1 } ]
+      },
+      "Shadowmancer" => {
+        "Lesser Shadow Invocation" => [ "Heroes 2.0.1, p. 46", 10, { 3 => 1, 8 => 1, 11 => 1 } ],
+        "Greater Shadow Invocation" => [ "Heroes 2.0.1, p. 46", 11, { 4 => 1, 6 => 1, 9 => 1, 14 => 1, 18 => 1 } ]
+      },
+      "Shepherd" => {
+        "Sacred Grace" => [ "Heroes 2.0.1, p. 52", 8, { 5 => 2, 9 => 1, 13 => 1 } ]
+      },
+      "Songweaver" => {
+        "A People Person" => [ "Heroes 2.0.1, p. 58", 4, { 5 => 2 } ],
+        "Lyrical Weaponry" => [ "Heroes 2.0.1, p. 58", 5, { 4 => 1, 9 => 1, 13 => 1, 17 => 1 } ]
+      },
+      "Stormshifter" => {
+        "Chimeric Boon" => [ "Heroes 2.0.1, p. 64", 9, { 6 => 2, 9 => 1, 12 => 1, 17 => 1 } ]
+      },
+      "Zephyr" => {
+        "Martial Arts" => [ "Heroes 2.0.1, p. 70", 11, { 4 => 1, 6 => 1, 8 => 1, 10 => 1, 12 => 1, 14 => 1, 16 => 1, 18 => 1 } ]
+      }
+    }
 
-    songweaver_pool = @catalog.choice_pool_for("Songweaver", "A People Person")
-    assert_equal "Heroes 2.0.1, p. 58", songweaver_pool.fetch("source_ref")
-    assert_equal({ 5 => 2 }, songweaver_pool.fetch("choices"))
-    assert_equal [ "Stompy", "Gran Gran (NOT a hag)", "Mal, the Malevolent Imp", "Linos, the Everfriendly" ], songweaver_pool.fetch("options")
+    assert_equal source_pools.keys.sort, @catalog.data.fetch("choice_pools").keys.sort
+    max_level = @catalog.derived_values.fetch("max_level").to_i
+    source_pools.each do |class_name, pools|
+      character_class = CharacterClass.find_by!(name: class_name)
+      pools.each do |pool_name, (source_ref, option_count, expected_schedule)|
+        pool_rules = @catalog.choice_pool_for(class_name, pool_name)
+        assert_equal source_ref, pool_rules.fetch("source_ref"), "#{class_name} #{pool_name} citation"
+        assert_equal option_count, pool_rules.fetch("options").length, "#{class_name} #{pool_name} options"
+        assert_equal expected_schedule, pool_rules.fetch("choices"), "#{class_name} #{pool_name} schedule"
 
-    { "Shepherd" => [ "Sacred Grace", { 5 => 2, 9 => 1, 13 => 1 } ], "Songweaver" => [ "A People Person", { 5 => 2 } ] }.each do |class_name, (pool_name, expected_counts)|
-      expected_counts.each do |level, count|
-        pool = CharacterClass.find_by!(name: class_name).feature_choice_pools_for(level).find { |choice_pool| choice_pool.fetch("name") == pool_name }
-        assert_equal count, pool.fetch("count"), "#{class_name} #{pool_name} at level #{level}"
+        (1..max_level).each do |level|
+          actual_pool = character_class.feature_choice_pools_for(level).find { |choice_pool| choice_pool.fetch("name") == pool_name }
+          expected_count = expected_schedule[level]
+          if expected_count
+            assert_equal expected_count, actual_pool&.fetch("count"), "#{class_name} #{pool_name} at level #{level}"
+          else
+            assert_nil actual_pool, "#{class_name} #{pool_name} must not appear at level #{level}"
+          end
+        end
       end
     end
   end
