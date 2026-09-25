@@ -267,6 +267,14 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 0, ambusher_pool.fetch("initial_current")
     assert_equal [ "encounter_end" ], ambusher_pool.fetch("reset_events")
 
+    swiftshift = @catalog.story_subclass_initiative_features_for("Stormshifter", "Circle of Fang & Claw").sole
+    assert_equal "Swiftshift", swiftshift.fetch("name")
+    assert_equal "Heroes 2.0.1, p. 65", swiftshift.fetch("source_ref")
+    assert_equal "free_choice", swiftshift.dig("initiative_action", "kind")
+    assert_equal [ "Beastshift", "Move" ], swiftshift.dig("initiative_action", "choices")
+    assert_equal false, swiftshift.dig("initiative_action", "beastshift_grants_temp_hp")
+    assert_equal 3, @catalog.story_subclass_feature_unlock_level_for("Stormshifter", "Circle of Fang & Claw", "Swiftshift")
+
     assert_empty @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 10)
     heart_of_fire = @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 11).sole
     assert_equal "Heart of Burning Fire", heart_of_fire.fetch("feature_name")

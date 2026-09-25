@@ -162,7 +162,8 @@ class CharactersController < ApplicationController
       params[:initiative_roll].permit(
         { dice_rolls: [], rerolls: [], feature_actions: {
           firebrand_enchant_weapon: [ :used, :target ],
-          shadowpath_hunters_mark: [ :used, :target ]
+          shadowpath_hunters_mark: [ :used, :target ],
+          swiftshift_initiative: [ :used, :choice ]
         } }
       )
     else

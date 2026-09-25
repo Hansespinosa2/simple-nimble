@@ -1745,6 +1745,18 @@ story_subclass_initiative_features:
           target_max_length: 160
         source_ref: Heroes 2.0.1, p. 28
         source_quote: "When you roll Initiative, you may use Hunter’s Mark for free. Gain advantage on the first attack you make each encounter."
+  Stormshifter:
+    "Circle of Fang & Claw":
+      - name: Swiftshift
+        effect: When you roll Initiative, you may Beastshift or move for free. Beastshifting for free does not grant temporary HP.
+        initiative_action:
+          key: swiftshift_initiative
+          kind: free_choice
+          choice_label: Choose Swiftshift option
+          choices: [Beastshift, Move]
+          beastshift_grants_temp_hp: false
+        source_ref: Heroes 2.0.1, p. 65
+        source_quote: "When you roll Initiative, you may Beastshift or move for free. While transformed, you may shift between different Direbeast forms for free (and as a reaction by spending 1 mana); however, Beastshifting for free does not grant any temp HP."
 
 initiative_resource_grants:
   Commander:

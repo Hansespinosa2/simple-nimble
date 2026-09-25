@@ -828,7 +828,7 @@ class Character < ApplicationRecord
       tracks = Array(trait_set&.resource_tracks)
       grants = initiative_resource_grants
       action_summaries = initiative_feature_action_summaries(feature_actions)
-      if grants.empty? && action_summaries.empty?
+      if grants.empty? && action_summaries.empty? && initiative_optional_action_entries.empty?
         raise ArgumentError, "This character has no initiative-triggered feature to record."
       end
       required_dice = grants.sum { |grant| initiative_resource_dice_count(grant) }
@@ -895,7 +895,7 @@ class Character < ApplicationRecord
         end
         summary
       end
-      summary = (summaries + action_summaries).join("; ")
+      summary = (summaries + action_summaries).join("; ").presence || "Initiative recorded; no optional feature action taken"
 
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
@@ -2274,7 +2274,7 @@ class Character < ApplicationRecord
         end
 
         attributes = submitted.to_h.stringify_keys
-        if (attributes.keys - %w[used target]).any?
+        if (attributes.keys - %w[used target choice]).any?
           raise ArgumentError, "Initiative feature action contains unsupported details."
         end
         next unless [ "1", "true", true ].include?(attributes["used"])
@@ -2290,6 +2290,14 @@ class Character < ApplicationRecord
         when "free_feature_use"
           target = initiative_feature_action_target(attributes, action)
           "#{action.fetch('feature_name')} used #{action.fetch('action_name')} for free on #{target} (#{action.fetch('source_ref')}; apply the feature effect at the table)"
+        when "free_choice"
+          choice = attributes.fetch("choice", "").to_s
+          unless action.fetch("choices").include?(choice)
+            raise ArgumentError, "Choose a valid #{action.fetch('feature_name')} option. #{action.fetch('source_ref')}."
+          end
+
+          limitation = choice == "Beastshift" && action["beastshift_grants_temp_hp"] == false ? "; free Beastshifting grants no temporary HP" : ""
+          "#{action.fetch('feature_name')} chose #{choice} for free on Initiative (#{action.fetch('source_ref')}#{limitation}; resolve form or movement effects at the table)"
         else
           raise ArgumentError, "#{action.fetch('feature_name')} Initiative action is not supported yet. #{action.fetch('source_ref')}."
         end

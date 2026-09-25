@@ -551,6 +551,41 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "a Fang and Claw Stormshifter can choose Swiftshift without Beastshift temp HP" do
+    stormshifter = Character.create!(
+      name: "Swiftshift System Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Stormshifter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    stormshifter.update_columns(subclass_name: "Circle of Fang & Claw", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| stormshifter.stat_value(stat) }
+    tracks = stormshifter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Circle of Fang & Claw")
+    stormshifter.trait_set.update!(resource_tracks: tracks)
+    beastshift_before = tracks.find { |track| track.fetch("key") == "beastshift" }.fetch("current")
+    temp_hp_before = stormshifter.trait_set.temp_hp
+
+    visit character_url(stormshifter)
+
+    assert_text "When you roll Initiative, you may Beastshift or move for free"
+    check "Use Swiftshift's free choice at Initiative"
+    select "Move", from: "Choose Swiftshift option"
+    click_on "Record Initiative Roll · confirm optional features"
+
+    assert_text "Swiftshift chose Move for free on Initiative"
+    initiative_tracks = stormshifter.reload.character_revisions.where(event_type: "initiative_roll").sole.snapshot.dig("traits", "resource_tracks")
+    assert_equal beastshift_before, initiative_tracks.find { |track| track.fetch("key") == "beastshift" }.fetch("current")
+    assert_equal temp_hp_before, stormshifter.trait_set.temp_hp
+    assert_no_text "Initiative recorded; no optional feature action taken"
+
+    click_on "End Encounter · refresh uses"
+    assert_text "Encounter ended. Encounter-reset counters were refreshed."
+    assert_nil stormshifter.reload.encounter_started_at
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
     character = Character.create!(
       name: "Condition Tracker Hero",

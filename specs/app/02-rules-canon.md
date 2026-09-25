@@ -194,7 +194,7 @@ Each class has one or more special resource pools that must be modeled for legal
 | Shadowmancer | Pilfered Power uses (DEX/Safe Rest) | Patron penalty if exceeded; Pact of the Red Dragon regains up to one spent use on Initiative at L11, expiring at encounter end. Heroes 2.0.1, pp. 44, 47 |
 | Shepherd | Mana; Searing Light; subclass charges | Mana: (WIL×3)+LVL/Safe Rest. Searing Light: WIL uses/Safe Rest. Sacred Grace Light Bearer refunds 1 spent Searing Light use on Initiative (encounter-only); Luminary of Mercy Empowered Conduit refunds 1, and Luminary of Malice Conduit of Death recharges Veilwalker's Blessing at Initiative, each expiring at encounter end. Heroes 2.0.1, pp. 49, 52–53 |
 | Songweaver | Mana + Inspiration | Mana: (INT×3)+LVL/Safe Rest; Inspiration: 2×WIL/Safe Rest; Quick Wit regains up to 2 spent uses on Initiative at L3, expiring at encounter end. Heroes 2.0.1, p. 56 |
-| Stormshifter | Mana + Beastshift charges | Mana: (WIL×3)+LVL; Beastshift: DEX charges/Safe Rest |
+| Stormshifter | Mana + Beastshift charges | Mana: (WIL×3)+LVL; Beastshift: DEX charges/Safe Rest. Circle of Fang & Claw's level-3 Swiftshift lets the player choose a free Beastshift or move when Initiative is rolled; free Beastshifting grants no temporary HP. Heroes 2.0.1, pp. 61, 65 |
 | Zephyr | Bursts of Speed | At level 2, gain DEX Bursts when rolling Initiative (plus 1 at level 20); at level 3+, gain 1 whenever you gain a Wound. No maximum is stated for the encounter pool. The level-4 Unyielding Resolve ignores the first Wound each encounter, but Wound-triggered abilities still trigger. Heroes 2.0.1, pp. 67–69 |
 
 ---
@@ -261,6 +261,12 @@ advantage is a separate encounter counter that can be spent once through an
 explicit sheet action; the attack roll and Hunter's Mark effects remain
 table-resolved. At level 15, Ambusher and Apex Predator grants are both applied
 on Initiative, with the latter adding its separate Thrill of the Hunt charge.
+
+Circle of Fang & Claw's level-3 Swiftshift offers a player choice at Initiative:
+record a free Beastshift or a free move. The sheet records which option was
+chosen, does not spend a Beastshift charge, and does not simulate the form or
+movement; it explicitly preserves the rule that the free Beastshift grants no
+temporary HP.
 
 Beastmaster also records its source-defined setup at the story change: an animal
 name and Small/Medium/Large size, plus a reconfirmation of the first two Thrill

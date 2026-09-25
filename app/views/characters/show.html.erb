@@ -155,11 +155,11 @@
           <div class="field"><%= tracker_form.label :game_notes, "Session notes" %><%= tracker_form.text_area :game_notes, rows: 3, placeholder: "Remember this for next time…" %></div>
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
-        <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
-          <% initiative_grants = @character.initiative_resource_grants %>
-          <% initiative_tracks = initiative_grants.filter_map { |grant| resource_tracks.find { |track| track.fetch("key") == grant.fetch("resource_key") } } %>
-          <% initiative_action_entries = @character.initiative_optional_action_entries %>
-          <% if (initiative_grants.present? && initiative_tracks.present?) || initiative_action_entries.present? %>
+        <% initiative_grants = @character.initiative_resource_grants %>
+        <% initiative_tracks = initiative_grants.filter_map { |grant| resource_tracks.find { |track| track.fetch("key") == grant.fetch("resource_key") } } %>
+        <% initiative_action_entries = @character.initiative_optional_action_entries %>
+        <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } || initiative_action_entries.present? %>
+        <% if (resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } && initiative_grants.present? && initiative_tracks.present?) || initiative_action_entries.present? %>
             <div class="safe-rest-action">
               <% initiative_grants.each do |grant| %>
                 <p class="eyebrow"><%= grant.fetch("feature_label") %></p>
@@ -215,22 +215,31 @@
                     <% end %>
                   <% end %>
                   <% initiative_action_entries.each do |action| %>
-                    <% if %w[free_spell_cast free_feature_use].include?(action.fetch("kind")) %>
+                    <% if %w[free_spell_cast free_feature_use free_choice].include?(action.fetch("kind")) %>
                       <% used_id = "initiative-feature-#{action.fetch('key')}-used" %>
                       <% target_id = "initiative-feature-#{action.fetch('key')}-target" %>
                       <% action_prompt = if action.fetch("kind") == "free_spell_cast"
                         "Use #{action.fetch('feature_name')} to cast #{action.fetch('spell_name')} for free now"
+                      elsif action.fetch("kind") == "free_choice"
+                        "Use #{action.fetch('feature_name')}'s free choice at Initiative"
                       else
                         "Use #{action.fetch('feature_name')}'s free #{action.fetch('action_name')} now"
                       end %>
                       <div class="field">
                         <div><%= check_box_tag "initiative_roll[feature_actions][#{action.fetch('key')}][used]", "1", false, id: used_id %> <%= label_tag used_id, action_prompt %></div>
-                        <%= label_tag target_id, action.fetch("target_label") %>
-                        <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: action.fetch("target_max_length", 80), placeholder: action.fetch("kind") == "free_spell_cast" ? "e.g. Silver longsword" : "e.g. Ashen Stag" %>
                         <% if action.fetch("kind") == "free_spell_cast" %>
+                          <%= label_tag target_id, action.fetch("target_label") %>
+                          <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: action.fetch("target_max_length", 80), placeholder: "e.g. Silver longsword" %>
                           <span class="field-hint">The sheet records the free base cast only. Apply its listed effect and record any paid upcast at the table. <%= action.fetch("source_ref") %>.</span>
-                        <% else %>
+                        <% elsif action.fetch("kind") == "free_feature_use" %>
+                          <%= label_tag target_id, action.fetch("target_label") %>
+                          <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: action.fetch("target_max_length", 80), placeholder: "e.g. Ashen Stag" %>
                           <span class="field-hint">The sheet records this free use only. Apply Hunter's Mark and any additional marking effects at the table. <%= action.fetch("source_ref") %>.</span>
+                        <% else %>
+                          <% choice_id = "initiative-feature-#{action.fetch('key')}-choice" %>
+                          <%= label_tag choice_id, action.fetch("choice_label") %>
+                          <%= select_tag "initiative_roll[feature_actions][#{action.fetch('key')}][choice]", options_for_select(action.fetch("choices").map { |choice| [ choice, choice ] }), id: choice_id, include_blank: "Choose an option" %>
+                          <span class="field-hint">The sheet records the free option, not its battlefield result. If you choose Beastshift, it grants no temporary HP; apply form or movement effects at the table. <%= action.fetch("source_ref") %>.</span>
                         <% end %>
                       </div>
                     <% end %>

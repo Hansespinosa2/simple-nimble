@@ -1487,6 +1487,52 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Swiftshift records either free Initiative option without spending a Beastshift or granting temp HP" do
+    Rails.application.load_seed
+    stormshifter = Character.create!(
+      name: "Swiftshift Tracker",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Stormshifter"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    stormshifter.update_columns(subclass_name: "Circle of Fang & Claw", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| stormshifter.stat_value(stat) }
+    tracks = stormshifter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Circle of Fang & Claw")
+    stormshifter.trait_set.update!(resource_tracks: tracks)
+    beastshift_before = tracks.find { |track| track.fetch("key") == "beastshift" }.fetch("current")
+    actions_before = stormshifter.trait_set.current_actions
+    temp_hp_before = stormshifter.trait_set.temp_hp
+
+    assert_raises(ArgumentError) do
+      stormshifter.begin_encounter!(feature_actions: { "swiftshift_initiative" => { "used" => "1", "choice" => "Attack" } })
+    end
+    assert_nil stormshifter.reload.encounter_started_at
+    assert_equal 0, stormshifter.character_revisions.where(event_type: "initiative_roll").count
+
+    beastshift = stormshifter.begin_encounter!(
+      feature_actions: { "swiftshift_initiative" => { "used" => "1", "choice" => "Beastshift" } }
+    )
+    assert_includes beastshift.summary, "Swiftshift chose Beastshift for free on Initiative"
+    assert_includes beastshift.summary, "free Beastshifting grants no temporary HP"
+    assert_equal beastshift_before, stormshifter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "beastshift" }.fetch("current")
+    assert_equal actions_before, stormshifter.trait_set.current_actions
+    assert_equal temp_hp_before, stormshifter.trait_set.temp_hp
+
+    stormshifter.end_encounter!
+    move = stormshifter.begin_encounter!(
+      feature_actions: { "swiftshift_initiative" => { "used" => "1", "choice" => "Move" } }
+    )
+    assert_includes move.summary, "Swiftshift chose Move for free on Initiative"
+    assert_not_includes move.summary, "temporary HP"
+
+    stormshifter.end_encounter!
+    unused = stormshifter.begin_encounter!
+    assert_equal "Initiative recorded; no optional feature action taken", unused.summary
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Reaver's level-15 initiative feature is once per encounter and respects its minion limit" do
     Rails.application.load_seed
     shadowmancer = Character.create!(
