@@ -169,6 +169,34 @@ class CharacterTest < ActiveSupport::TestCase
     assert_includes dying.fetch("effects_source_quote"), "have a max of 2 actions instead of 1"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-05:AC-2 S-09:AC-3
+  test "derived condition effects resolve from their configured rule link, not a condition-name branch" do
+    Rails.application.load_seed
+    original_catalog = Rules::NimbleCatalog.data
+    changed_catalog = original_catalog.deep_dup
+    dying_condition = changed_catalog.fetch("condition_tracking").fetch("derived_conditions").find { |entry| entry.fetch("name") == "Dying" }
+    dying_condition["name"] = "Rule-linked condition"
+    Rules::NimbleCatalog.instance_variable_set(:@data, changed_catalog)
+
+    character = Character.create!(
+      name: "Rule-linked Berserker",
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      level: 4
+    )
+    character.trait_set.update!(current_hp: 0)
+    condition = character.derived_condition_entries.find { |entry| entry.fetch("name") == "Rule-linked condition" }
+
+    assert condition
+    assert_equal "Rule-linked condition", condition.fetch("name")
+    assert_equal 2, condition.fetch("actions_limited_to")
+    assert_equal "Heroes 2.0.1, p. 8", condition.fetch("effects_source_ref")
+  ensure
+    Rules::NimbleCatalog.instance_variable_set(:@data, original_catalog) if original_catalog
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the death threshold follows permanent maximum-Wound modifiers" do
     Rails.application.load_seed

@@ -113,6 +113,7 @@ condition_tracking:
     - name: Dying
       predicate: zero_hit_points
       source_quote: "At 0 HP."
+      action_limit_rule: dying_action_limit
     - name: Wounded
       predicate: any_wounds
       source_quote: "Has any Wounds."

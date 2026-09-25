@@ -253,9 +253,10 @@ class Character < ApplicationRecord
       end
     end.map do |condition|
       entry = condition.merge("source_ref" => condition.fetch("source_ref", rules.fetch("source_ref")))
-      next entry unless condition.fetch("name") == "Dying"
+      action_limit_rule = condition["action_limit_rule"]
+      next entry unless action_limit_rule
 
-      action_limit = Rules::NimbleCatalog.dying_action_limit_for(character_class&.name, level)
+      action_limit = Rules::NimbleCatalog.condition_action_limit_for(action_limit_rule, character_class&.name, level)
       entry.merge(
         "actions_limited_to" => action_limit.fetch("actions_limited_to"),
         "effects_source_ref" => action_limit.fetch("source_ref"),
