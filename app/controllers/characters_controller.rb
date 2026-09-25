@@ -1,4 +1,10 @@
 class CharactersController < ApplicationController
+  RULE_PROGRESSION_PARAMETER_KEYS = %i[
+    race nimble_class languages spell_school_choice character_class_id ancestry_id background_id
+    stat_array stat_assignments language_choices feature_language_choices skill_set_attributes
+    spell_choices spell_ids subclass_name subclass_choices feature_choices
+  ].freeze
+
   before_action :set_character, only: %i[ show edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
   before_action :require_character_owner, only: %i[ edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
@@ -275,6 +281,13 @@ class CharactersController < ApplicationController
 
     # Only allow a list of trusted parameters through using expect.
     def character_params
+      if @character&.rules_progression_locked?
+        submitted_keys = params[:character].respond_to?(:keys) ? params[:character].keys.map(&:to_sym) : []
+        if (submitted_keys & RULE_PROGRESSION_PARAMETER_KEYS).any?
+          raise ActionController::BadRequest, "This character's rules and progression choices are locked to preserve its level history."
+        end
+      end
+
       skill_set_params_list = [ :id, *Character::SKILL_NAMES ]
       params.expect(character: [
         :name,

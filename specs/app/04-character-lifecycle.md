@@ -31,6 +31,7 @@ and campaign sharing without ambiguous ownership or legality rules.
 | Structured character import is in scope, but does not bypass creation or level-up validation | `[Validated]` | JSON/CSV imports become owned drafts; see S-10 |
 | Strict legality gates should block invalid finalized states for now | `[Validated]` | Direct user answer |
 | Invalid drafts are saveable; characters may be saved in an incomplete state | `[Validated]` | Direct user answer |
+| Finalized characters lock rules and progression choices in the general editor; identity/story notes remain editable, and carried equipment/game trackers remain editable from the sheet | `[Validated]` | Direct user answer; rules changes go through level-up or their separately authorized story flow |
 | Sharing is a permission overlay, not a lifecycle state | `[Validated]` | Direct user answer |
 | Legacy character behavior after canon changes is out of scope for v1 | `[Validated]` | Direct user answer |
 
@@ -78,6 +79,7 @@ Suggested lifecycle:
 | AC-3 | Behavioral | Level-up occurs as an explicit transition rather than a silent field edit. | `[Validated]` |
 | AC-4 | Negative | A shared campaign view does not transfer character ownership away from the player by default. | `[Validated]` |
 | AC-5 | Edge case | If a rules update invalidates an existing character, the app preserves the prior valid state and surfaces the mismatch. | `[Out of scope: v1]` |
+| AC-6 | Negative | Once finalized, a character's rules and progression choices cannot be changed through the general editor; identity/story notes remain editable there, while carried equipment and game trackers remain editable from the sheet. | `[Validated]` |
 
 ## 9. Failure conditions
 

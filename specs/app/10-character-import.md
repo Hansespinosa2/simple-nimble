@@ -103,7 +103,7 @@ never override imported rules state.
 | AC-6 | Edge case | Current HP, wounds, actions, hit dice, resources, gold, and inventory are restored only when valid against recomputed maxima and canonical inventory rules. | `[Validated]` |
 | AC-7 | Behavioral | JSON export contains a versioned creation baseline and all level-up inputs required to import the same standard-subclass character again. | `[Validated]` |
 | AC-8 | Dependency | Any failed validation rolls back all created records and returns actionable field paths and, for rules errors, rule source references. | `[Validated]` |
-| AC-9 | Behavioral | A validated higher-level import remains a draft until the normal finalization gate is used; it can become playable only while its complete finalized progression history still matches its level, and its level cannot be directly edited after import. | `[Validated]` |
+| AC-9 | Behavioral | A validated higher-level import remains a draft until the normal finalization gate is used; it can become playable only while its complete finalized progression history still matches its level, and neither its level nor replayed rules/progression choices can be directly edited after import. | `[Validated]` |
 
 ## 9. Failure conditions
 

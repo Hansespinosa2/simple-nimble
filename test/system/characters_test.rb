@@ -83,6 +83,49 @@ class CharactersTest < ApplicationSystemTestCase
     assert_includes battleaxe.text, "Core Rules 2.0.1, pp. 21, 34"
   end
 
+  # S-04:AC-6 S-09:AC-3
+  test "a playable character locks its build but still saves identity and story edits" do
+    character = Character.new(
+      name: "Locked Build Hero",
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    character.valid?
+    character.skill_set.might = character.skill_set.might.to_i + character.skill_point_budget
+    stat_values = character.stat_set.attributes.slice(*Character::STAT_NAMES).transform_values(&:to_i)
+    language_count = character.language_choice_count(stat_values)
+    character.language_choices = character.language_choice_options_for(stat_values, excluding: []).first(language_count)
+    character.save!
+    character.finalize_creation!
+
+    visit edit_character_url(character)
+
+    assert_selector "select[name='character[character_class_id]'][disabled]"
+    assert_selector "select[name='character[ancestry_id]'][disabled]"
+    assert_selector "select[name='character[background_id]'][disabled]"
+    assert_selector "select[name='character[stat_array]'][disabled]"
+    Character::STAT_NAMES.each do |stat|
+      assert_selector "select[name='character[stat_assignments][#{stat}]'][disabled]"
+    end
+    assert_selector "input[name='character[language_choices][]'][disabled]"
+    assert_selector "input[name='character[skill_set_attributes][might]'][disabled]"
+    assert_no_selector ".spell-picker"
+    assert_selector ".spell-chips"
+    assert_text "Rules and progression choices are locked to preserve this character's history."
+    assert_no_button "Save and mark playable"
+    assert_button "Save changes"
+
+    fill_in "character_name", with: "Renamed Locked Build"
+    fill_in "character_background", with: "A promise kept on the northern road."
+    fill_in "character_description", with: "Still the same hero, with a new chapter."
+    click_on "Save changes"
+
+    assert_selector "h1", text: "Renamed Locked Build"
+    assert_selector ".sheet-description", text: "Still the same hero, with a new chapter."
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2
   test "the builder previews an Oozeling's ancestry-upgraded Hit Die" do
     visit new_character_url

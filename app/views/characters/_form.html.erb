@@ -1,6 +1,8 @@
 <% builder_payload = defined?(@builder_rules) && @builder_rules.present? ? @builder_rules.to_json : {}.to_json %>
 <% max_skill = Rules::NimbleCatalog.derived_values.fetch("max_skill").to_i %>
 <% starting_equipment_rules = Rules::NimbleCatalog.starting_equipment_rules %>
+<% rules_locked = character.rules_progression_locked? %>
+<% rule_inputs_disabled = read_only || rules_locked %>
 
 <%= form_with(model: character, class: "builder-form", data: { controller: "character-builder", character_builder_rules_value: builder_payload }) do |form| %>
   <% if character.errors.any? %>
@@ -47,9 +49,9 @@
           </div>
           <div class="field">
             <%= form.label :level, "Level" %>
-            <% level_editable = character.new_record? || character.draft? %>
+            <% level_editable = character.new_record? || (character.draft? && !character.imported_character?) %>
             <%= form.number_field :level, id: "character_level", min: 1, max: Character::MAX_LEVEL, disabled: read_only || !level_editable, data: { character_builder_target: "level", action: "input->character-builder#refresh change->character-builder#refresh" } %>
-            <span class="field-hint"><%= level_editable ? "New heroes start at level 1; drafts can be adjusted before finalizing." : "Level changes happen through the explicit Level up flow." %></span>
+            <span class="field-hint"><%= level_editable ? "New heroes start at level 1; drafts can be adjusted before finalizing." : (character.imported_character? ? "Imported level and progression history are preserved; finalize the verified history or continue with Level up." : "Level changes happen through the explicit Level up flow.") %></span>
           </div>
           <div class="field field-wide">
             <%= form.label :description, "The short version" %>
@@ -75,35 +77,35 @@
         <div class="form-grid form-grid-two">
           <div class="field">
             <%= form.label :character_class_id, "Class" %>
-            <%= form.collection_select :character_class_id, @character_classes, :id, :name, { include_blank: "Choose a class" }, disabled: read_only, data: { character_builder_target: "characterClass", action: "change->character-builder#refresh" } %>
+            <%= form.collection_select :character_class_id, @character_classes, :id, :name, { include_blank: "Choose a class" }, disabled: rule_inputs_disabled, data: { character_builder_target: "characterClass", action: "change->character-builder#refresh" } %>
             <span class="field-hint" data-character-builder-target="classHint">Two Key Stats shape your build.</span>
           </div>
           <div class="field">
             <%= form.label :ancestry_id, "Ancestry" %>
-            <%= form.collection_select :ancestry_id, @ancestries, :id, :name, { include_blank: "Choose an ancestry" }, disabled: read_only, data: { character_builder_target: "ancestry", action: "change->character-builder#refresh" } %>
+            <%= form.collection_select :ancestry_id, @ancestries, :id, :name, { include_blank: "Choose an ancestry" }, disabled: rule_inputs_disabled, data: { character_builder_target: "ancestry", action: "change->character-builder#refresh" } %>
             <span class="field-hint" data-character-builder-target="ancestryHint">Ancestry traits apply automatically.</span>
           </div>
           <div class="field">
             <%= form.label :background_id, "Background" %>
-            <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose a background" }, disabled: read_only, data: { character_builder_target: "background", action: "change->character-builder#refresh" } %>
+            <%= form.collection_select :background_id, @backgrounds, :id, :name, { include_blank: "Choose a background" }, disabled: rule_inputs_disabled, data: { character_builder_target: "background", action: "change->character-builder#refresh" } %>
             <span class="field-hint" data-character-builder-target="backgroundHint">Backgrounds can have creation prerequisites.</span>
           </div>
           <% if character.new_record? || character.draft? %>
             <div class="field field-wide">
               <%= form.label :starting_equipment_choice, "Starting equipment" %>
-              <%= form.select :starting_equipment_choice, [["Class's listed starting gear", "class_gear"], ["Starting gold instead (#{starting_equipment_rules.fetch('gold_per_level')} gp per level)", "starting_gold"]], {}, disabled: read_only, data: { character_builder_target: "startingEquipmentChoice", action: "change->character-builder#refresh" } %>
+              <%= form.select :starting_equipment_choice, [["Class's listed starting gear", "class_gear"], ["Starting gold instead (#{starting_equipment_rules.fetch('gold_per_level')} gp per level)", "starting_gold"]], {}, disabled: rule_inputs_disabled, data: { character_builder_target: "startingEquipmentChoice", action: "change->character-builder#refresh" } %>
               <span class="field-hint">Core Rules 2.0.1, pp. 20, 32–33; Heroes 2.0.1, p. 67 · choose listed class gear or <%= starting_equipment_rules.fetch("gold_per_level") %> gp per starting level; higher-level starts multiply the gold by level. Equipped catalog armor updates Armor on the sheet; adding gear does not automatically deduct its cost from tracked gold.</span>
               <span class="field-hint" data-character-builder-target="backgroundEquipmentNote" role="note"><%= starting_equipment_rules.fetch("background_gear_note") %> <%= starting_equipment_rules.fetch("background_gear_source_ref") %>.</span>
             </div>
           <% end %>
           <div class="field">
             <%= form.label :stat_array, "Stat array" %>
-            <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: read_only, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
+            <%= form.select :stat_array, @stat_arrays.map { |array| [ array.humanize, array ] }, { include_blank: "Choose an array" }, disabled: rule_inputs_disabled, data: { character_builder_target: "statArray", action: "change->character-builder#refresh" } %>
             <span class="field-hint stat-array-rules-summary"><%= stat_array_rules_summary %></span>
           </div>
           <div class="field field-wide" data-character-builder-target="spellSchoolChoiceField">
             <%= form.label :spell_school_choice, "Additional spell school" %>
-            <%= form.select :spell_school_choice, (character.character_class&.spell_school_choice_options || []).map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: read_only, data: { character_builder_target: "spellSchoolChoice" } %>
+            <%= form.select :spell_school_choice, (character.character_class&.spell_school_choice_options || []).map { |school| [ school, school ] }, { include_blank: "Choose one additional school" }, disabled: rule_inputs_disabled, data: { character_builder_target: "spellSchoolChoice" } %>
             <% school_choice_rule = character.character_class&.spell_school_choice_rule %>
             <span class="field-hint" data-character-builder-target="spellSchoolChoiceHint"><%= "#{school_choice_rule.fetch('source_quote')} (#{school_choice_rule.fetch('source_ref')})" if school_choice_rule.present? %></span>
           </div>
@@ -130,16 +132,22 @@
                 <% field_id = "character_spell_choices_#{background_record.id}_1_#{choice_index}" %>
                 <% field_label = "#{background_name} · #{choice_label}#{" #{choice_index + 1}" if choice_count > 1}" %>
                 <%= label_tag field_id, field_label %>
-                <%= select_tag field_name, options_for_select([["Choose a #{choice_label}", ""]] + choice_options, character.spell_choice_selections_for(background_name, 1)[choice_index]), id: field_id, disabled: read_only, data: { character_builder_target: "backgroundSpellChoice" } %>
+                <%= select_tag field_name, options_for_select([["Choose a #{choice_label}", ""]] + choice_options, character.spell_choice_selections_for(background_name, 1)[choice_index]), id: field_id, disabled: rule_inputs_disabled, data: { character_builder_target: "backgroundSpellChoice" } %>
               <% end %>
               <span class="field-hint"><%= choice_rule.fetch("source_ref") %> · “<%= choice_rule.fetch("source_quote") %>”</span>
             </div>
           <% end %>
         </div>
-        <div class="rules-callout" data-character-builder-target="rulesCallout">
+        <div class="rules-callout" data-character-builder-target="rulesCallout" <%= "hidden" if rules_locked && !read_only %>>
           <span class="callout-icon">✦</span>
           <span>Choose a class, ancestry, background, and stat array to see how the rules combine.</span>
         </div>
+        <% if rules_locked && !read_only %>
+          <div class="rules-callout">
+            <span class="callout-icon">✦</span>
+            <span>Rules and progression choices are locked to preserve this character's history. Use Level up for legal progression; class, ancestry, background, stats, skills, languages, and spells cannot be edited here. Name and story notes remain editable; carried equipment and game trackers remain editable from the sheet.</span>
+          </div>
+        <% end %>
       </section>
 
       <section class="panel">
@@ -171,7 +179,7 @@
               <% selected_value = character.stat_assignment_value(stat) || (character.stat_array.present? ? character.stat_value(stat) : nil) %>
               <label class="stat-placement-field">
                 <span><%= stat_display_name(stat) %></span>
-                <%= select_tag "character[stat_assignments][#{stat}]", options_for_select([["Choose", ""]] + stat_options, selected_value), disabled: read_only, data: { character_builder_target: "statAssignment", stat: stat, action: "change->character-builder#refresh" } %>
+                <%= select_tag "character[stat_assignments][#{stat}]", options_for_select([["Choose", ""]] + stat_options, selected_value), disabled: rule_inputs_disabled, data: { character_builder_target: "statAssignment", stat: stat, action: "change->character-builder#refresh" } %>
               </label>
             <% end %>
           </div>
@@ -191,10 +199,10 @@
           <legend>Languages</legend>
           <p class="field-hint"><%= language_rules.fetch("source_quote") %> Origin grants apply automatically when their INT requirement is met; choose one distinct language for each positive INT point.</p>
           <div class="language-choice-grid">
-            <%= hidden_field_tag "character[language_choices][]", "" if character.new_record? || Array(character.language_choices).any? %>
+            <%= hidden_field_tag "character[language_choices][]", "" if !rule_inputs_disabled && (character.new_record? || Array(character.language_choices).any?) %>
             <% language_rules.fetch("languages").reject { |language| language == language_rules.fetch("default_language") }.each do |language| %>
               <label class="language-choice-option" data-language-choice-option="<%= language %>">
-                <%= check_box_tag "character[language_choices][]", language, Array(character.language_choices).include?(language), disabled: read_only, data: { language_choice: true, action: "change->character-builder#refresh" } %>
+                <%= check_box_tag "character[language_choices][]", language, Array(character.language_choices).include?(language), disabled: rule_inputs_disabled, data: { language_choice: true, action: "change->character-builder#refresh" } %>
                 <span><%= language %></span>
               </label>
             <% end %>
@@ -214,11 +222,11 @@
           <span class="step-number">04</span>
         </div>
         <div class="skill-grid">
-          <%= form.fields_for :skill_set do |skill_fields| %>
+          <%= form.fields_for :skill_set, include_id: !rule_inputs_disabled do |skill_fields| %>
             <% Character::SKILL_NAMES.each do |skill| %>
               <div class="skill-field">
                 <%= skill_fields.label skill, skill_display_name(skill) %>
-                <%= skill_fields.number_field skill, min: -5, max: max_skill, disabled: read_only, data: { skill: skill } %>
+                <%= skill_fields.number_field skill, min: -5, max: max_skill, disabled: rule_inputs_disabled, data: { skill: skill } %>
                 <span data-skill-base="<%= skill %>">base <%= signed_value(character.skill_initial_value(skill)) %></span>
               </div>
             <% end %>
@@ -257,7 +265,7 @@
           </div>
           <span class="mini-label">Reference</span>
         </div>
-        <% if read_only %>
+        <% if rule_inputs_disabled %>
           <div class="spell-chips">
             <% character.sheet_spells.order(:tier, :name).each do |spell| %>
               <span class="spell-chip <%= color_from_spell_school(spell.school) %>"><%= spell.name %></span>
@@ -284,9 +292,14 @@
 
       <% unless read_only %>
         <section class="panel action-panel">
-          <p class="muted">Drafts are safe to save at any point. Finalizing runs every rules check.</p>
-          <%= form.submit "Save draft", class: "button button-secondary" %>
-          <%= button_tag "Save and mark playable", type: "submit", name: "finalize", value: "1", class: "button button-primary" %>
+          <% if rules_locked %>
+            <p class="muted">Save identity and story-note changes here. Edit carried equipment and game state from the character sheet.</p>
+            <%= form.submit "Save changes", class: "button button-primary" %>
+          <% else %>
+            <p class="muted">Drafts are safe to save at any point. Finalizing runs every rules check.</p>
+            <%= form.submit "Save draft", class: "button button-secondary" %>
+            <%= button_tag "Save and mark playable", type: "submit", name: "finalize", value: "1", class: "button button-primary" %>
+          <% end %>
         </section>
       <% end %>
     </aside>

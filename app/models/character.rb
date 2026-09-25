@@ -110,6 +110,12 @@ class Character < ApplicationRecord
     character_revisions.where(event_type: "imported").exists?
   end
 
+  def rules_progression_locked?
+    return false unless persisted?
+
+    !draft? || (imported_character? && level.to_i > 1)
+  end
+
   def known_spell_schools
     schools = character_class&.spell_schools || []
     schools = schools.reject { |school| school == "choice" }
@@ -2042,7 +2048,8 @@ class Character < ApplicationRecord
     end
 
     def starting_equipment_choice_only_changes_while_draft
-      return unless persisted? && starting_equipment_choice_changed? && !draft?
+      return unless persisted? && starting_equipment_choice_changed?
+      return if draft? && !(imported_character? && level.to_i > 1)
 
       errors.add(:starting_equipment_choice, "can only be changed while the character is a draft")
     end

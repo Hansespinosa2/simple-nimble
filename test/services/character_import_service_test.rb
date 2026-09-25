@@ -79,6 +79,7 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert result.success?, result.errors.to_sentence
     imported = result.character
     assert imported.draft?
+    assert imported.rules_progression_locked?
     assert_equal 2, imported.level
     assert_equal original.stat_set.attributes.slice(*Character::STAT_NAMES), imported.stat_set.attributes.slice(*Character::STAT_NAMES)
     assert_equal original.skill_set.attributes.slice(*Character::SKILL_NAMES), imported.skill_set.attributes.slice(*Character::SKILL_NAMES)
@@ -97,6 +98,9 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert_empty imported.creation_issues
     assert_not imported.update(level: 3)
     assert_equal 2, imported.reload.level
+    assert_not imported.update(starting_equipment_choice: "starting_gold")
+    assert_includes imported.errors[:starting_equipment_choice], "can only be changed while the character is a draft"
+    assert_equal "class_gear", imported.reload.starting_equipment_choice
 
     imported.finalize_creation!
     assert imported.reload.playable?

@@ -244,6 +244,90 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, character.current_gold
   end
 
+  # S-04:AC-6 S-05:AC-2 S-09:AC-3
+  test "a playable character rejects rules and progression edits at the request boundary" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Rules Locked Hero"))
+    character.finalize_creation!
+    original = {
+      character_class_id: character.character_class_id,
+      ancestry_id: character.ancestry_id,
+      background_id: character.background_id,
+      stat_array: character.stat_array,
+      stat_assignments: character.stat_assignments.deep_dup,
+      languages: character.languages,
+      language_choices: character.language_choices.deep_dup,
+      skills: character.skill_set.attributes.slice(*Character::SKILL_NAMES.map(&:to_s)),
+      spells: character.spells.ids,
+      revisions: character.character_revisions.count
+    }
+
+    patch character_url(character), params: {
+      character: {
+        character_class_id: CharacterClass.find_by!(name: "Mage").id,
+        ancestry_id: Ancestry.find_by!(name: "Orc").id,
+        background_id: Background.find_by!(name: "Academy Dropout").id,
+        stat_array: "min_max",
+        stat_assignments: { strength: 3, dexterity: 1, intelligence: -1, will: -1 },
+        language_choices: [ "Goblin" ],
+        feature_language_choices: { "Some Feature" => [ "Goblin" ] },
+        skill_set_attributes: { id: character.skill_set.id, might: 2 },
+        spell_choices: { "Academy Dropout" => { "1" => [ "Firebrand" ] } },
+        spell_ids: [ Spell.order(:id).first.id ]
+      }
+    }
+
+    assert_response :bad_request
+    assert_includes response.body, "locked to preserve its level history"
+    character.reload
+    assert_equal original.fetch(:character_class_id), character.character_class_id
+    assert_equal original.fetch(:ancestry_id), character.ancestry_id
+    assert_equal original.fetch(:background_id), character.background_id
+    assert_equal original.fetch(:stat_array), character.stat_array
+    assert_equal original.fetch(:stat_assignments), character.stat_assignments
+    assert_equal original.fetch(:languages), character.languages
+    assert_equal original.fetch(:language_choices), character.language_choices
+    assert_equal original.fetch(:skills), character.skill_set.attributes.slice(*Character::SKILL_NAMES.map(&:to_s))
+    assert_equal original.fetch(:spells), character.spells.ids
+    assert_equal original.fetch(:revisions), character.character_revisions.count
+  end
+
+  # S-04:AC-3 S-10:AC-3 S-10:AC-9 S-09:AC-3
+  test "a higher-level imported draft cannot edit its replayed build" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Imported Locked Hero", level: 2))
+    character.record_revision!(event_type: "imported", summary: "Imported verified progression")
+
+    assert character.draft?
+    assert character.rules_progression_locked?
+
+    patch character_url(character), params: { character: { ancestry_id: Ancestry.find_by!(name: "Orc").id } }
+
+    assert_response :bad_request
+    assert_equal @ancestry.id, character.reload.ancestry_id
+  end
+
+  # S-04:AC-6 S-09:AC-3
+  test "a playable character can still save identity and story-note edits" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Editable Identity Hero"))
+    character.finalize_creation!
+
+    patch character_url(character), params: {
+      character: {
+        name: "Renamed Playable Hero",
+        description: "The same build, with a new chapter.",
+        legacy_background_text: "A promise kept on the northern road."
+      }
+    }
+
+    assert_redirected_to character_url(character)
+    character.reload
+    assert_equal "Renamed Playable Hero", character.name
+    assert_equal "The same build, with a new chapter.", character.description
+    assert_equal "A promise kept on the northern road.", character.legacy_background_text
+    assert_equal @character_class.id, character.character_class_id
+    assert_equal @ancestry.id, character.ancestry_id
+    assert_equal @background.id, character.background_id
+  end
+
   test "should save an Academy Dropout Utility Spell choice when finalizing" do
     post characters_url, params: {
       character: canonical_character_attributes.merge(
@@ -446,17 +530,12 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   # S-04:AC-3 S-06:AC-6 S-09:AC-1 S-09:AC-3
-  test "should reject a direct level edit even when skill points are supplied" do
+  test "should reject a direct level edit outside the explicit level-up flow" do
     character = Character.create!(canonical_character_attributes.merge(name: "No Shortcut Hero"))
     character.finalize_creation!
     original_revisions = character.character_revisions.count
 
-    patch character_url(character), params: {
-      character: {
-        level: 2,
-        skill_set_attributes: { id: character.skill_set.id, might: 8 }
-      }
-    }
+    patch character_url(character), params: { character: { level: 2 } }
 
     assert_response :unprocessable_entity
     assert_includes response.body, "can only change through a finalized level-up"
