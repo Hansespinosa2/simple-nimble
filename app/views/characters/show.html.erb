@@ -167,13 +167,46 @@
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
               <% else %>
-                <% initiative_label = if initiative_grants.one?
-                  initiative_grant = initiative_grants.first
-                  initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
-                else
-                  "Record Initiative Roll · apply listed features"
-                end %>
-                <%= button_to(initiative_label, begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+                <% initiative_dice_count = initiative_grants.sum { |grant| @character.initiative_resource_dice_count(grant) } %>
+                <% if initiative_dice_count.positive? %>
+                  <p class="field-hint">Roll the listed dice at the table and enter each result. Elemental Surge adds WIL plus those results; the sheet does not roll for you.</p>
+                  <%= form_with url: begin_encounter_character_path(@character), method: :patch, scope: :initiative_roll, class: "field-rest-form" do %>
+                    <% dice_index = 0 %>
+                    <% initiative_grants.each do |grant| %>
+                      <% dice_count = @character.initiative_resource_dice_count(grant) %>
+                      <% die_sides = @character.initiative_resource_die_sides(grant) %>
+                      <% reroll_rule = @character.initiative_resource_reroll_rule(grant) %>
+                      <% dice_count.times do |grant_die_index| %>
+                        <% roll_id = "initiative-die-#{dice_index}" %>
+                        <div class="field">
+                          <%= label_tag roll_id, "#{grant.fetch('feature_name')} d#{die_sides} result #{grant_die_index + 1}" %>
+                          <%= number_field_tag "initiative_roll[dice_rolls][]", nil, id: roll_id, min: 1, max: die_sides, required: true %>
+                          <% if reroll_rule.present? %>
+                            <% reroll_id = "initiative-reroll-#{dice_index}" %>
+                            <%= label_tag reroll_id, "Optional #{reroll_rule.fetch('feature_name')} reroll (only after a 1)" %>
+                            <%= number_field_tag "initiative_roll[rerolls][]", nil, id: reroll_id, min: 1, max: die_sides %>
+                          <% else %>
+                            <%= hidden_field_tag "initiative_roll[rerolls][]", "" %>
+                          <% end %>
+                        </div>
+                        <% dice_index += 1 %>
+                      <% end %>
+                    <% end %>
+                    <% if initiative_grants.any? { |grant| @character.initiative_resource_reroll_rule(grant).present? } %>
+                      <% reroll_rule = initiative_grants.filter_map { |grant| @character.initiative_resource_reroll_rule(grant) }.first %>
+                      <span class="field-hint"><%= reroll_rule.fetch("source_ref") %> · enter a result only for a die that showed 1; a rerolled 1 cannot be rerolled again.</span>
+                    <% end %>
+                    <%= submit_tag "Record Initiative Roll · apply rolled results", class: "button button-secondary button-full" %>
+                  <% end %>
+                <% else %>
+                  <% initiative_label = if initiative_grants.one?
+                    initiative_grant = initiative_grants.first
+                    initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
+                  else
+                    "Record Initiative Roll · apply listed features"
+                  end %>
+                  <%= button_to(initiative_label, begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+                <% end %>
               <% end %>
             </div>
           <% end %>

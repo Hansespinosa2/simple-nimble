@@ -1209,6 +1209,64 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Mage Elemental Surge uses entered dice and permits only Steel Will rerolls of ones" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Controlled Surge",
+      level: 17,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    mage.update_columns(status: "playable", subclass_name: "Control")
+    stat_values = Character::STAT_NAMES.index_with { |stat| mage.stat_value(stat) }
+    tracks = mage.derived_resource_tracks_for(stat_values:, level: 17, subclass_name: "Control")
+    mage.trait_set.update!(resource_tracks: tracks)
+    grant = mage.initiative_resource_grants.sole
+    surge_track = tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }
+
+    assert_equal 2, mage.initiative_resource_dice_count(grant)
+    assert_equal 4, mage.initiative_resource_die_sides(grant)
+    assert_equal mage.stat_value(:will) + 7, mage.initiative_resource_amount(grant, dice_rolls: [ 3, 4 ])
+    assert_equal "Steel Will", mage.initiative_resource_reroll_rule(grant).fetch("feature_name")
+    assert_equal 0, surge_track.fetch("current")
+
+    mage.update_column(:level, 10)
+    assert_equal 1, mage.initiative_resource_dice_count(grant)
+    assert_nil mage.initiative_resource_reroll_rule(grant), "Steel Will does not unlock until level 11"
+    level_ten_revision = mage.begin_encounter!(dice_rolls: [ 4 ])
+    assert_equal mage.stat_value(:will) + 4, mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+    assert_includes level_ten_revision.summary, "d4 results: 4"
+    mage.end_encounter!
+
+    mage.update_column(:level, 11)
+    assert_equal "Steel Will", mage.initiative_resource_reroll_rule(grant).fetch("feature_name")
+    mage.update_column(:level, 17)
+
+    initiative_revisions_before_invalid_rolls = mage.character_revisions.where(event_type: "initiative_roll").count
+    assert_raises(ArgumentError) { mage.begin_encounter!(dice_rolls: [ 3 ]) }
+    assert_raises(ArgumentError) { mage.begin_encounter!(dice_rolls: [ 3, 5 ]) }
+    assert_raises(ArgumentError) { mage.begin_encounter!(dice_rolls: [ 3, 1.5 ]) }
+    assert_raises(ArgumentError) { mage.begin_encounter!(dice_rolls: [ 3, 2 ], rerolls: [ 4, "" ]) }
+    assert_nil mage.encounter_started_at
+    assert_equal 0, mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+    assert_equal initiative_revisions_before_invalid_rolls, mage.character_revisions.where(event_type: "initiative_roll").count
+
+    mage.update_column(:subclass_name, "Chaos")
+    assert_nil mage.initiative_resource_reroll_rule(grant)
+    assert_raises(ArgumentError) { mage.begin_encounter!(dice_rolls: [ 1, 3 ], rerolls: [ 4, "" ]) }
+    mage.update_column(:subclass_name, "Control")
+
+    revision = mage.begin_encounter!(dice_rolls: [ 1, 3 ], rerolls: [ 4, "" ])
+    assert_equal mage.stat_value(:will) + 7, mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+    assert_includes revision.summary, "d4 results: 1 → 4, 3 (Steel Will)"
+
+    mage.end_encounter!
+    assert_equal 0, mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "subclass Initiative charges respect spent-use limits and expire at encounter end" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

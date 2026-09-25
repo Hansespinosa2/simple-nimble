@@ -189,7 +189,7 @@ Each class has one or more special resource pools that must be modeled for legal
 | The Cheat | (No pool; ability-based) | Uses per-ability counters (1/turn, 1/day, 1/Safe Rest) |
 | Commander | Combat Dice | Gain STR dice on Initiative from L4; starts d6 and scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades. Heroes 2.0.1, pp. 19–23 |
 | Hunter | Thrill of the Hunt charges | Gained when quarry dies or hit conditions are met; Shadowpath gains 1 on Initiative at L15; encounter charges expire at encounter end. Heroes 2.0.1, pp. 26, 28 |
-| Mage | Mana | (INT×3)+LVL; recharges on Safe Rest; +WIL on Initiative (L5 Elemental Surge) |
+| Mage | Mana | (INT×3)+LVL; recharges on Safe Rest; Elemental Surge grants +WIL temporary mana on Initiative from L5, plus 1d4 at L10 and 2d4 at L17; unused mana expires at encounter end. Control's L11 Steel Will may reroll each Elemental Surge die showing 1 once. Heroes 2.0.1, pp. 32, 35 |
 | Oathsworn | Judgment Dice (2d6 → d8 → d10 → d12 → d20) + Lay on Hands pool (5×LVL) | Judgment triggered by being attacked |
 | Shadowmancer | Pilfered Power uses (DEX/Safe Rest) | Patron penalty if exceeded; Pact of the Red Dragon regains up to one spent use on Initiative at L11, expiring at encounter end. Heroes 2.0.1, pp. 44, 47 |
 | Shepherd | Mana | (WIL×3)+LVL; recharges on Safe Rest |

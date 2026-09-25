@@ -800,6 +800,53 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal commander.stat_value(:intelligence), tracks.fetch("spellblade_initiative_mana").fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Mage Initiative asks for real Elemental Surge dice and records legal Steel Will rerolls" do
+    Rails.application.load_seed
+    mage = Character.create!(
+      name: "Elemental Surge Sheet",
+      level: 17,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    mage.update_columns(status: "playable", subclass_name: "Control")
+    stat_values = Character::STAT_NAMES.index_with { |stat| mage.stat_value(stat) }
+    tracks = mage.derived_resource_tracks_for(stat_values:, level: 17, subclass_name: "Control")
+    mage.trait_set.update!(resource_tracks: tracks)
+    surge = tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }
+
+    get character_url(mage)
+
+    assert_response :success
+    assert_select "input[name='initiative_roll[dice_rolls][]'][type='number'][min='1'][max='4'][required]", count: 2
+    assert_select "input[name='initiative_roll[rerolls][]'][type='number'][min='1'][max='4']", count: 2
+    assert_select ".field-hint", /reroll each 1 once|reroll it once|cannot be rerolled again/i
+
+    patch begin_encounter_character_url(mage), params: { initiative_roll: { dice_rolls: [ "3" ] } }
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:alert], "Enter exactly 2 die results"
+    assert_nil mage.reload.encounter_started_at
+    assert_equal surge.fetch("current"), mage.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+    assert_equal 0, mage.character_revisions.where(event_type: "initiative_roll").count
+
+    patch begin_encounter_character_url(mage), params: { initiative_roll: { dice_rolls: [ "1", "5" ], rerolls: [ "4", "" ] } }
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:alert], "die results must each be between 1 and 4"
+    assert_nil mage.reload.encounter_started_at
+
+    patch begin_encounter_character_url(mage), params: { initiative_roll: { dice_rolls: [ "1", "3" ], rerolls: [ "4", "" ] } }
+    assert_redirected_to character_url(mage)
+    assert_includes flash[:notice], "regained #{mage.stat_value(:will) + 7} temporary mana"
+    assert_includes flash[:notice], "d4 results: 1 → 4, 3 (Steel Will)"
+    assert mage.reload.encounter_started_at.present?
+    assert_equal mage.stat_value(:will) + 7, mage.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+
+    patch end_encounter_character_url(mage)
+    assert_equal 0, mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "elemental_surge_mana" }.fetch("current")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
   test "Reaver sheet renders and tracks Bonescythe summon and shatter actions" do
     Rails.application.load_seed

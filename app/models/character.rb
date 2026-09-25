@@ -460,7 +460,28 @@ class Character < ApplicationRecord
     Rules::NimbleCatalog.initiative_resource_grants_for(character_class&.name, subclass_name, level)
   end
 
-  def initiative_resource_amount(grant = initiative_resource_grant, resource_tracks: Array(trait_set&.resource_tracks))
+  def initiative_resource_dice_count(grant = initiative_resource_grant)
+    grant.to_h.fetch("amount_dice_by_level", {})
+      .select { |unlock_level, _count| level.to_i >= unlock_level.to_i }
+      .max_by { |unlock_level, _count| unlock_level.to_i }
+      &.last
+      &.to_i || 0
+  end
+
+  def initiative_resource_die_sides(grant = initiative_resource_grant)
+    grant.to_h.fetch("amount_die", 0).to_i
+  end
+
+  def initiative_resource_reroll_rule(grant = initiative_resource_grant)
+    rule = grant.to_h["reroll_rule"]
+    return if rule.blank?
+    return unless subclass_name == rule.fetch("subclass_name")
+    return if level.to_i < rule.fetch("minimum_level").to_i
+
+    rule
+  end
+
+  def initiative_resource_amount(grant = initiative_resource_grant, resource_tracks: Array(trait_set&.resource_tracks), dice_rolls: nil)
     return 0 if grant.blank?
     amount = if grant.fetch("amount", nil).to_s == "maximum"
       track = resource_tracks.map(&:to_h).find do |resource|
@@ -475,6 +496,13 @@ class Character < ApplicationRecord
       end
     else
       grant.fetch("amount").to_i
+    end
+
+    if dice_rolls
+      required_rolls = initiative_resource_dice_count(grant)
+      raise ArgumentError, "#{grant.fetch('feature_label')} requires exactly #{required_rolls} die result#{'s' unless required_rolls == 1}." unless dice_rolls.length == required_rolls
+
+      amount += dice_rolls.sum(&:to_i)
     end
 
     if grant["amount_from_spent_resource"].present?
@@ -777,26 +805,75 @@ class Character < ApplicationRecord
     end
   end
 
-  def begin_encounter!
+  def begin_encounter!(dice_rolls: [], rerolls: [])
     with_lock do
       raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
       tracks = Array(trait_set&.resource_tracks)
       grants = initiative_resource_grants
       raise ArgumentError, "This character has no initiative-triggered feature to record." if grants.empty?
+      required_dice = grants.sum { |grant| initiative_resource_dice_count(grant) }
+      raw_dice_rolls = Array(dice_rolls)
+      unless raw_dice_rolls.length == required_dice
+        raise ArgumentError, "Enter exactly #{required_dice} die result#{'s' unless required_dice == 1} for the Initiative features being recorded."
+      end
+      dice_results = raw_dice_rolls.map { |result| parse_initiative_die_result(result) }
+      raise ArgumentError, "Every Initiative die result must be a whole number." if dice_results.any?(&:nil?)
 
+      raw_rerolls = Array(rerolls)
+      raw_rerolls = Array.new(required_dice) if raw_rerolls.empty?
+      unless raw_rerolls.length == required_dice
+        raise ArgumentError, "Enter one optional reroll field for each Initiative die."
+      end
+      reroll_results = raw_rerolls.map do |result|
+        result.to_s.blank? ? nil : parse_initiative_die_result(result)
+      end
+      if reroll_results.zip(raw_rerolls).any? { |parsed, raw| raw.to_s.present? && parsed.nil? }
+        raise ArgumentError, "Every Initiative reroll must be a whole number."
+      end
+
+      dice_cursor = 0
       summaries = grants.map do |grant|
         track_key = grant.fetch("resource_key")
         track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
         raise ArgumentError, "#{grant.fetch('feature_label')} resource is unavailable on this sheet. #{grant.fetch('source_ref')}." unless track
 
         track = track.to_h
-        requested_amount = initiative_resource_amount(grant, resource_tracks: tracks)
+        dice_count = initiative_resource_dice_count(grant)
+        grant_dice = dice_results.slice(dice_cursor, dice_count)
+        grant_rerolls = reroll_results.slice(dice_cursor, dice_count)
+        dice_cursor += dice_count
+        die_sides = initiative_resource_die_sides(grant)
+        if grant_dice.any? { |result| result < 1 || result > die_sides }
+          raise ArgumentError, "#{grant.fetch('feature_label')} die results must each be between 1 and #{die_sides}."
+        end
+        if grant_rerolls.compact.any? { |result| result < 1 || result > die_sides }
+          raise ArgumentError, "#{grant.fetch('feature_label')} rerolls must each be between 1 and #{die_sides}."
+        end
+        if grant_rerolls.zip(grant_dice).any? { |reroll, original| reroll.present? && original != 1 }
+          raise ArgumentError, "#{grant.fetch('feature_label')} can only reroll a die that showed 1."
+        end
+        reroll_rule = initiative_resource_reroll_rule(grant)
+        if reroll_rule.blank? && grant_rerolls.compact.any?
+          raise ArgumentError, "#{grant.fetch('feature_label')} has no available die-reroll feature."
+        end
+
+        final_dice = grant_dice.zip(grant_rerolls).map { |original, reroll| reroll || original }
+        requested_amount = [ initiative_resource_amount(grant, resource_tracks: tracks, dice_rolls: final_dice), 0 ].max
         available_capacity = track["max"].present? ? [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max : nil
         gained_amount = available_capacity ? [ requested_amount, available_capacity ].min : requested_amount
         tracks = tracks.map do |resource|
           resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => track.fetch("current").to_i + gained_amount) : resource
         end
-        grant.fetch("summary").gsub("%{amount}", gained_amount.to_s)
+        summary = grant.fetch("summary").gsub("%{amount}", gained_amount.to_s)
+        if dice_count.positive?
+          recorded_rolls = grant_dice.zip(grant_rerolls).map do |original, reroll|
+            reroll.present? ? "#{original} → #{reroll}" : original.to_s
+          end
+          roll_note = "d#{die_sides} results: #{recorded_rolls.join(', ')}"
+          roll_note += " (#{reroll_rule.fetch('feature_name')})" if grant_rerolls.compact.any?
+          summary = "#{summary} (#{roll_note})"
+        end
+        summary
       end
       summary = summaries.join("; ")
 
@@ -2136,6 +2213,13 @@ class Character < ApplicationRecord
         "intelligence" => stat_set&.intelligence.to_i,
         "will" => stat_set&.will.to_i
       }
+    end
+
+    def parse_initiative_die_result(result)
+      return result if result.is_a?(Integer)
+      return unless result.is_a?(String) && result.match?(/\A\d+\z/)
+
+      result.to_i
     end
 
     def value_for_stat(stat_values, stat)

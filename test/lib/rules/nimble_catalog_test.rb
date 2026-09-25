@@ -247,6 +247,24 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 3, quick_wit_track.fetch("start_level")
     assert_equal [ "encounter_end" ], quick_wit_track.fetch("reset_events")
     assert_equal "Heroes 2.0.1, p. 56", quick_wit_track.fetch("source_ref")
+
+    assert_empty @catalog.initiative_resource_grants_for("Mage", "Control", 4)
+    mage_surge = @catalog.initiative_resource_grants_for("Mage", "Control", 5).sole
+    assert_equal "will", mage_surge.fetch("amount_stat")
+    assert_equal({ 10 => 1, 17 => 2 }, mage_surge.fetch("amount_dice_by_level"))
+    assert_equal 4, mage_surge.fetch("amount_die")
+    assert_equal "Heroes 2.0.1, p. 32", mage_surge.fetch("source_ref")
+    assert_equal "Elemental Surge (2). Your Elemental Surge ability now regains WIL+1d4 mana. Elemental Surge (3). Your Elemental Surge ability now regains WIL+2d4 mana.", mage_surge.fetch("amount_dice_source_quote")
+    steel_will = mage_surge.fetch("reroll_rule")
+    assert_equal "Control", steel_will.fetch("subclass_name")
+    assert_equal 11, steel_will.fetch("minimum_level")
+    assert_equal "Steel Will", steel_will.fetch("feature_name")
+    assert_equal "Heroes 2.0.1, p. 35", steel_will.fetch("source_ref")
+    assert_equal "Whenever you roll a 1 on an Elemental Surge die, you may reroll it once.", steel_will.fetch("source_quote")
+    surge_pool = @catalog.class_resource_pool_for("Mage", "elemental_surge_mana")
+    assert_equal 5, surge_pool.fetch("start_level")
+    assert_equal [ "encounter_end" ], surge_pool.fetch("reset_events")
+    assert_equal "Heroes 2.0.1, p. 32", surge_pool.fetch("source_ref")
   end
 
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2

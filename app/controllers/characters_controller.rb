@@ -158,7 +158,18 @@ class CharactersController < ApplicationController
   end
 
   def begin_encounter
-    revision = @character.begin_encounter!
+    initiative_roll = params[:initiative_roll]
+    dice_rolls = if initiative_roll.respond_to?(:key?) && (initiative_roll.key?(:dice_rolls) || initiative_roll.key?("dice_rolls"))
+      initiative_roll[:dice_rolls] || initiative_roll["dice_rolls"]
+    else
+      []
+    end
+    rerolls = if initiative_roll.respond_to?(:key?) && (initiative_roll.key?(:rerolls) || initiative_roll.key?("rerolls"))
+      initiative_roll[:rerolls] || initiative_roll["rerolls"]
+    else
+      []
+    end
+    revision = @character.begin_encounter!(dice_rolls: Array(dice_rolls), rerolls: Array(rerolls))
     redirect_to @character, notice: "Initiative recorded. #{revision.summary}."
   rescue ArgumentError => error
     redirect_to @character, alert: error.message

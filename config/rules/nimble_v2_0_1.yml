@@ -434,6 +434,14 @@ classes:
           start_level: 2
           reset: Safe Rest
           reset_events: [safe_rest]
+        - key: elemental_surge_mana
+          name: Elemental Surge · temporary mana
+          start_level: 5
+          initial_current: 0
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 32
+          source_quote: "When you roll Initiative, regain WIL mana (this expires at the end of combat if unused)."
     subclasses: [Chaos, Control]
 
   Oathsworn:
@@ -1688,6 +1696,28 @@ initiative_resource_grants:
         action_label: "Record Initiative Roll · gain %{amount} Thrill charge"
         source_ref: Heroes 2.0.1, p. 28
         source_quote: "Gain 1 Thrill of the Hunt charge when you roll Initiative."
+  Mage:
+    all:
+      - feature_name: Elemental Surge
+        minimum_level: 5
+        resource_key: elemental_surge_mana
+        amount_stat: will
+        amount_dice_by_level: {10: 1, 17: 2}
+        amount_die: 4
+        summary: "Initiative rolled; regained %{amount} temporary mana from Elemental Surge"
+        feature_label: "Mage · Elemental Surge"
+        description: "When you roll Initiative, regain WIL mana. Roll the listed d4s at higher levels; unused mana expires at encounter end."
+        action_label: "Record Initiative Roll · gain %{amount} temporary mana"
+        source_ref: Heroes 2.0.1, p. 32
+        source_quote: "When you roll Initiative, regain WIL mana (this expires at the end of combat if unused)."
+        amount_dice_source_ref: Heroes 2.0.1, p. 32
+        amount_dice_source_quote: "Elemental Surge (2). Your Elemental Surge ability now regains WIL+1d4 mana. Elemental Surge (3). Your Elemental Surge ability now regains WIL+2d4 mana."
+        reroll_rule:
+          subclass_name: Control
+          minimum_level: 11
+          feature_name: Steel Will
+          source_ref: Heroes 2.0.1, p. 35
+          source_quote: "Whenever you roll a 1 on an Elemental Surge die, you may reroll it once."
   Shadowmancer:
     Pact of the Red Dragon:
       - feature_name: Heart of Burning Fire
