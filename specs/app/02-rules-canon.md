@@ -248,6 +248,13 @@ in the rules catalog. A story change requires all Deep Knowledge picks already
 earned by the character, stores those choices in both the character's
 progression ledger and the audit record, and exposes later picks in level-up.
 
+Spellblade's level-3 Firebrand also permits a free Enchant Weapon cast when
+Initiative is rolled. The Initiative form can record whether the player takes
+that option and the named weapon or wielder; it writes that choice into the
+Initiative revision with the Heroes citation. The app records the free base
+cast only: applying the spell's effects, concentration, and any paid upcast
+remains a table ruling and is not simulated by the character sheet.
+
 Beastmaster also records its source-defined setup at the story change: an animal
 name and Small/Medium/Large size, plus a reconfirmation of the first two Thrill
 of the Hunt choices against the ordinary pool and the two companion options

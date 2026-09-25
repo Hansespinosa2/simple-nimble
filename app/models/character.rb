@@ -460,6 +460,20 @@ class Character < ApplicationRecord
     Rules::NimbleCatalog.initiative_resource_grants_for(character_class&.name, subclass_name, level, feature_choices: recorded_feature_choices)
   end
 
+  def initiative_optional_action_entries
+    story_subclass_initiative_feature_entries.filter_map do |feature|
+      action = feature["initiative_action"]
+      next if action.blank?
+
+      action.merge(
+        "feature_name" => feature.fetch("name"),
+        "effect" => feature.fetch("effect"),
+        "source_ref" => feature.fetch("source_ref"),
+        "source_quote" => feature.fetch("source_quote")
+      )
+    end
+  end
+
   def initiative_resource_dice_count(grant = initiative_resource_grant)
     grant.to_h.fetch("amount_dice_by_level", {})
       .select { |unlock_level, _count| level.to_i >= unlock_level.to_i }
@@ -808,12 +822,15 @@ class Character < ApplicationRecord
     end
   end
 
-  def begin_encounter!(dice_rolls: [], rerolls: [])
+  def begin_encounter!(dice_rolls: [], rerolls: [], feature_actions: {})
     with_lock do
       raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
       tracks = Array(trait_set&.resource_tracks)
       grants = initiative_resource_grants
-      raise ArgumentError, "This character has no initiative-triggered feature to record." if grants.empty?
+      action_summaries = initiative_feature_action_summaries(feature_actions)
+      if grants.empty? && action_summaries.empty?
+        raise ArgumentError, "This character has no initiative-triggered feature to record."
+      end
       required_dice = grants.sum { |grant| initiative_resource_dice_count(grant) }
       raw_dice_rolls = Array(dice_rolls)
       unless raw_dice_rolls.length == required_dice
@@ -878,7 +895,7 @@ class Character < ApplicationRecord
         end
         summary
       end
-      summary = summaries.join("; ")
+      summary = (summaries + action_summaries).join("; ")
 
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
@@ -2209,6 +2226,48 @@ class Character < ApplicationRecord
     end
 
   private
+    def initiative_feature_action_summaries(feature_actions)
+      unless feature_actions.respond_to?(:each_pair)
+        raise ArgumentError, "Initiative feature actions must be submitted as a structured selection."
+      end
+
+      submitted_actions = feature_actions.to_h.stringify_keys
+      available_actions = initiative_optional_action_entries.index_by { |action| action.fetch("key") }
+      unsupported_actions = submitted_actions.keys - available_actions.keys
+      if unsupported_actions.any?
+        raise ArgumentError, "This character does not have that Initiative feature action."
+      end
+
+      available_actions.filter_map do |key, action|
+        submitted = submitted_actions[key]
+        next if submitted.blank?
+        unless submitted.respond_to?(:each_pair)
+          raise ArgumentError, "Initiative feature action details must be submitted as a structured selection."
+        end
+
+        attributes = submitted.to_h.stringify_keys
+        if (attributes.keys - %w[used target]).any?
+          raise ArgumentError, "Initiative feature action contains unsupported details."
+        end
+        next unless [ "1", "true", true ].include?(attributes["used"])
+
+        case action.fetch("kind")
+        when "free_spell_cast"
+          target = attributes.fetch("target", "").to_s.strip
+          unless target.present? && target.length <= 80
+            raise ArgumentError, "Name the weapon or wielder for the free #{action.fetch('spell_name')} cast (80 characters maximum)."
+          end
+
+          spell = Spell.find_by(name: action.fetch("spell_name"))
+          raise ArgumentError, "#{action.fetch('feature_name')} spell data is unavailable. #{action.fetch('source_ref')}." unless spell
+
+          "#{action.fetch('feature_name')} cast #{spell.name} at Tier #{spell.tier} for free on #{target} (#{action.fetch('source_ref')}; resolve spell effects and any upcast at the table)"
+        else
+          raise ArgumentError, "#{action.fetch('feature_name')} Initiative action is not supported yet. #{action.fetch('source_ref')}."
+        end
+      end
+    end
+
     def current_stat_values
       {
         "strength" => stat_set&.strength.to_i,

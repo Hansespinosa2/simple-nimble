@@ -751,11 +751,25 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     get character_url(spellblade)
     assert_response :success
     assert_select ".progression-entry-subclass", /Firebrand.*Enchant Weapon for free/
+    assert_select "input[name='initiative_roll[feature_actions][firebrand_enchant_weapon][used]'][type='checkbox']"
+    assert_select "input[name='initiative_roll[feature_actions][firebrand_enchant_weapon][target]'][maxlength='80']"
     assert_select "form[action='#{begin_encounter_character_path(spellblade)}'] button[type='submit']", text: "Record Initiative Roll · gain 1 mana"
 
-    patch begin_encounter_character_url(spellblade)
+    patch begin_encounter_character_url(spellblade), params: {
+      initiative_roll: { feature_actions: { firebrand_enchant_weapon: { used: "1" } } }
+    }
     assert_redirected_to character_url(spellblade)
-    assert_equal "Initiative recorded. Initiative rolled; gained 1 Arcane Command mana.", flash[:notice]
+    assert_includes flash[:alert], "Name the weapon or wielder"
+    assert_nil spellblade.reload.encounter_started_at
+    assert_equal 0, spellblade.character_revisions.where(event_type: "initiative_roll").count
+
+    patch begin_encounter_character_url(spellblade), params: {
+      initiative_roll: { feature_actions: { firebrand_enchant_weapon: { used: "1", target: "Silver longsword" } } }
+    }
+    assert_redirected_to character_url(spellblade)
+    assert_includes flash[:notice], "Initiative recorded. Initiative rolled; gained 1 Arcane Command mana"
+    assert_includes flash[:notice], "Firebrand cast Enchant Weapon at Tier 2 for free on Silver longsword"
+    assert_includes spellblade.character_revisions.where(event_type: "initiative_roll").sole.summary, "Heroes 2.0.1, p. 77"
     assert_equal 1, spellblade.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
 
     get character_url(spellblade)

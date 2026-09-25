@@ -158,18 +158,18 @@ class CharactersController < ApplicationController
   end
 
   def begin_encounter
-    initiative_roll = params[:initiative_roll]
-    dice_rolls = if initiative_roll.respond_to?(:key?) && (initiative_roll.key?(:dice_rolls) || initiative_roll.key?("dice_rolls"))
-      initiative_roll[:dice_rolls] || initiative_roll["dice_rolls"]
+    initiative_roll = if params[:initiative_roll].is_a?(ActionController::Parameters)
+      params[:initiative_roll].permit(
+        { dice_rolls: [], rerolls: [], feature_actions: { firebrand_enchant_weapon: [ :used, :target ] } }
+      )
     else
-      []
+      ActionController::Parameters.new
     end
-    rerolls = if initiative_roll.respond_to?(:key?) && (initiative_roll.key?(:rerolls) || initiative_roll.key?("rerolls"))
-      initiative_roll[:rerolls] || initiative_roll["rerolls"]
-    else
-      []
-    end
-    revision = @character.begin_encounter!(dice_rolls: Array(dice_rolls), rerolls: Array(rerolls))
+    revision = @character.begin_encounter!(
+      dice_rolls: Array(initiative_roll[:dice_rolls]),
+      rerolls: Array(initiative_roll[:rerolls]),
+      feature_actions: initiative_roll[:feature_actions] || {}
+    )
     redirect_to @character, notice: "Initiative recorded. #{revision.summary}."
   rescue ArgumentError => error
     redirect_to @character, alert: error.message

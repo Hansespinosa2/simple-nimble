@@ -487,6 +487,36 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "a Spellblade records Firebrand's free Enchant Weapon cast with Initiative" do
+    spellblade = Character.create!(
+      name: "Firebrand System Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    spellblade.update_columns(subclass_name: "Spellblade", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| spellblade.stat_value(stat) }
+    tracks = spellblade.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Spellblade")
+    spellblade.trait_set.update!(resource_tracks: tracks)
+    actions_before = spellblade.trait_set.current_actions
+
+    visit character_url(spellblade)
+
+    assert_text "Cast Enchant Weapon for free when you roll Initiative"
+    check "Use Firebrand to cast Enchant Weapon for free now"
+    fill_in "Weapon or wielder", with: "Silver longsword"
+    click_on "Record Initiative Roll · gain 1 mana"
+
+    assert_text "Firebrand cast Enchant Weapon at Tier 2 for free on Silver longsword"
+    revision = spellblade.character_revisions.find_by!(event_type: "initiative_roll")
+    assert_includes revision.summary, "Heroes 2.0.1, p. 77"
+    assert_equal actions_before, spellblade.reload.trait_set.current_actions
+    assert_equal 1, spellblade.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
     character = Character.create!(
       name: "Condition Tracker Hero",

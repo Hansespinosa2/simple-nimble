@@ -1082,8 +1082,24 @@ class CharacterTest < ActiveSupport::TestCase
 
     character.update_columns(subclass_name: "Spellblade", status: "playable")
     character.trait_set.update!(resource_tracks: spellblade_tracks)
-    character.begin_encounter!
+    assert_raises(ArgumentError) do
+      character.begin_encounter!(feature_actions: { "unsupported_action" => { "used" => "1" } })
+    end
+    assert_raises(ArgumentError) do
+      character.begin_encounter!(feature_actions: { "firebrand_enchant_weapon" => { "used" => "1" } })
+    end
+    assert_nil character.reload.encounter_started_at
+    assert_equal 0, character.character_revisions.where(event_type: "initiative_roll").count
 
+    actions_before = character.trait_set.current_actions
+    revision = character.begin_encounter!(
+      feature_actions: { "firebrand_enchant_weapon" => { "used" => "1", "target" => "Silver longsword" } }
+    )
+
+    assert_includes revision.summary, "Firebrand cast Enchant Weapon at Tier 2 for free on Silver longsword"
+    assert_includes revision.summary, "Heroes 2.0.1, p. 77"
+    assert_includes revision.summary, "resolve spell effects and any upcast at the table"
+    assert_equal actions_before, character.reload.trait_set.current_actions, "Firebrand's Initiative cast is free"
     assert_equal 1, character.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
     assert character.encounter_started_at.present?
     assert character.character_revisions.exists?(event_type: "initiative_roll")

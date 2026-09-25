@@ -883,6 +883,10 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     firebrand = @catalog.story_subclass_initiative_features_for("Commander", "Spellblade").sole
     assert_equal "Firebrand", firebrand.fetch("name")
     assert_includes firebrand.fetch("effect"), "Enchant Weapon for free"
+    assert_equal(
+      { "key" => "firebrand_enchant_weapon", "kind" => "free_spell_cast", "spell_name" => "Enchant Weapon", "target_label" => "Weapon or wielder" },
+      firebrand.fetch("initiative_action")
+    )
     assert_equal "Heroes 2.0.1, p. 77", firebrand.fetch("source_ref")
 
     orders = @catalog.story_subclass_empowered_orders_for("Commander", "Spellblade")

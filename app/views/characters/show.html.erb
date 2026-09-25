@@ -158,19 +158,36 @@
         <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
           <% initiative_grants = @character.initiative_resource_grants %>
           <% initiative_tracks = initiative_grants.filter_map { |grant| resource_tracks.find { |track| track.fetch("key") == grant.fetch("resource_key") } } %>
-          <% if initiative_grants.present? && initiative_tracks.present? %>
+          <% initiative_action_entries = @character.initiative_optional_action_entries %>
+          <% if (initiative_grants.present? && initiative_tracks.present?) || initiative_action_entries.present? %>
             <div class="safe-rest-action">
               <% initiative_grants.each do |grant| %>
                 <p class="eyebrow"><%= grant.fetch("feature_label") %></p>
                 <p><%= grant.fetch("description") %> (<%= grant.fetch("source_ref") %>)</p>
               <% end %>
+              <% initiative_action_entries.each do |action| %>
+                <p class="eyebrow"><%= action.fetch("feature_name") %></p>
+                <p><%= action.fetch("effect") %> (<%= action.fetch("source_ref") %>)</p>
+              <% end %>
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
               <% else %>
                 <% initiative_dice_count = initiative_grants.sum { |grant| @character.initiative_resource_dice_count(grant) } %>
+                <% initiative_label = if initiative_dice_count.positive?
+                  "Record Initiative Roll · apply rolled results"
+                elsif initiative_grants.one?
+                  initiative_grant = initiative_grants.first
+                  initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
+                elsif initiative_grants.present?
+                  "Record Initiative Roll · apply listed features"
+                else
+                  "Record Initiative Roll · confirm optional features"
+                end %>
                 <% if initiative_dice_count.positive? %>
                   <p class="field-hint">Roll the listed dice at the table and enter each result. Elemental Surge adds WIL plus those results; the sheet does not roll for you.</p>
-                  <%= form_with url: begin_encounter_character_path(@character), method: :patch, scope: :initiative_roll, class: "field-rest-form" do %>
+                <% end %>
+                <%= form_with url: begin_encounter_character_path(@character), method: :patch, scope: :initiative_roll, class: "field-rest-form" do %>
+                  <% if initiative_dice_count.positive? %>
                     <% dice_index = 0 %>
                     <% initiative_grants.each do |grant| %>
                       <% dice_count = @character.initiative_resource_dice_count(grant) %>
@@ -196,16 +213,20 @@
                       <% reroll_rule = initiative_grants.filter_map { |grant| @character.initiative_resource_reroll_rule(grant) }.first %>
                       <span class="field-hint"><%= reroll_rule.fetch("source_ref") %> · enter a result only for a die that showed 1; a rerolled 1 cannot be rerolled again.</span>
                     <% end %>
-                    <%= submit_tag "Record Initiative Roll · apply rolled results", class: "button button-secondary button-full" %>
                   <% end %>
-                <% else %>
-                  <% initiative_label = if initiative_grants.one?
-                    initiative_grant = initiative_grants.first
-                    initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
-                  else
-                    "Record Initiative Roll · apply listed features"
-                  end %>
-                  <%= button_to(initiative_label, begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+                  <% initiative_action_entries.each do |action| %>
+                    <% if action.fetch("kind") == "free_spell_cast" %>
+                      <% used_id = "initiative-feature-#{action.fetch('key')}-used" %>
+                      <% target_id = "initiative-feature-#{action.fetch('key')}-target" %>
+                      <div class="field">
+                        <div><%= check_box_tag "initiative_roll[feature_actions][#{action.fetch('key')}][used]", "1", false, id: used_id %> <%= label_tag used_id, "Use #{action.fetch('feature_name')} to cast #{action.fetch('spell_name')} for free now" %></div>
+                        <%= label_tag target_id, action.fetch("target_label") %>
+                        <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: 80, placeholder: "e.g. Silver longsword" %>
+                        <span class="field-hint">The sheet records the free base cast only. Apply its listed effect and record any paid upcast at the table. <%= action.fetch("source_ref") %>.</span>
+                      </div>
+                    <% end %>
+                  <% end %>
+                  <%= button_tag initiative_label, type: "submit", class: "button button-secondary button-full" %>
                 <% end %>
               <% end %>
             </div>

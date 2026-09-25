@@ -1715,6 +1715,11 @@ story_subclass_initiative_features:
     Spellblade:
       - name: Firebrand
         effect: Cast Enchant Weapon for free when you roll Initiative; you may upcast it normally by spending additional mana.
+        initiative_action:
+          key: firebrand_enchant_weapon
+          kind: free_spell_cast
+          spell_name: Enchant Weapon
+          target_label: Weapon or wielder
         source_ref: Heroes 2.0.1, p. 77
         source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
 
