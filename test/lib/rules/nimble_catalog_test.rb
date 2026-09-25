@@ -214,6 +214,26 @@ class NimbleCatalogTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Wild Heart's High Ground Initiative and charge-gain triggers are source-backed and level-gated" do
+    initiative = @catalog.story_subclass_initiative_features_for("Hunter", "Wild Heart").sole
+    assert_equal "I Have the High Ground", initiative.fetch("name")
+    assert_equal 3, @catalog.story_subclass_feature_unlock_level_for("Hunter", "Wild Heart", initiative.fetch("name"))
+    assert_equal "free_movement", initiative.dig("initiative_trigger", "kind")
+    assert_nil initiative["initiative_action"]
+    assert_equal "Heroes 2.0.1, p. 29", initiative.fetch("source_ref")
+    source_quote = "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
+    assert_equal source_quote, initiative.fetch("source_quote")
+
+    assert_empty @catalog.resource_event_grants_for("resource_increased", "Hunter", 2, subclass_name: "Wild Heart")
+    grant = @catalog.resource_event_grants_for("resource_increased", "Hunter", 3, subclass_name: "Wild Heart").sole
+    assert_equal "thrill_of_the_hunt", grant.fetch("trigger_resource_key")
+    assert_equal "wild_heart_high_ground_trigger", grant.fetch("event_type")
+    assert_includes grant.fetch("event_summary"), "ignoring difficult terrain"
+    assert_equal source_quote, grant.fetch("source_quote")
+    assert_empty @catalog.resource_event_grants_for("resource_increased", "Hunter", 3, subclass_name: "Shadowpath")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "class and subclass Initiative resource grants all resolve at their source levels" do
     commander = @catalog.initiative_resource_grants_for("Commander", "Spellblade", 4)
     assert_equal [ "Fit for Any Battlefield", "Arcane Command" ], commander.map { |grant| grant.fetch("feature_name") }

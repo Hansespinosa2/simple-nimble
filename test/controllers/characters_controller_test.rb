@@ -834,6 +834,82 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, hunter.character_revisions.where(event_type: "shadowpath_first_attack_advantage").count
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Wild Heart automatically records Initiative and charge-gain movement triggers" do
+    Rails.application.load_seed
+    hunter = Character.create!(
+      name: "High Ground Tracker",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    hunter.update_column(:subclass_name, "Wild Heart")
+    stat_values = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    hunter.trait_set.update!(resource_tracks: hunter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Wild Heart"))
+    assert_equal 0, hunter.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    assert_equal [ "I Have the High Ground" ], hunter.tracker_resource_event_grants_for([ { key: "thrill_of_the_hunt", current: 3 } ]).map { |grant| grant.fetch("feature_name") }
+
+    tracker_params = lambda do |thrill:|
+      {
+        character: {
+          trait_set_attributes: {
+            id: hunter.trait_set.id,
+            resource_tracks: [ { key: "thrill_of_the_hunt", current: thrill } ]
+          }
+        }
+      }
+    end
+    patch tracker_character_url(hunter), params: tracker_params.call(thrill: 1)
+    assert_redirected_to character_url(hunter)
+    assert_nil flash[:alert], "tracker should save charge increases before Initiative"
+    assert_includes flash[:notice], "one free movement after a gain of one or more Thrill of the Hunt charges"
+    assert_equal 1, hunter.character_revisions.where(event_type: "wild_heart_high_ground_trigger").count
+
+    get character_url(hunter)
+    assert_response :success
+    assert_select "input[name='initiative_roll[feature_actions][wild_heart_high_ground_initiative][used]']", count: 0
+    assert_select "input[name='character[wild_heart_high_ground_movement_used]']", count: 0
+    assert_includes response.body, "Saving an increased charge total automatically records I Have the High Ground's triggered free movement"
+
+    patch begin_encounter_character_url(hunter)
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:notice], "I Have the High Ground triggered its free movement on Initiative"
+    assert_includes flash[:notice], "Heroes 2.0.1, p. 29"
+    assert_includes hunter.character_revisions.where(event_type: "initiative_roll").sole.summary, "ignoring difficult terrain"
+    assert_equal [ "thrill_of_the_hunt" ], hunter.reload.trait_set.resource_tracks.map { |track| track.fetch("key") }
+
+    get character_url(hunter)
+    assert_select "input[name='character[wild_heart_high_ground_movement_used]']", count: 0
+    assert_equal [ "I Have the High Ground" ], hunter.tracker_resource_event_grants_for([ { key: "thrill_of_the_hunt", current: 3 } ]).map { |grant| grant.fetch("feature_name") }
+    patch tracker_character_url(hunter), params: tracker_params.call(thrill: 3)
+    assert_redirected_to character_url(hunter)
+    assert_nil flash[:alert], "tracker should save the submitted charge gain"
+    assert_includes flash[:notice], "one free movement after a gain of one or more Thrill of the Hunt charges"
+    assert_includes flash[:notice], "resolve up to half speed ignoring difficult terrain at the table"
+    assert_includes flash[:notice], "Heroes 2.0.1, p. 29"
+    assert_equal 3, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    assert_equal 2, hunter.character_revisions.where(event_type: "wild_heart_high_ground_trigger").count
+    assert_includes hunter.character_revisions.where(event_type: "game_update").order(:created_at).last.summary, "Heroes 2.0.1, p. 29"
+
+    patch tracker_character_url(hunter), params: tracker_params.call(thrill: 3)
+    assert_equal "Game state saved.", flash[:notice], "an unchanged charge total does not retrigger the feature"
+    assert_equal "In-game state updated", hunter.character_revisions.where(event_type: "game_update").order(:created_at).last.summary
+    assert_equal 2, hunter.character_revisions.where(event_type: "wild_heart_high_ground_trigger").count
+
+    patch tracker_character_url(hunter), params: tracker_params.call(thrill: 2)
+    assert_equal "Game state saved.", flash[:notice], "spending a charge is not a gain event"
+    assert_equal 2, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    patch tracker_character_url(hunter), params: tracker_params.call(thrill: 4)
+    assert_includes flash[:notice], "one free movement after a gain of one or more Thrill of the Hunt charges"
+    assert_equal 4, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    assert_equal 3, hunter.character_revisions.where(event_type: "wild_heart_high_ground_trigger").count
+
+    patch end_encounter_character_url(hunter)
+    assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "the Initiative action shows and applies both class and subclass grants" do
     Rails.application.load_seed

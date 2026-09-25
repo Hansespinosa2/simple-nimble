@@ -1745,6 +1745,13 @@ story_subclass_initiative_features:
           target_max_length: 160
         source_ref: Heroes 2.0.1, p. 28
         source_quote: "When you roll Initiative, you may use Hunter’s Mark for free. Gain advantage on the first attack you make each encounter."
+    "Wild Heart":
+      - name: I Have the High Ground
+        effect: When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain.
+        initiative_trigger:
+          kind: free_movement
+        source_ref: Heroes 2.0.1, p. 29
+        source_quote: "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
   Stormshifter:
     "Circle of Fang & Claw":
       - name: Swiftshift
@@ -1944,6 +1951,16 @@ resource_event_grants:
         amount: 1
         source_ref: Heroes 2.0.1, p. 68
         source_quote: "Whenever you gain a Wound, gain a Burst of Speed."
+  resource_increased:
+    Hunter:
+      - feature_name: I Have the High Ground
+        subclass_name: Wild Heart
+        minimum_level: 3
+        trigger_resource_key: thrill_of_the_hunt
+        event_type: wild_heart_high_ground_trigger
+        event_summary: "I Have the High Ground triggered one free movement after a gain of one or more Thrill of the Hunt charges; resolve up to half speed ignoring difficult terrain at the table"
+        source_ref: Heroes 2.0.1, p. 29
+        source_quote: "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
 
 wound_prevention:
   Zephyr:

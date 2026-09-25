@@ -106,16 +106,23 @@ class CharactersController < ApplicationController
       :conditions, :inventory, :game_notes, :current_gold,
       { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [ [ :key, :current ] ] } ] }
     ])
+    tracker_event_grants = []
     saved = false
     notice = nil
 
     @character.with_lock do
+      tracker_event_grants = @character.tracker_resource_event_grants_for(
+        tracker_attributes.dig(:trait_set_attributes, :resource_tracks)
+      )
       wound_events = apply_wound_events!(tracker_attributes)
       normalize_resource_tracks!(tracker_attributes, gained_wounds: wound_events.fetch(:gained_wounds))
 
       if @character.update(tracker_attributes)
-        summary = "In-game state updated"
-        notice = "Game state saved."
+        event_summaries = tracker_event_grants.map do |grant|
+          "#{grant.fetch('event_summary')} (#{grant.fetch('source_ref')})"
+        end
+        summary = ([ "In-game state updated" ] + event_summaries).join("; ")
+        notice = ([ "Game state saved." ] + event_summaries).join(" ")
         if wound_events.fetch(:zero_hp_wounds_gained).positive?
           transition_rule = Rules::NimbleCatalog.zero_hp_transition_rules
           if wound_events.fetch(:ignored_wounds).positive?
@@ -141,6 +148,10 @@ class CharactersController < ApplicationController
           )
         end
         @character.record_revision!(event_type: "game_update", summary:, from_level: @character.level, to_level: @character.level)
+        tracker_event_grants.each do |grant|
+          event_summary = "#{grant.fetch('event_summary')} (#{grant.fetch('source_ref')})"
+          @character.record_revision!(event_type: grant.fetch("event_type"), summary: event_summary, from_level: @character.level, to_level: @character.level)
+        end
         saved = true
       end
     end

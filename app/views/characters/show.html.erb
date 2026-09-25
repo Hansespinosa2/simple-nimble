@@ -135,6 +135,9 @@
                     <%= hidden_field_tag "character[trait_set_attributes][resource_tracks][][key]", track.fetch("key") %>
                     <%= number_field_tag "character[trait_set_attributes][resource_tracks][][current]", track["current"], min: 0, max: track["max"] %>
                   </label>
+                  <% if track.fetch("key") == "thrill_of_the_hunt" && @character.character_class&.name == "Hunter" && @character.subclass_name == "Wild Heart" && @character.level.to_i >= 3 %>
+                    <span class="field-hint">Saving an increased charge total automatically records I Have the High Ground's triggered free movement. Save separate gain events separately; resolve up to half speed ignoring difficult terrain at the table. Heroes 2.0.1, p. 29.</span>
+                  <% end %>
                 <% end %>
               <% else %>
                 <label><span>Mana</span><%= trait_fields.number_field :current_mana, min: 0, max: @character.trait_set&.max_mana %></label>
@@ -158,8 +161,10 @@
         <% initiative_grants = @character.initiative_resource_grants %>
         <% initiative_tracks = initiative_grants.filter_map { |grant| resource_tracks.find { |track| track.fetch("key") == grant.fetch("resource_key") } } %>
         <% initiative_action_entries = @character.initiative_optional_action_entries %>
-        <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } || initiative_action_entries.present? %>
-        <% if (resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } && initiative_grants.present? && initiative_tracks.present?) || initiative_action_entries.present? %>
+        <% initiative_trigger_entries = @character.story_subclass_initiative_trigger_entries %>
+        <% initiative_resource_panel = resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } && initiative_grants.present? && initiative_tracks.present? %>
+        <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } || initiative_action_entries.present? || initiative_trigger_entries.present? %>
+        <% if initiative_resource_panel || initiative_action_entries.present? || initiative_trigger_entries.present? %>
             <div class="safe-rest-action">
               <% initiative_grants.each do |grant| %>
                 <p class="eyebrow"><%= grant.fetch("feature_label") %></p>
@@ -168,6 +173,11 @@
               <% initiative_action_entries.each do |action| %>
                 <p class="eyebrow"><%= action.fetch("feature_name") %></p>
                 <p><%= action.fetch("effect") %> (<%= action.fetch("source_ref") %>)</p>
+              <% end %>
+              <% initiative_trigger_entries.each do |trigger| %>
+                <p class="eyebrow"><%= trigger.fetch("feature_name") %> · triggered movement</p>
+                <p><%= trigger.fetch("effect") %> (<%= trigger.fetch("source_ref") %>)</p>
+                <span class="field-hint">This movement is recorded automatically when Initiative is saved; resolve the path and terrain at the table.</span>
               <% end %>
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
@@ -180,6 +190,8 @@
                   initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
                 elsif initiative_grants.present?
                   "Record Initiative Roll · apply listed features"
+                elsif initiative_trigger_entries.present?
+                  "Record Initiative Roll · resolve triggered movement"
                 else
                   "Record Initiative Roll · confirm optional features"
                 end %>
@@ -235,7 +247,7 @@
                           <%= label_tag target_id, action.fetch("target_label") %>
                           <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: action.fetch("target_max_length", 80), placeholder: "e.g. Ashen Stag" %>
                           <span class="field-hint">The sheet records this free use only. Apply Hunter's Mark and any additional marking effects at the table. <%= action.fetch("source_ref") %>.</span>
-                        <% else %>
+                        <% elsif action.fetch("kind") == "free_choice" %>
                           <% choice_id = "initiative-feature-#{action.fetch('key')}-choice" %>
                           <%= label_tag choice_id, action.fetch("choice_label") %>
                           <%= select_tag "initiative_roll[feature_actions][#{action.fetch('key')}][choice]", options_for_select(action.fetch("choices").map { |choice| [ choice, choice ] }), id: choice_id, include_blank: "Choose an option" %>

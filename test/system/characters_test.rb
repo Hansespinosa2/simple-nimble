@@ -586,6 +586,42 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "a Wild Heart records free-movement triggers at Initiative and on a Thrill gain" do
+    hunter = Character.create!(
+      name: "High Ground System Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    hunter.update_column(:subclass_name, "Wild Heart")
+    stat_values = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    hunter.trait_set.update!(resource_tracks: hunter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Wild Heart"))
+
+    visit character_url(hunter)
+    assert_text "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
+    click_on "Record Initiative Roll · resolve triggered movement"
+
+    assert_text "I Have the High Ground triggered its free movement on Initiative"
+    assert_includes hunter.character_revisions.where(event_type: "initiative_roll").sole.summary, "Heroes 2.0.1, p. 29"
+
+    find("input[name='character[trait_set_attributes][resource_tracks][][current]']").fill_in with: "2"
+    click_on "Save game state"
+    assert_text "I Have the High Ground triggered one free movement after a gain of one or more Thrill of the Hunt charges"
+    assert_text "resolve up to half speed ignoring difficult terrain at the table"
+    assert_equal 2, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    assert_equal 1, hunter.character_revisions.where(event_type: "wild_heart_high_ground_trigger").count
+    assert_not hunter.trait_set.resource_tracks.any? { |track| track.fetch("key").include?("high_ground") }, "the triggered move is recorded as an event, not banked as a resource"
+
+    click_on "End Encounter · refresh uses"
+    assert_text "Encounter ended. Encounter-reset counters were refreshed."
+    ended_character = Character.find(hunter.id)
+    assert_nil ended_character.encounter_started_at
+    assert_equal 0, ended_character.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
     character = Character.create!(
       name: "Condition Tracker Hero",

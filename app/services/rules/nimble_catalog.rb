@@ -420,9 +420,12 @@ module Rules
         end
       end
 
-      def resource_event_grants_for(event, class_name, level)
+      def resource_event_grants_for(event, class_name, level, subclass_name: nil)
         Array(data.fetch("resource_event_grants", {}).fetch(event.to_s, {}).fetch(class_name.to_s, []))
-          .select { |grant| level.to_i >= grant.fetch("minimum_level").to_i }
+          .select do |grant|
+            level.to_i >= grant.fetch("minimum_level").to_i &&
+              (grant["subclass_name"].blank? || grant["subclass_name"] == subclass_name.to_s)
+          end
       end
 
       def wound_prevention_rule_for(class_name, level)

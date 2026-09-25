@@ -474,6 +474,20 @@ class Character < ApplicationRecord
     end
   end
 
+  def story_subclass_initiative_trigger_entries
+    story_subclass_initiative_feature_entries.filter_map do |feature|
+      trigger = feature["initiative_trigger"]
+      next if trigger.blank?
+
+      trigger.merge(
+        "feature_name" => feature.fetch("name"),
+        "effect" => feature.fetch("effect"),
+        "source_ref" => feature.fetch("source_ref"),
+        "source_quote" => feature.fetch("source_quote")
+      )
+    end
+  end
+
   def initiative_resource_dice_count(grant = initiative_resource_grant)
     grant.to_h.fetch("amount_dice_by_level", {})
       .select { |unlock_level, _count| level.to_i >= unlock_level.to_i }
@@ -828,7 +842,8 @@ class Character < ApplicationRecord
       tracks = Array(trait_set&.resource_tracks)
       grants = initiative_resource_grants
       action_summaries = initiative_feature_action_summaries(feature_actions)
-      if grants.empty? && action_summaries.empty? && initiative_optional_action_entries.empty?
+      trigger_summaries = initiative_trigger_summaries
+      if grants.empty? && action_summaries.empty? && initiative_optional_action_entries.empty? && trigger_summaries.empty?
         raise ArgumentError, "This character has no initiative-triggered feature to record."
       end
       required_dice = grants.sum { |grant| initiative_resource_dice_count(grant) }
@@ -895,7 +910,7 @@ class Character < ApplicationRecord
         end
         summary
       end
-      summary = (summaries + action_summaries).join("; ").presence || "Initiative recorded; no optional feature action taken"
+      summary = (summaries + action_summaries + trigger_summaries).join("; ").presence || "Initiative recorded; no optional feature action taken"
 
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
@@ -1498,13 +1513,30 @@ class Character < ApplicationRecord
     end
   end
 
+  def tracker_resource_event_grants_for(submitted_tracks)
+    submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
+    previous = Array(trait_set&.resource_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
+
+    Rules::NimbleCatalog.resource_event_grants_for(
+      "resource_increased",
+      character_class&.name,
+      level,
+      subclass_name: subclass_name
+    ).select do |grant|
+      resource_key = grant.fetch("trigger_resource_key")
+      previous_value = previous.dig(resource_key, "current")
+      submitted_value = submitted.dig(resource_key, "current")
+      previous_value.present? && submitted_value.present? && submitted_value.to_i > previous_value.to_i
+    end
+  end
+
   def normalized_resource_tracks(submitted_tracks, current_wounds: nil, current_hp: nil, gained_wounds: nil)
     submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
     gained_wounds = [ current_wounds.to_i - (trait_set&.current_wounds || 0).to_i, 0 ].max if gained_wounds.nil? && current_wounds.present?
     gained_wounds = [ gained_wounds.to_i, 0 ].max
     gained_wound = gained_wounds.positive?
     healed_to_full = current_hp.present? && current_hp.to_i > (trait_set&.current_hp || 0).to_i && current_hp.to_i >= (trait_set&.max_hp || 0).to_i
-    wound_grants = Rules::NimbleCatalog.resource_event_grants_for("wound_gained", character_class&.name, level)
+    wound_grants = Rules::NimbleCatalog.resource_event_grants_for("wound_gained", character_class&.name, level, subclass_name: subclass_name)
       .each_with_object(Hash.new(0)) do |grant, amounts|
         amounts[grant.fetch("resource_key")] += grant.fetch("amount").to_i * gained_wounds
       end
@@ -1526,7 +1558,6 @@ class Character < ApplicationRecord
         current = current.to_i + wound_grants.fetch(track["key"])
         current = [ current, track["max"].to_i ].min if track["max"].present?
       end
-
       track.merge("current" => current, "reset_events" => reset_events)
     end
   end
@@ -2254,6 +2285,17 @@ class Character < ApplicationRecord
     end
 
   private
+    def initiative_trigger_summaries
+      story_subclass_initiative_trigger_entries.map do |trigger|
+        case trigger.fetch("kind")
+        when "free_movement"
+          "#{trigger.fetch('feature_name')} triggered its free movement on Initiative; move up to half your speed ignoring difficult terrain (resolve at the table; #{trigger.fetch('source_ref')})"
+        else
+          raise ArgumentError, "#{trigger.fetch('feature_name')} Initiative trigger is not supported yet. #{trigger.fetch('source_ref')}."
+        end
+      end
+    end
+
     def initiative_feature_action_summaries(feature_actions)
       unless feature_actions.respond_to?(:each_pair)
         raise ArgumentError, "Initiative feature actions must be submitted as a structured selection."
