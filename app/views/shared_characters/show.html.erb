@@ -7,7 +7,17 @@
       <div class="panel-heading compact"><div><p class="eyebrow">Class resources</p><h2>Ready to spend</h2></div><span class="mini-label">Read-only</span></div>
       <div class="resource-summary-grid">
         <% resource_tracks.each do |track| %>
-          <div class="resource-summary-item"><span><%= track.fetch("name") %></span><strong><%= track.fetch("current") %><small><%= " / #{track['max']}" if track["max"].present? %></small></strong><em><%= track["reset"] %></em></div>
+          <div class="resource-summary-item">
+            <span><%= track.fetch("name") %></span>
+            <strong><%= track.fetch("current") %><small><%= " / #{track['max']}" if track["max"].present? %></small></strong>
+            <em><%= track["reset"] %></em>
+            <% if track["source_ref"].present? %>
+              <details class="resource-rule-note">
+                <summary>Rule · <%= track.fetch("source_ref") %></summary>
+                <p><%= track.fetch("source_quote") %></p>
+              </details>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </section>
