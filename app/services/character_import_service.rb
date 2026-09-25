@@ -359,6 +359,13 @@ class CharacterImportService
       validate_tracker_ranges!(character, updates)
 
       source_tracks = traits["resource_tracks"]
+      if source_tracks.nil?
+        expected_tracks = Array(character.trait_set.resource_tracks).map(&:to_h).map(&:stringify_keys)
+        has_mana_track = expected_tracks.any? { |track| track.fetch("key") == "mana" }
+        has_class_resource_track = expected_tracks.any? { |track| track.fetch("key") != "mana" }
+        reject!("traits.resource_tracks is required when restoring traits.current_mana.") if has_mana_track && traits["current_mana"].present?
+        reject!("traits.resource_tracks is required when restoring traits.current_resource.") if has_class_resource_track && traits["current_resource"].present?
+      end
       unless source_tracks.nil?
         reject!("traits.resource_tracks must be an array.") unless source_tracks.is_a?(Array)
         tracks = Array(character.trait_set.resource_tracks).map(&:to_h).map(&:stringify_keys)

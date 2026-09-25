@@ -373,6 +373,20 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert_equal counts, [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
   end
 
+  # S-09:AC-3 S-10:AC-6 S-10:AC-8
+  test "legacy resource values cannot bypass canonical resource-track state" do
+    source = build_payload(create_level_two_zephyr)
+    source["traits"].delete("resource_tracks")
+    source["traits"]["current_resource"] = 0
+    counts = [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+
+    result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
+
+    assert_not result.success?
+    assert_includes result.errors.join(" "), "traits.resource_tracks is required when restoring traits.current_resource"
+    assert_equal counts, [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+  end
+
   test "an import without an account remains unowned" do
     result = CharacterImportService.call(upload: upload(JSON.generate(build_payload(create_valid_character))))
 
