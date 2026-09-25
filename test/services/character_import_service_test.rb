@@ -52,7 +52,7 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
   end
 
   test "a level-one spellcaster import preserves a legal selected spell from the creation baseline" do
-    spell = Spell.find_by!(school: "Fire", tier: 0)
+    spell = Spell.non_utility.find_by!(school: "Fire", tier: 0)
     source = build_payload(create_valid_character("Mage", spells: [ spell ]))
 
     result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)

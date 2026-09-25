@@ -2175,6 +2175,29 @@ spell_choice_auto_grants:
   Songweaver:
     14: [known]
 
+utility_spells:
+  source_ref: Core Rules 2.0.1, pp. 52–53
+  source_quote: "Some classes can choose from among these additional spells as they level up."
+  names:
+    - Ice Disk
+    - Chillcraft
+    - Wintry Scrying
+    - Firebrand
+    - Fire Step
+    - Kindle
+    - Spark Buddy
+    - Spark Step
+    - Tempest's Command
+    - Light
+    - Beautify
+    - Bond of Peace
+    - Wind Whisper
+    - Helpful Gust
+    - Feather Fall
+    - Gravecraft
+    - False Face
+    - Thought Leech
+
 background_spell_choices:
   Academy Dropout:
     source_ref: Core Rules 2.0.1, p. 28

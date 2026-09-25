@@ -8,12 +8,29 @@ class SpellTest < ActiveSupport::TestCase
     assert_not spell.valid?
     assert_includes spell.errors[:name], "can't be blank"
     assert_includes spell.errors[:school], "can't be blank"
-    assert_includes spell.errors[:tier], "must be greater than or equal to -1"
+    assert_includes spell.errors[:tier], "must be greater than or equal to 0"
   end
 
-  test "accepts utility and cantrip tiers" do
-    assert Spell.new(name: "Utility", school: "Wind", tier: -1).valid?
+  test "utility spells are catalog-classified cantrips rather than a negative tier" do
+    Rails.application.load_seed
+    utility_spell = Spell.find_by!(name: "Firebrand")
     assert Spell.new(name: "Cantrip", school: "Fire", tier: 0).valid?
+
+    assert utility_spell.utility?
+    assert_equal 0, utility_spell.tier
+    assert_equal "Core Rules 2.0.1, pp. 52–53", utility_spell.source_ref
+    assert_not Spell.find_by!(name: "Flame Dart").utility?
+    assert_not Spell.new(name: "Unlisted Utility", school: "Wind", tier: 0).utility?
+  end
+
+  test "the utility-spell scope exactly matches the source-backed catalog list" do
+    Rails.application.load_seed
+    rules = Rules::NimbleCatalog.utility_spell_rules
+
+    assert_equal "Core Rules 2.0.1, pp. 52–53", rules.fetch("source_ref")
+    assert_equal "Some classes can choose from among these additional spells as they level up.", rules.fetch("source_quote")
+    assert_equal rules.fetch("names").sort, Spell.utility.order(:name).pluck(:name)
+    assert_equal 0, Spell.where(tier: -1).count
   end
 
   test "does not allow duplicate canon names" do

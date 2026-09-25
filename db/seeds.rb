@@ -482,7 +482,7 @@ seed_spell = lambda do |attributes|
     mana_cost: [ attributes.fetch(:tier).to_i, 0 ].max,
     target_type: attributes[:target].to_i.zero? ? "Self / Area" : "Single Target",
     range_or_reach: attributes[:range].to_s,
-    source_ref: "Core Rules 2.0.1, Spells",
+    source_ref: attributes.fetch(:source_ref, "Core Rules 2.0.1, Spells"),
     source_quote: attributes[:description]
   )
   spell = Spell.find_or_initialize_by(name: attributes.fetch(:name))
@@ -687,9 +687,8 @@ seed_spell.call(
   upcast: nil
 )
 
-### The remaining Core Rules main-school spells. Utility spells are deliberately
-### separate: they are granted by class feature choices, not automatically by
-### knowing a school.
+### The remaining Core Rules main-school spells. Utility-spell names and their
+### separate class-feature access are catalogued in nimble_v2_0_1.yml.
 seed_reference_spell = lambda do |attributes|
   seed_spell.call(
     {
@@ -773,7 +772,7 @@ end
   { school: "Necrotic", name: "False Face", description: "After a minute of casting and a piece of the subject, change your appearance to look like them for 10 minutes." },
   { school: "Necrotic", name: "Thought Leech", description: "Read the surface thoughts of a creature within Reach 6; creatures can sense the intrusion." }
 ].each do |attributes|
-  seed_reference_spell.call(attributes.merge(tier: -1))
+  seed_reference_spell.call(attributes.merge(tier: 0, source_ref: Rules::NimbleCatalog.utility_spell_rules.fetch("source_ref")))
 end
 
 ### A canonical playable demo character keeps the happy path visible after setup.

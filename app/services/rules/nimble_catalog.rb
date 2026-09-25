@@ -169,6 +169,14 @@ module Rules
         unlocks.select { |unlock_level, _tier| level.to_i >= unlock_level.to_i }.values.map(&:to_i).max.to_i
       end
 
+      def utility_spell_rules
+        data.fetch("utility_spells")
+      end
+
+      def utility_spell_names
+        utility_spell_rules.fetch("names")
+      end
+
       def stat_increase_for(class_name, level)
         schedule = class_for(class_name).to_h.fetch("stat_increases", {})
         schedule.each do |type, levels|

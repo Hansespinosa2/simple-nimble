@@ -851,8 +851,8 @@ class LevelUpTest < ActiveSupport::TestCase
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-08:AC-4 S-09:AC-3
   test "Spellblade level-ups replace tactics and mastery with distinct order-or-spell choices" do
     character = commander_at_level_five
-    already_known = Spell.where(tier: 0..1).first!
-    new_spell = Spell.where(tier: 0..1).where.not(name: already_known.name).first!
+    already_known = Spell.non_utility.where(tier: 0..1).first!
+    new_spell = Spell.non_utility.where(tier: 0..1).where.not(name: already_known.name).first!
     character.update_columns(
       subclass_name: "Spellblade",
       feature_choices: {
@@ -900,7 +900,7 @@ class LevelUpTest < ActiveSupport::TestCase
         "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] }
       }
     )
-    duplicated_spell = Spell.where(tier: 0..1).first!
+    duplicated_spell = Spell.non_utility.where(tier: 0..1).first!
     level_up = character.level_ups.build(
       from_level: 5,
       to_level: 6,

@@ -1044,7 +1044,7 @@ class CharacterTest < ActiveSupport::TestCase
       character.update!(spell_choices: { background_name => { "1" => spell_names } })
       assert_empty character.creation_issues, character.creation_issues.map { |issue| issue.fetch(:message) }.join(" | ")
       character.finalize_creation!
-      assert_equal spell_names.sort, character.reload.spells.where(tier: -1).pluck(:name).sort
+      assert_equal spell_names.sort, character.reload.spells.merge(Spell.utility).pluck(:name).sort
 
       unselected_background = Character.create!(
         **attributes.merge(

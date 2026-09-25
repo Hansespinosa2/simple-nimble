@@ -292,7 +292,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
       created = Character.order(:id).last
       assert created.playable?
       assert_equal [ "Firebrand", "Wind Whisper" ], created.recorded_spell_choices.fetch(background_name).sort
-      assert_equal [ "Firebrand", "Wind Whisper" ], created.spells.where(tier: -1).pluck(:name).sort
+      assert_equal [ "Firebrand", "Wind Whisper" ], created.spells.merge(Spell.utility).pluck(:name).sort
     ensure
       catalog["background_spell_choices"] = original_choices
     end

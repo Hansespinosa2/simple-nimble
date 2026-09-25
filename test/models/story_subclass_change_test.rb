@@ -53,9 +53,9 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     @character.update_column(:level, 4)
     assert Spell.find_by!(name: "Dread Visage").available_to?(@character)
     utility_pool = @character.spell_choice_pools_for(7).find { |pool| pool.fetch("name") == "Master of Radiance" }
-    necrotic_utility = Spell.where(tier: -1, school: "Necrotic").pick(:name)
-    radiant_utility = Spell.where(tier: -1, school: "Radiant").pick(:name)
-    unrelated_utility = Spell.where(tier: -1).where.not(school: [ "Radiant", "Necrotic" ]).pick(:name)
+    necrotic_utility = Spell.utility.where(school: "Necrotic").pick(:name)
+    radiant_utility = Spell.utility.where(school: "Radiant").pick(:name)
+    unrelated_utility = Spell.utility.where.not(school: [ "Radiant", "Necrotic" ]).pick(:name)
     assert_includes utility_pool.fetch("options"), necrotic_utility
     assert_includes utility_pool.fetch("options"), radiant_utility
     assert_not_includes utility_pool.fetch("options"), unrelated_utility
@@ -193,6 +193,7 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_equal 2, next_tiered_pool.fetch("max_tier")
     assert_equal 7, next_tiered_pool.fetch("level")
     assert_includes next_tiered_pool.fetch("options"), Spell.where(tier: 2).first!.name
+    assert_not_includes next_tiered_pool.fetch("options"), Spell.find_by!(name: "Firebrand").name
     assert_equal "Choose any tier 2 (or lower) spell and any Utility Spell.", next_tiered_pool.fetch("source_quote")
     assert_equal 7, next_utility_pool.fetch("level")
   end
@@ -306,11 +307,11 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     share = commander.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
     tier_one_spell = Spell.where(tier: 1).first!
     tier_two_spell = Spell.where(tier: 2).where.not(name: tier_one_spell.name).first!
-    arcane_spells = Spell.where(tier: 0..1).where.not(name: [ tier_one_spell.name, tier_two_spell.name ]).select do |spell|
+    arcane_spells = Spell.non_utility.where(tier: 0..1).where.not(name: [ tier_one_spell.name, tier_two_spell.name ]).select do |spell|
       spell.class_restriction.blank? || Array(spell.class_restriction).include?("Commander")
     end
     arcane_spell_one, arcane_spell_two = arcane_spells.first(2)
-    utility_spells = Spell.where(tier: -1).order(:name).first(2)
+    utility_spells = Spell.utility.order(:name).first(2)
     spell_choices = {
       "Deep Knowledge · tiered spell" => { "3" => tier_one_spell.name, "7" => tier_two_spell.name },
       "Deep Knowledge · Utility Spell" => { "3" => utility_spells.first.name, "7" => utility_spells.last.name }

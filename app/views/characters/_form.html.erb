@@ -114,11 +114,11 @@
             <% choice_count = choice_rule.fetch("count", 1).to_i %>
             <% choice_options = case choice_rule.fetch("kind") %>
               <% when "utility_spell_any" %>
-                <% Spell.where(tier: -1).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+                <% Spell.utility.order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
               <% when "utility_spell" %>
-                <% Spell.where(tier: -1, school: Array(choice_rule.fetch("allowed_schools", []))).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+                <% Spell.utility.where(school: Array(choice_rule.fetch("allowed_schools", []))).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
               <% when "spell_up_to_tier" %>
-                <% Spell.where(tier: 0..choice_rule.fetch("max_tier").to_i).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+                <% Spell.non_utility.where(tier: 0..choice_rule.fetch("max_tier").to_i).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
               <% when "utility_school" %>
                 <% Array(choice_rule.fetch("allowed_schools", [])).map { |school| [ school, school ] } %>
               <% else %>

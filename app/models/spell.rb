@@ -4,9 +4,12 @@ class Spell < ApplicationRecord
 
   serialize :class_restriction, coder: JSON
 
+  scope :utility, -> { where(name: Rules::NimbleCatalog.utility_spell_names) }
+  scope :non_utility, -> { where.not(name: Rules::NimbleCatalog.utility_spell_names) }
+
   validates :name, :school, presence: true
   validates :name, uniqueness: true
-  validates :tier, numericality: { only_integer: true, greater_than_or_equal_to: -1 }, allow_nil: true
+  validates :tier, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
 
   def available_to?(character)
     return false if character.character_class.blank?
@@ -22,7 +25,7 @@ class Spell < ApplicationRecord
   end
 
   def utility?
-    tier.to_i == -1
+    Rules::NimbleCatalog.utility_spell_names.include?(name)
   end
 
   def citation

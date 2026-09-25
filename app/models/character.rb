@@ -375,7 +375,7 @@ class Character < ApplicationRecord
     when "spell_catalog"
       minimum_tier = source.fetch("min_tier", 0).to_i
       maximum_tier = source.fetch("max_tier", 9).to_i
-      Spell.where(tier: minimum_tier..maximum_tier).order(:name).pluck(:name)
+      Spell.non_utility.where(tier: minimum_tier..maximum_tier).order(:name).pluck(:name)
     else
       raise ArgumentError, "Unsupported story subclass choice source: #{source.fetch('type')}"
     end
@@ -713,7 +713,7 @@ class Character < ApplicationRecord
         [ pool.merge("options" => utility_spell_options_from_any_school) ]
       when "spell_up_to_tier"
         tier = pool.fetch("max_tier").to_i
-        [ pool.merge("options" => Spell.where(tier: 0..tier).order(:name).pluck(:name)) ]
+        [ pool.merge("options" => Spell.non_utility.where(tier: 0..tier).order(:name).pluck(:name)) ]
       when "utility_spell_each_known_school"
         known_spell_schools.map do |school|
           pool.merge(
@@ -778,7 +778,8 @@ class Character < ApplicationRecord
   end
 
   def utility_spell_names(level: self.level, ledger: spell_choice_ledger)
-    utility_schools = Spell.where(tier: -1).distinct.pluck(:school)
+    canonical_utility_spell_names = Rules::NimbleCatalog.utility_spell_names
+    utility_schools = Spell.utility.distinct.pluck(:school)
     utility_pools = spell_choice_pools_through(level, ledger: ledger).select do |pool|
       %w[utility_school utility_spell utility_spell_any utility_spell_each_known_school].include?(pool.fetch("kind"))
     end
@@ -788,9 +789,9 @@ class Character < ApplicationRecord
     auto_grants = character_class&.spell_auto_grants_for(level.to_i.positive? ? level : 1) || []
     auto_schools = auto_grants.include?("known") ? known_spell_schools : auto_grants
     schools = (selections & utility_schools) + auto_schools
-    direct_names = selections - utility_schools
+    direct_names = selections & canonical_utility_spell_names
 
-    Spell.where(tier: -1, school: schools).pluck(:name) + direct_names
+    (Spell.utility.where(school: schools).pluck(:name) + direct_names).uniq
   end
 
   def story_granted_spell_names(level: self.level)
@@ -2485,11 +2486,11 @@ class Character < ApplicationRecord
     end
 
     def utility_spell_options(schools)
-      Spell.where(tier: -1, school: Array(schools)).order(:school, :name).pluck(:name)
+      Spell.utility.where(school: Array(schools)).order(:school, :name).pluck(:name)
     end
 
     def utility_spell_options_from_any_school
-      Spell.where(tier: -1).order(:school, :name).pluck(:name)
+      Spell.utility.order(:school, :name).pluck(:name)
     end
 
     def resource_tracks_after_safe_rest

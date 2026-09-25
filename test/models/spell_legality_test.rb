@@ -55,7 +55,8 @@ class SpellLegalityTest < ActiveSupport::TestCase
 
   test "source metadata is present on seeded spells" do
     Spell.where.not(name: [ "Fixture Flame", "Fixture Frost", "MyString" ]).find_each do |spell|
-      assert_equal "Core Rules 2.0.1, Spells", spell.source_ref
+      expected_source_ref = spell.utility? ? "Core Rules 2.0.1, pp. 52–53" : "Core Rules 2.0.1, Spells"
+      assert_equal expected_source_ref, spell.source_ref
       assert spell.source_quote.present?, spell.name
       assert_equal [ spell.tier, 0 ].max, spell.mana_cost
     end
