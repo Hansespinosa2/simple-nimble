@@ -1258,6 +1258,95 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Shepherd Initiative recharges only selected Sacred Grace and subclass uses" do
+    Rails.application.load_seed
+    shepherd = Character.create!(
+      name: "Light Bearer Shepherd",
+      level: 5,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      feature_choices: { "Sacred Grace" => { "5" => [ "Light Bearer", "Assist Me, My Friend!" ] } }
+    )
+    searing_pool = shepherd.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light" }
+    refund_pool = shepherd.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }
+    assert_equal shepherd.stat_value(:will), searing_pool.fetch("max")
+    assert_equal 1, refund_pool.fetch("max")
+    assert_equal [ "Light Bearer" ], shepherd.initiative_resource_grants.map { |grant| grant.fetch("feature_name") }
+
+    unchosen_grace = Character.create!(
+      name: "Unchosen Grace Shepherd",
+      level: 5,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    assert_empty unchosen_grace.initiative_resource_grants
+    assert_not unchosen_grace.trait_set.resource_tracks.any? { |track| track.fetch("key") == "searing_light_initiative_uses" }
+
+    tracks = shepherd.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "searing_light" ? track.merge("current" => searing_pool.fetch("max") - 1) : track
+    end
+    shepherd.trait_set.update!(resource_tracks: tracks)
+    revision = shepherd.begin_encounter!
+    assert_equal 1, shepherd.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }.fetch("current")
+    assert_includes revision.summary, "regained 1 temporary Searing Light use from Light Bearer"
+    shepherd.end_encounter!
+    shepherd.take_safe_rest!
+    assert_equal searing_pool.fetch("max"), shepherd.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light" }.fetch("current")
+
+    mercy = Character.create!(
+      name: "Empowered Mercy Shepherd",
+      level: 15,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      feature_choices: { "Sacred Grace" => { "5" => [ "Light Bearer", "Assist Me, My Friend!" ] } }
+    )
+    mercy.update_column(:subclass_name, "Luminary of Mercy")
+    mercy_stats = Character::STAT_NAMES.index_with { |stat| mercy.stat_value(stat) }
+    mercy_tracks = mercy.derived_resource_tracks_for(stat_values: mercy_stats, level: 15, subclass_name: "Luminary of Mercy")
+    mercy_refunds = mercy_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }
+    assert_equal 2, mercy_refunds.fetch("max"), "Light Bearer and Empowered Conduit each add one possible refund"
+    assert_equal [ "Light Bearer", "Empowered Conduit" ], mercy.initiative_resource_grants.map { |grant| grant.fetch("feature_name") }
+    mercy_tracks = mercy_tracks.map do |track|
+      track.fetch("key") == "searing_light" ? track.merge("current" => track.fetch("max").to_i - 2) : track
+    end
+    mercy.trait_set.update!(resource_tracks: mercy_tracks)
+    mercy.begin_encounter!
+    assert_equal 2, mercy.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }.fetch("current")
+    mercy.end_encounter!
+
+    malice = Character.create!(
+      name: "Conduit of Death Shepherd",
+      level: 15,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    malice.update_column(:subclass_name, "Luminary of Malice")
+    malice_stats = Character::STAT_NAMES.index_with { |stat| malice.stat_value(stat) }
+    malice_tracks = malice.derived_resource_tracks_for(stat_values: malice_stats, level: 15, subclass_name: "Luminary of Malice")
+    assert_equal [ "Conduit of Death" ], malice.initiative_resource_grants.map { |grant| grant.fetch("feature_name") }
+    malice_tracks = malice_tracks.map do |track|
+      track.fetch("key") == "veilwalkers_blessing_uses" ? track.merge("current" => 0) : track
+    end
+    malice.trait_set.update!(resource_tracks: malice_tracks)
+    malice.begin_encounter!
+    assert_equal 1, malice.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "veilwalkers_blessing_initiative_uses" }.fetch("current")
+    malice.end_encounter!
+    malice_tracks = malice.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 0, malice_tracks.fetch("veilwalkers_blessing_initiative_uses").fetch("current")
+    assert_equal 0, malice_tracks.fetch("veilwalkers_blessing_uses").fetch("current"), "encounter-end refund remains separate from the Safe Rest charge"
+    malice.take_safe_rest!
+    assert_equal 1, malice.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "veilwalkers_blessing_uses" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Mage Elemental Surge uses entered dice and permits only Steel Will rerolls of ones" do
     Rails.application.load_seed
     mage = Character.create!(

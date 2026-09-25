@@ -401,19 +401,22 @@ module Rules
         unlock_level&.to_i
       end
 
-      def initiative_resource_grant_for(class_name, subclass_name, level)
-        initiative_resource_grants_for(class_name, subclass_name, level).first
+      def initiative_resource_grant_for(class_name, subclass_name, level, feature_choices: {})
+        initiative_resource_grants_for(class_name, subclass_name, level, feature_choices:).first
       end
 
-      def initiative_resource_grants_for(class_name, subclass_name, level)
+      def initiative_resource_grants_for(class_name, subclass_name, level, feature_choices: {})
         class_name = class_name.to_s
         subclass_name = subclass_name.to_s
         class_grants = data.fetch("initiative_resource_grants", {}).fetch(class_name, {})
         grants = Array(class_grants.fetch("all", [])) + Array(class_grants.fetch(subclass_name, []))
+        selected_choices = feature_choices.to_h.stringify_keys.transform_values { |selections| Array(selections).map(&:to_s) }
 
         grants.select do |grant|
           unlock_level = grant["minimum_level"] || story_subclass_feature_unlock_level_for(class_name, subclass_name, grant.fetch("feature_name"))
-          unlock_level.present? && level.to_i >= unlock_level
+          requirement = grant["requires_feature_choice"].to_h
+          choice_selected = requirement.blank? || selected_choices.fetch(requirement.fetch("pool"), []).include?(requirement.fetch("option"))
+          unlock_level.present? && level.to_i >= unlock_level && choice_selected
         end
       end
 

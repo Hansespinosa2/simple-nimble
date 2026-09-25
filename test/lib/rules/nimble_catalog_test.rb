@@ -284,6 +284,29 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 5, surge_pool.fetch("start_level")
     assert_equal [ "encounter_end" ], surge_pool.fetch("reset_events")
     assert_equal "Heroes 2.0.1, p. 32", surge_pool.fetch("source_ref")
+
+    assert_empty @catalog.initiative_resource_grants_for("Shepherd", "", 5)
+    light_bearer = @catalog.initiative_resource_grants_for("Shepherd", "", 5, feature_choices: { "Sacred Grace" => [ "Light Bearer" ] }).sole
+    assert_equal "Light Bearer", light_bearer.fetch("feature_name")
+    assert_equal "searing_light", light_bearer.fetch("amount_from_spent_resource")
+    assert_equal "Heroes 2.0.1, p. 52", light_bearer.fetch("source_ref")
+    mercy_grants = @catalog.initiative_resource_grants_for("Shepherd", "Luminary of Mercy", 15, feature_choices: { "Sacred Grace" => [ "Light Bearer" ] })
+    assert_equal [ "Light Bearer", "Empowered Conduit" ], mercy_grants.map { |grant| grant.fetch("feature_name") }
+    assert_empty @catalog.initiative_resource_grants_for("Shepherd", "Luminary of Malice", 14)
+    death_grant = @catalog.initiative_resource_grants_for("Shepherd", "Luminary of Malice", 15).sole
+    assert_equal "Conduit of Death", death_grant.fetch("feature_name")
+    assert_equal "veilwalkers_blessing_uses", death_grant.fetch("amount_from_spent_resource")
+    assert_equal "Heroes 2.0.1, p. 53", death_grant.fetch("source_ref")
+    searing_light_pool = @catalog.class_resource_pool_for("Shepherd", "searing_light")
+    assert_equal "WIL", searing_light_pool.fetch("max_formula")
+    assert_equal 1, searing_light_pool.fetch("start_level")
+    assert_equal [ "safe_rest" ], searing_light_pool.fetch("reset_events")
+    mercy_refund_pool = @catalog.story_subclass_resource_pool_for("Shepherd", "Luminary of Mercy", "searing_light_initiative_uses")
+    assert_equal 15, mercy_refund_pool.fetch("start_level")
+    assert_equal [ "encounter_end" ], mercy_refund_pool.fetch("reset_events")
+    malice_use_pool = @catalog.story_subclass_resource_pool_for("Shepherd", "Luminary of Malice", "veilwalkers_blessing_uses")
+    assert_equal 7, malice_use_pool.fetch("start_level")
+    assert_equal [ "safe_rest" ], malice_use_pool.fetch("reset_events")
   end
 
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2

@@ -457,7 +457,7 @@ class Character < ApplicationRecord
   end
 
   def initiative_resource_grants
-    Rules::NimbleCatalog.initiative_resource_grants_for(character_class&.name, subclass_name, level)
+    Rules::NimbleCatalog.initiative_resource_grants_for(character_class&.name, subclass_name, level, feature_choices: recorded_feature_choices)
   end
 
   def initiative_resource_dice_count(grant = initiative_resource_grant)

@@ -588,6 +588,15 @@ classes:
       max_formula: "WIL * 3 + LVL"
       max_start_level: 2
       pools:
+        - key: searing_light
+          name: Searing Light
+          max_formula: WIL
+          minimum_max: 0
+          start_level: 1
+          reset: Safe Rest
+          reset_events: [safe_rest]
+          source_ref: Heroes 2.0.1, p. 49
+          source_quote: "Searing Light. (WIL times/Safe Rest)"
         - key: mana
           name: Mana
           max_formula: "WIL * 3 + LVL"
@@ -1377,6 +1386,21 @@ choice_pools:
     "Sacred Grace":
       source_ref: Heroes 2.0.1, p. 52
       choices: {5: 2, 9: 1, 13: 1}
+      option_effects:
+        "Light Bearer":
+          resource_max_modifiers: {searing_light_initiative_uses: 1}
+      option_resource_pools:
+        "Light Bearer":
+          - key: searing_light_initiative_uses
+            name: Light Bearer · temporary Searing Light
+            max_formula: "0"
+            minimum_max: 0
+            start_level: 5
+            initial_current: 0
+            reset: Encounter ends
+            reset_events: [encounter_end]
+            source_ref: Heroes 2.0.1, p. 52
+            source_quote: "Regain 1 use of Searing Light when you roll Initiative (this expires if unspent at the end of combat)."
       options:
         - "Assist Me, My Friend!"
         - "Empowered Companion"
@@ -1514,6 +1538,35 @@ story_subclass_resource_pools:
         reset_events: [encounter_end]
         source_ref: Heroes 2.0.1, p. 76
         source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+  Shepherd:
+    "Luminary of Mercy":
+      - key: searing_light_initiative_uses
+        name: Empowered Conduit · temporary Searing Light
+        max_formula: "1"
+        start_level: 15
+        initial_current: 0
+        reset: Encounter ends
+        reset_events: [encounter_end]
+        source_ref: Heroes 2.0.1, p. 52
+        source_quote: "Regain 1 charge of Searing Light when you roll Initiative (this expires if unspent at the end of combat)."
+    "Luminary of Malice":
+      - key: veilwalkers_blessing_uses
+        name: Veilwalker's Blessing
+        max_formula: "1"
+        start_level: 7
+        reset: Safe Rest
+        reset_events: [safe_rest]
+        source_ref: Heroes 2.0.1, p. 53
+        source_quote: "Veilwalker’s Blessing. (1/Safe Rest) Reaction (when you would drop to 0 HP)"
+      - key: veilwalkers_blessing_initiative_uses
+        name: Conduit of Death · temporary Veilwalker's Blessing
+        max_formula: "1"
+        start_level: 15
+        initial_current: 0
+        reset: Encounter ends
+        reset_events: [encounter_end]
+        source_ref: Heroes 2.0.1, p. 53
+        source_quote: "Your Veilwalker’s Blessing ability recharges when you roll Initiative. This charge is lost if unspent at the end of combat."
   Shadowmancer:
     Reaver:
       - key: reaver_shadow_exploit_next_cost
@@ -1759,6 +1812,44 @@ initiative_resource_grants:
           feature_name: Steel Will
           source_ref: Heroes 2.0.1, p. 35
           source_quote: "Whenever you roll a 1 on an Elemental Surge die, you may reroll it once."
+  Shepherd:
+    all:
+      - feature_name: Light Bearer
+        minimum_level: 5
+        requires_feature_choice: {pool: "Sacred Grace", option: "Light Bearer"}
+        resource_key: searing_light_initiative_uses
+        amount: 1
+        amount_from_spent_resource: searing_light
+        summary: "Initiative rolled; regained %{amount} temporary Searing Light use from Light Bearer"
+        feature_label: "Shepherd · Light Bearer"
+        description: "Regain 1 spent Searing Light use when you roll Initiative; the refund expires at encounter end."
+        action_label: "Record Initiative Roll · regain %{amount} Searing Light use"
+        source_ref: Heroes 2.0.1, p. 52
+        source_quote: "Regain 1 use of Searing Light when you roll Initiative (this expires if unspent at the end of combat)."
+    "Luminary of Mercy":
+      - feature_name: Empowered Conduit
+        minimum_level: 15
+        resource_key: searing_light_initiative_uses
+        amount: 1
+        amount_from_spent_resource: searing_light
+        summary: "Initiative rolled; regained %{amount} temporary Searing Light charge from Empowered Conduit"
+        feature_label: "Luminary of Mercy · Empowered Conduit"
+        description: "Regain 1 spent Searing Light charge on Initiative; it expires at encounter end."
+        action_label: "Record Initiative Roll · regain %{amount} Searing Light charge"
+        source_ref: Heroes 2.0.1, p. 52
+        source_quote: "Regain 1 charge of Searing Light when you roll Initiative (this expires if unspent at the end of combat)."
+    "Luminary of Malice":
+      - feature_name: Conduit of Death
+        minimum_level: 15
+        resource_key: veilwalkers_blessing_initiative_uses
+        amount: 1
+        amount_from_spent_resource: veilwalkers_blessing_uses
+        summary: "Initiative rolled; regained %{amount} temporary Veilwalker's Blessing use from Conduit of Death"
+        feature_label: "Luminary of Malice · Conduit of Death"
+        description: "Recharge a spent Veilwalker's Blessing on Initiative; the extra charge expires at encounter end."
+        action_label: "Record Initiative Roll · recharge Veilwalker's Blessing"
+        source_ref: Heroes 2.0.1, p. 53
+        source_quote: "Your Veilwalker’s Blessing ability recharges when you roll Initiative. This charge is lost if unspent at the end of combat."
   Shadowmancer:
     Pact of the Red Dragon:
       - feature_name: Heart of Burning Fire

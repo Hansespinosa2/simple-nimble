@@ -844,6 +844,51 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Shepherd Initiative UI grants Light Bearer only when that Sacred Grace is recorded" do
+    Rails.application.load_seed
+    shepherd = Character.create!(
+      name: "Light Bearer Initiative Sheet",
+      level: 5,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      feature_choices: { "Sacred Grace" => { "5" => [ "Light Bearer", "Assist Me, My Friend!" ] } }
+    )
+    tracks = shepherd.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "searing_light" ? track.merge("current" => track.fetch("max").to_i - 1) : track
+    end
+    shepherd.trait_set.update!(resource_tracks: tracks)
+    unchosen = Character.create!(
+      name: "Unchosen Shepherd Sheet",
+      level: 5,
+      character_class: CharacterClass.find_by!(name: "Shepherd"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+
+    get character_url(unchosen)
+    assert_response :success
+    assert_select ".safe-rest-action", text: /Light Bearer/, count: 0
+
+    get character_url(shepherd)
+    assert_response :success
+    assert_select ".safe-rest-action", /Light Bearer/
+    assert_select "form[action='#{begin_encounter_character_path(shepherd)}'] button[type='submit']", text: "Record Initiative Roll · regain 1 Searing Light use"
+
+    patch begin_encounter_character_url(shepherd)
+
+    assert_redirected_to character_url(shepherd)
+    assert_includes flash[:notice], "regained 1 temporary Searing Light use from Light Bearer"
+    assert_equal 1, shepherd.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }.fetch("current")
+    assert_equal shepherd.stat_value(:will) - 1, shepherd.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light" }.fetch("current")
+
+    patch end_encounter_character_url(shepherd)
+    assert_equal 0, shepherd.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "searing_light_initiative_uses" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Mage Initiative asks for real Elemental Surge dice and records legal Steel Will rerolls" do
     Rails.application.load_seed
     mage = Character.create!(
