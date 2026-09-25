@@ -1,4 +1,6 @@
 class Account < ApplicationRecord
+  has_secure_password
+
   has_many :characters, dependent: :nullify
   has_many :owned_campaigns, class_name: "Campaign", foreign_key: :owner_account_id, dependent: :destroy
   has_many :campaign_memberships, dependent: :destroy
@@ -8,13 +10,12 @@ class Account < ApplicationRecord
 
   before_validation :ensure_session_token, on: :create
 
-  validates :display_name, presence: true, length: { maximum: 80 }
-  validates :role, inclusion: { in: %w[player gm] }
-  validates :email, uniqueness: true, allow_blank: true
+  normalizes :email, with: ->(email) { email.strip.downcase }
 
-  def gm?
-    role == "gm"
-  end
+  validates :display_name, presence: true, length: { maximum: 80 }
+  validates :email, presence: true, length: { maximum: 254 }, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: { case_sensitive: false }
+  validates :password, length: { minimum: 12 }, if: -> { password.present? }
+  validates :password_confirmation, presence: true, on: :create
 
   private
     def ensure_session_token

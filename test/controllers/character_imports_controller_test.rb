@@ -5,10 +5,11 @@ require "stringio"
 class CharacterImportsControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
-    @account = Account.create!(display_name: "Import Player", email: "import-player-#{SecureRandom.hex(4)}@example.com")
+    @account = create_account(display_name: "Import Player", email: "import-player-#{SecureRandom.hex(4)}@example.com")
   end
 
   test "the import page explains constraints and offers both templates" do
+    sign_in(@account)
     get new_character_import_url
 
     assert_response :success
@@ -36,7 +37,21 @@ class CharacterImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal CharacterImportService::CSV_HEADERS, CSV.parse(response.body, headers: true).headers
   end
 
+  test "import upload requires an authenticated account while templates stay public" do
+    get new_character_import_url
+    assert_redirected_to new_session_url
+
+    assert_no_difference("Character.count") do
+      post character_imports_url, params: { file: nil }
+    end
+    assert_redirected_to new_session_url
+
+    get character_import_template_url(kind: "json")
+    assert_response :success
+  end
+
   test "a successful multipart upload is attached to the signed-in player and redirects to its draft" do
+    sign_in(@account)
     source_character = create_valid_character
     payload = source_character.snapshot_payload.merge(
       "format" => CharacterImportService::FORMAT_NAME,
@@ -46,7 +61,6 @@ class CharacterImportsControllerTest < ActionDispatch::IntegrationTest
       "level_ups" => source_character.interchange_level_ups
     )
 
-    post sessions_url, params: { account: { display_name: @account.display_name, email: @account.email, role: @account.role } }
     Tempfile.create([ "simple-nimble-import", ".json" ]) do |file|
       file.write(JSON.generate(payload))
       file.rewind
@@ -65,6 +79,7 @@ class CharacterImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "a malformed multipart upload rerenders actionable errors without creating a character" do
+    sign_in(@account)
     Tempfile.create([ "simple-nimble-import", ".json" ]) do |file|
       file.write("{")
       file.rewind

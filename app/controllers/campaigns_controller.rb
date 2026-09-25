@@ -33,7 +33,7 @@ class CampaignsController < ApplicationController
 
   def join
     if params[:invite_code].to_s.upcase == @campaign.invite_code
-      @campaign.campaign_memberships.find_or_create_by!(account: current_account) { |membership| membership.role = current_account.role }
+      @campaign.campaign_memberships.find_or_create_by!(account: current_account) { |membership| membership.role = "player" }
       redirect_to @campaign, notice: "You joined #{@campaign.name}."
     else
       redirect_to campaigns_path, alert: "That invite code does not match this campaign."
@@ -48,7 +48,7 @@ class CampaignsController < ApplicationController
       return
     end
 
-    @campaign.campaign_memberships.find_or_create_by!(account: current_account) { |membership| membership.role = current_account.role }
+    @campaign.campaign_memberships.find_or_create_by!(account: current_account) { |membership| membership.role = "player" }
     redirect_to @campaign, notice: "You joined #{@campaign.name}."
   end
 
@@ -65,12 +65,6 @@ class CampaignsController < ApplicationController
   end
 
   private
-    def require_account
-      return if current_account.present?
-
-      redirect_to new_session_path, alert: "Create a workspace profile before using campaigns."
-    end
-
     def set_campaign
       @campaign = Campaign.find(params.expect(:id))
     end

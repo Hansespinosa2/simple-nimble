@@ -1,9 +1,10 @@
 class CharacterSharesController < ApplicationController
+  before_action :require_account
   before_action :set_character
 
   def create
     campaign = Campaign.find(params.expect(:campaign_id))
-    unless campaign.member?(current_account) && (@character.account.blank? || @character.account == current_account)
+    unless campaign.member?(current_account)
       redirect_to @character, alert: "Only the character owner can share this sheet to a campaign."
       return
     end
@@ -28,6 +29,6 @@ class CharacterSharesController < ApplicationController
 
   private
     def set_character
-      @character = Character.find(params.expect(:character_id))
+      @character = current_account.characters.find(params.expect(:character_id))
     end
 end

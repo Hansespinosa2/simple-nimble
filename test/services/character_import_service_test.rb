@@ -5,13 +5,13 @@ require "stringio"
 class CharacterImportServiceTest < ActiveSupport::TestCase
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
-    @account = Account.create!(display_name: "Importer", email: "importer-#{SecureRandom.hex(4)}@example.com")
+    @account = create_account(display_name: "Importer", email: "importer-#{SecureRandom.hex(4)}@example.com")
     @ruleset = RulesetVersion.find_by!(name: "Nimble", version: "v2.0.1")
   end
 
   test "a valid level-one JSON import is rule-checked and saved as an owned draft" do
     source = build_payload(create_valid_character)
-    source["character"].merge!("status" => "playable", "account_id" => Account.create!(display_name: "Spoof", email: "spoof-#{SecureRandom.hex(4)}@example.com").id)
+    source["character"].merge!("status" => "playable", "account_id" => create_account(display_name: "Spoof", email: "spoof-#{SecureRandom.hex(4)}@example.com").id)
 
     result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
 

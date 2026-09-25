@@ -4,10 +4,16 @@ class CharactersTest < ApplicationSystemTestCase
   # S-01:AC-1 S-01:AC-3 S-01:AC-4 S-05:AC-1 S-05:AC-2 S-05:AC-4 S-05:AC-5 S-09:AC-1 S-09:AC-3
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
+    @account = create_account(display_name: "System Player", email: "system-#{SecureRandom.hex(4)}@example.com")
+    visit new_session_path
+    fill_in "email", with: @account.email
+    fill_in "password", with: TEST_PASSWORD
+    click_button "Sign in"
     @character_class = CharacterClass.find_by!(name: "Berserker")
     @ancestry = Ancestry.find_by!(name: "Human")
     @background = Background.find_by!(name: "Fearless")
     @character = Character.create!(
+      account: @account,
       name: "System Test Hero",
       description: "A brave adventurer seeking glory.",
       level: 1,
@@ -21,6 +27,22 @@ class CharactersTest < ApplicationSystemTestCase
   test "visiting the index" do
     visit characters_url
     assert_selector "h1", text: "Your heroes"
+  end
+
+  test "a player can register with a confirmed password and sign in" do
+    click_button "Sign out"
+    click_link "Create an account"
+
+    fill_in "What should your table call you?", with: "New Browser Player"
+    fill_in "Email", with: "browser-player-#{SecureRandom.hex(4)}@example.com"
+    fill_in "Password", with: "a-long-browser-test-password"
+    fill_in "Confirm password", with: "a-long-browser-test-password"
+    click_button "Create account"
+
+    assert_selector "h1", text: "Your heroes"
+    assert_text "New Browser Player"
+    new_account = Account.find_by!(display_name: "New Browser Player")
+    assert new_account.authenticate("a-long-browser-test-password")
   end
 
   test "should create character" do
@@ -86,6 +108,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-04:AC-6 S-09:AC-3
   test "a playable character locks its build but still saves identity and story edits" do
     character = Character.new(
+      account: @account,
       name: "Locked Build Hero",
       character_class: @character_class,
       ancestry: @ancestry,
@@ -139,6 +162,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the edit builder combines subclass Hit Die upgrades with ancestry advancement" do
     hunter = Character.create!(
+      account: @account,
       name: "Wild Heart Oozeling",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -372,6 +396,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "editing a draft includes its currently equipped body armor in the Zephyr preview" do
     character = Character.create!(
+      account: @account,
       name: "Armored Zephyr Draft",
       level: 2,
       character_class: CharacterClass.find_by!(name: "Zephyr"),
@@ -406,6 +431,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "equipping catalog armor updates Armor, slots, source details, and proficiency guidance" do
     character = Character.create!(
+      account: @account,
       name: "Armored Mage",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: @ancestry,
@@ -445,6 +471,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "untrained armor Defend guidance follows its structured action surcharge" do
     character = Character.create!(
+      account: @account,
       name: "Armor Rule Preview",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: @ancestry,
@@ -473,6 +500,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the sheet explains and blocks armor with an unmet STR requirement" do
     character = Character.create!(
+      account: @account,
       name: "Understrength Armor Mage",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: @ancestry,
@@ -505,6 +533,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "removing a starting shield immediately recalculates live Armor" do
     character = Character.create!(
+      account: @account,
       name: "Disarmed Oathsworn",
       character_class: CharacterClass.find_by!(name: "Oathsworn"),
       ancestry: @ancestry,
@@ -612,6 +641,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "a Spellblade records Firebrand's free Enchant Weapon cast with Initiative" do
     spellblade = Character.create!(
+      account: @account,
       name: "Firebrand System Hero",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Commander"),
@@ -642,6 +672,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "a Shadowpath records its free mark and tracks Ambusher's first attack advantage" do
     hunter = Character.create!(
+      account: @account,
       name: "Ambusher System Hero",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -676,6 +707,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "a Fang and Claw Stormshifter can choose Swiftshift without Beastshift temp HP" do
     stormshifter = Character.create!(
+      account: @account,
       name: "Swiftshift System Hero",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Stormshifter"),
@@ -711,6 +743,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "a Wild Heart records free-movement triggers at Initiative and on a Thrill gain" do
     hunter = Character.create!(
+      account: @account,
       name: "High Ground System Hero",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -748,6 +781,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
     character = Character.create!(
+      account: @account,
       name: "Condition Tracker Hero",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: @ancestry,
@@ -803,6 +837,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
   test "the sheet lowers Planarbeing's death threshold with its maximum Wounds" do
     planarbeing = Character.create!(
+      account: @account,
       name: "Thin Veil Sheet Hero",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Planarbeing"),
@@ -822,6 +857,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-06:AC-3 S-07:AC-2 S-09:AC-3
   test "a level-twenty Zephyr sheet shows its permanent and Dying action limits" do
     character = Character.create!(
+      account: @account,
       name: "Windborne Sheet Hero",
       level: 20,
       character_class: CharacterClass.find_by!(name: "Zephyr"),
@@ -842,6 +878,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-3
   test "a level-four Berserker sheet shows Enduring Rage's Dying action limit" do
     character = Character.create!(
+      account: @account,
       name: "Enduring Rage Sheet Hero",
       level: 4,
       character_class: CharacterClass.find_by!(name: "Berserker"),
@@ -861,6 +898,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet explains and tracks a limited-use ancestry ability" do
     character = Character.create!(
+      account: @account,
       name: "Lucky Sheet Hero",
       character_class: @character_class,
       ancestry: Ancestry.find_by!(name: "Halfling"),
@@ -884,6 +922,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet completes a source-backed Safe Rest" do
     character = Character.create!(
+      account: @account,
       name: "Resting Sheet Hero",
       level: 2,
       character_class: CharacterClass.find_by!(name: "Oathsworn"),
@@ -918,6 +957,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet resolves Catch Breath rolls and spends Hit Dice" do
     character = Character.create!(
+      account: @account,
       name: "Breathing Sheet Hero",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: @ancestry,
@@ -942,6 +982,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet advances Oozeling Hit Dice and uses their maximum without asking for a roll" do
     character = Character.create!(
+      account: @account,
       name: "Odd Constitution Sheet Hero",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Oozeling/Construct"),
@@ -997,6 +1038,7 @@ class CharactersTest < ApplicationSystemTestCase
   # S-02:AC-1 S-02:AC-2 S-03:AC-3 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "a class starting item can be removed without returning on later sheet updates" do
     character = Character.create!(
+      account: @account,
       name: "Tracked Starting Gear Hero",
       character_class: @character_class,
       ancestry: @ancestry,

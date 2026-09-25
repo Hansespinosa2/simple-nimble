@@ -3,12 +3,41 @@ require "test_helper"
 # S-04:AC-4 S-08:AC-1 S-08:AC-2 S-08:AC-3 S-08:AC-4 S-08:AC-5 S-08:AC-6 S-09:AC-1 S-09:AC-3
 class SharingControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @player = Account.create!(display_name: "Player One", email: "player-#{SecureRandom.hex(4)}@example.com")
-    @gm = Account.create!(display_name: "Game Master", email: "gm-#{SecureRandom.hex(4)}@example.com", role: "gm")
+    @player = create_account(display_name: "Player One", email: "player-#{SecureRandom.hex(4)}@example.com")
+    @gm = create_account(display_name: "Game Master", email: "gm-#{SecureRandom.hex(4)}@example.com")
     @campaign = Campaign.create!(owner_account: @gm, name: "The Shared Road")
     @campaign.campaign_memberships.create!(account: @gm, role: "gm")
     @campaign.campaign_memberships.create!(account: @player, role: "player")
     @character = Character.create!(name: "Shared Hero", account: @player)
+  end
+
+  test "campaign pages and shared sheets require authentication" do
+    share = @character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
+
+    get campaigns_url
+    assert_redirected_to new_session_url
+    get new_campaign_url
+    assert_redirected_to new_session_url
+    get campaign_url(@campaign)
+    assert_redirected_to new_session_url
+    post join_campaign_by_code_url, params: { invite_code: @campaign.invite_code }
+    assert_redirected_to new_session_url
+    get shared_character_url(share.share_token)
+    assert_redirected_to new_session_url
+  end
+
+  test "campaign creator is GM only in the campaign they create" do
+    sign_in(@player)
+
+    assert_difference("Campaign.count", 1) do
+      post campaigns_url, params: { campaign: { name: "Player's Own Table" } }
+    end
+
+    created_campaign = Campaign.order(:id).last
+    assert_redirected_to campaign_url(created_campaign)
+    assert created_campaign.gm?(@player)
+    assert_equal "gm", created_campaign.campaign_memberships.find_by!(account: @player).role
+    assert_not @campaign.gm?(@player)
   end
 
   # S-02:AC-2 S-08:AC-1 S-09:AC-1 S-09:AC-3
@@ -246,7 +275,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
 
   test "a share token does not bypass account and campaign membership checks" do
     share = @character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
-    outsider = Account.create!(display_name: "Uninvited Viewer", email: "uninvited-#{SecureRandom.hex(4)}@example.com")
+    outsider = create_account(display_name: "Uninvited Viewer", email: "uninvited-#{SecureRandom.hex(4)}@example.com")
 
     get shared_character_url(share.share_token)
 
@@ -328,8 +357,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     original_hp = character.trait_set.current_hp
     patch game_feature_character_url(character), params: { game_feature: { action: "summon_bonescythe" } }
 
-    assert_redirected_to character_url(character)
-    assert_equal "Only the player who owns this character can edit it.", flash[:alert]
+    assert_response :not_found
     assert_equal original_hp, character.reload.trait_set.current_hp
     assert_not character.reload.bonescythe_summoned?
     assert_empty character.character_revisions.where(event_type: "weapon_summoned")
@@ -463,7 +491,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".tracker-form", 0
   end
 
-  test "shared players and global GMs without GM membership cannot approve story subclass changes" do
+  test "campaign players cannot approve story subclass changes without GM membership" do
     character = create_story_character
     sign_in(@player)
     post character_shares_url(character), params: { campaign_id: @campaign.id }
@@ -485,14 +513,14 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     assert_equal "Oath of Refuge", character.reload.subclass_name
 
-    campaign_player_with_global_gm_role = Account.create!(display_name: "Wrong Campaign Role", email: "wrong-role-#{SecureRandom.hex(4)}@example.com", role: "gm")
-    @campaign.campaign_memberships.create!(account: campaign_player_with_global_gm_role, role: "player")
-    sign_in(campaign_player_with_global_gm_role)
+    campaign_player = create_account(display_name: "Campaign Player", email: "wrong-role-#{SecureRandom.hex(4)}@example.com")
+    @campaign.campaign_memberships.create!(account: campaign_player, role: "player")
+    sign_in(campaign_player)
     post shared_story_subclass_changes_url(share.share_token), params: {
       story_subclass_change: {
         current_subclass: "Oath of Refuge",
         to_subclass: "Oathbreaker",
-        story_note: "A global role is not campaign approval."
+          story_note: "Membership as a player is not campaign GM approval."
       }
     }
 
@@ -583,7 +611,7 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "a non-member cannot open a campaign workspace" do
-    outsider = Account.create!(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
+    outsider = create_account(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
     sign_in(outsider)
 
     get campaign_url(@campaign)
@@ -599,30 +627,51 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       post character_shares_url(@character), params: { campaign_id: @campaign.id }
     end
 
-    assert_redirected_to character_url(@character)
-    assert_includes flash[:alert], "Only the character owner"
+    assert_response :not_found
   end
 
   test "a GM cannot edit or level up a player-owned character" do
     sign_in(@gm)
 
     get edit_character_url(@character)
-    assert_redirected_to character_url(@character)
-    assert_includes flash[:alert], "Only the player who owns"
+    assert_response :not_found
 
     get new_character_level_up_url(@character)
-    assert_redirected_to character_url(@character)
-    assert_includes flash[:alert], "Only the player who owns"
+    assert_response :not_found
   end
 
   test "a player can join a campaign with its invite code" do
-    second_player = Account.create!(display_name: "Second Player", email: "second-#{SecureRandom.hex(4)}@example.com")
+    second_player = create_account(display_name: "Second Player", email: "second-#{SecureRandom.hex(4)}@example.com")
     sign_in(second_player)
 
     post join_campaign_by_code_url, params: { invite_code: @campaign.invite_code }
 
     assert_redirected_to campaign_url(@campaign)
     assert @campaign.campaign_memberships.exists?(account: second_player)
+  end
+
+  test "invite joins always grant only player membership regardless of submitted role" do
+    invitee = create_account(display_name: "Invitee", email: "invitee-#{SecureRandom.hex(4)}@example.com")
+    sign_in(invitee)
+
+    post join_campaign_by_code_url, params: { invite_code: @campaign.invite_code, role: "gm" }
+
+    assert_redirected_to campaign_url(@campaign)
+    assert_equal "player", @campaign.campaign_memberships.find_by!(account: invitee).role
+
+    sign_in(invitee)
+    assert_no_difference("CampaignMembership.count") do
+      post join_campaign_url(@campaign), params: { invite_code: @campaign.invite_code, role: "gm" }
+    end
+    assert_redirected_to campaign_url(@campaign)
+    assert_equal "player", @campaign.campaign_memberships.find_by!(account: invitee).role
+
+    second_invitee = create_account(display_name: "Second Invitee", email: "invitee-2-#{SecureRandom.hex(4)}@example.com")
+    sign_in(second_invitee)
+    post join_campaign_url(@campaign), params: { invite_code: @campaign.invite_code, role: "gm" }
+
+    assert_redirected_to campaign_url(@campaign)
+    assert_equal "player", @campaign.campaign_memberships.find_by!(account: second_invitee).role
   end
 
   test "leaving a campaign revokes the player's shared sheets" do
@@ -643,20 +692,19 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "leaving revokes sheets shared by the departing player even if the character has no owner" do
+  test "leaving revokes a legacy unowned sheet that the player had previously shared" do
     legacy_character = Character.create!(name: "Unowned Shared Legacy Hero")
+    legacy_share = legacy_character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
     sign_in(@player)
-    post character_shares_url(legacy_character), params: { campaign_id: @campaign.id }
-    share = legacy_character.character_shares.sole
 
     assert_difference("CharacterShare.count", -1) do
       delete leave_campaign_url(@campaign)
     end
 
     assert_not @campaign.campaign_memberships.exists?(account: @player)
-    assert_not CharacterShare.exists?(share.id)
+    assert_not CharacterShare.exists?(legacy_share.id)
     sign_in(@gm)
-    get shared_character_url(share.share_token)
+    get shared_character_url(legacy_share.share_token)
     assert_response :not_found
   end
 
@@ -734,10 +782,5 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
       )
       character.skill_set.update!(finesse: 9)
       character
-    end
-
-    def sign_in(account)
-      post sessions_url, params: { account: { display_name: account.display_name, email: account.email, role: account.role } }
-      assert_redirected_to characters_url
     end
 end

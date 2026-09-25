@@ -5,11 +5,14 @@ require "stringio"
 class CharactersControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed if Character.count.zero?
+    @account = create_account(display_name: "Test Player", email: "test-player-#{SecureRandom.hex(4)}@example.com")
+    sign_in(@account)
     @character_class = CharacterClass.find_by!(name: "Berserker")
     @ancestry = Ancestry.find_by!(name: "Human")
     @background = Background.find_by!(name: "Fearless")
     @ruleset = RulesetVersion.active.first
     @character = Character.create!(
+      account: @account,
       name: "Test Hero",
       description: "A brave adventurer seeking glory.",
       level: 1,
@@ -25,6 +28,75 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Your heroes"
     assert_includes response.body, @character.name
+  end
+
+  test "private character reads are limited to the owning account including JSON" do
+    other_account = create_account(display_name: "Other Player", email: "other-#{SecureRandom.hex(4)}@example.com")
+    private_character = Character.create!(account: other_account, name: "Not Your Hero")
+    legacy_character = Character.create!(name: "Unowned Legacy Hero")
+
+    get characters_url
+    assert_response :success
+    assert_not_includes response.body, "Not Your Hero"
+    assert_not_includes response.body, "Unowned Legacy Hero"
+
+    get character_url(private_character)
+    assert_response :not_found
+    get character_url(private_character, format: :json)
+    assert_response :not_found
+    get character_url(legacy_character)
+    assert_response :not_found
+
+    get character_url(@character)
+    assert_response :success
+    assert_includes response.body, @character.name
+  end
+
+  test "character collection, creation, and direct reads require an authenticated account" do
+    delete session_url
+
+    get characters_url
+    assert_redirected_to new_session_url
+    get characters_url(format: :json)
+    assert_redirected_to new_session_url
+    get new_character_url
+    assert_redirected_to new_session_url
+    get character_url(@character)
+    assert_redirected_to new_session_url
+
+    assert_no_difference("Character.count") do
+      post characters_url, params: { character: { name: "Anonymous Hero" } }
+    end
+    assert_redirected_to new_session_url
+  end
+
+  test "nested character operations reject a different signed-in owner" do
+    other_account = create_account(display_name: "Other Owner", email: "owner-#{SecureRandom.hex(4)}@example.com")
+    sign_in(other_account)
+
+    get new_character_level_up_url(@character)
+    assert_response :not_found
+    post character_inventory_items_url(@character), params: { inventory_item: { name: "Stolen item", slots: 1 } }
+    assert_response :not_found
+    post character_shares_url(@character), params: { campaign_id: Campaign.create!(owner_account: other_account, name: "Other Table").id }
+    assert_response :not_found
+    patch tracker_character_url(@character), params: { character: { game_notes: "tampered" } }
+    assert_response :not_found
+    assert_not_equal "tampered", @character.reload.game_notes
+  end
+
+  test "a signed-in player cannot assign or transfer character ownership through form parameters" do
+    other_account = create_account(display_name: "Claim Target", email: "claim-#{SecureRandom.hex(4)}@example.com")
+
+    post characters_url, params: { character: { name: "Forced Owner Hero", account_id: other_account.id } }
+    created = Character.find_by!(name: "Forced Owner Hero")
+    assert_redirected_to character_url(created)
+    assert_equal @account, created.account
+
+    patch character_url(@character), params: { character: { name: "Still Mine", account_id: other_account.id } }
+    assert_redirected_to character_url(@character)
+    assert_equal @account, @character.reload.account
+    assert_equal "Still Mine", @character.name
   end
 
   test "should get new" do
@@ -56,6 +128,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "the character sheet shows source-backed guidance for non-automated background effects" do
     retiree = Character.create!(
+      account: @account,
       name: "Retirement Rules Hero",
       character_class: @character_class,
       ancestry: @ancestry,
@@ -162,6 +235,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
     begin
       hero = Character.create!(
+        account: @account,
         name: "Rest Guidance Hero",
         character_class: CharacterClass.find_by!(name: "Mage"),
         ancestry: Ancestry.find_by!(name: "Human"),
@@ -226,6 +300,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
   test "a draft gold allowance scales when its starting level is changed" do
     character = Character.create!(
+      account: @account,
       name: "Level Change Draft",
       character_class: @character_class,
       starting_equipment_choice: "starting_gold"
@@ -729,6 +804,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
   test "tracker applies the catalog zero-HP Wound once per transition and refreshes Wound-triggered resources" do
     hero = Character.create!(
+      account: @account,
       name: "Zero HP Tracker Hero",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Dragonborn"),
@@ -773,8 +849,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     Rails.application.load_seed
     zephyr_class = CharacterClass.find_by!(name: "Zephyr")
     ancestry = Ancestry.find_by!(name: "Human")
-    level_two = Character.create!(name: "Untrained Momentum", level: 2, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
-    level_three = Character.create!(name: "Kinetic Momentum", level: 3, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
+    level_two = Character.create!(account: @account, name: "Untrained Momentum", level: 2, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
+    level_three = Character.create!(account: @account, name: "Kinetic Momentum", level: 3, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
 
     patch tracker_character_url(level_two), params: {
       character: { trait_set_attributes: { id: level_two.trait_set.id, current_wounds: 1, resource_tracks: [ { key: "bursts_of_speed", current: 0 } ] } }
@@ -794,6 +870,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Zephyr tracks Wound gains, Unyielding Resolve, and Kinetic Momentum through encounter changes" do
     Rails.application.load_seed
     zephyr = Character.create!(
+      account: @account,
       name: "Kinetic Tracker",
       level: 4,
       character_class: CharacterClass.find_by!(name: "Zephyr"),
@@ -878,6 +955,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "the sheet exposes an encounter end action that refreshes only encounter counters" do
     Rails.application.load_seed
     hunter = Character.create!(
+      account: @account,
       name: "Encounter Tracker",
       level: 2,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -906,6 +984,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "owner can record Spellblade initiative mana only once until encounter end" do
     Rails.application.load_seed
     spellblade = Character.create!(
+      account: @account,
       name: "Initiative Button",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Commander"),
@@ -960,6 +1039,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Shadowpath records free Hunter's Mark and spends Ambusher advantage once per encounter" do
     Rails.application.load_seed
     hunter = Character.create!(
+      account: @account,
       name: "Ambusher Tracker",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -1013,6 +1093,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Wild Heart automatically records Initiative and charge-gain movement triggers" do
     Rails.application.load_seed
     hunter = Character.create!(
+      account: @account,
       name: "High Ground Tracker",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -1089,6 +1170,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "tracker resource guidance follows catalog text and unlock eligibility" do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Hunter")
     hunter = Character.create!(
+      account: @account,
       name: "Catalog Guidance Hero",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Hunter"),
@@ -1129,6 +1211,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "the Initiative action shows and applies both class and subclass grants" do
     Rails.application.load_seed
     commander = Character.create!(
+      account: @account,
       name: "Combined Initiative",
       level: 4,
       character_class: CharacterClass.find_by!(name: "Commander"),
@@ -1162,6 +1245,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Commander sheet exposes Coordinated Strike uses and applies encounter-only initiative refunds" do
     Rails.application.load_seed
     commander = Character.create!(
+      account: @account,
       name: "Vanguard Resource Sheet",
       level: 11,
       character_class: CharacterClass.find_by!(name: "Commander"),
@@ -1205,6 +1289,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Shepherd Initiative UI grants Light Bearer only when that Sacred Grace is recorded" do
     Rails.application.load_seed
     shepherd = Character.create!(
+      account: @account,
       name: "Light Bearer Initiative Sheet",
       level: 5,
       character_class: CharacterClass.find_by!(name: "Shepherd"),
@@ -1218,6 +1303,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
     shepherd.trait_set.update!(resource_tracks: tracks)
     unchosen = Character.create!(
+      account: @account,
       name: "Unchosen Shepherd Sheet",
       level: 5,
       character_class: CharacterClass.find_by!(name: "Shepherd"),
@@ -1250,6 +1336,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Mage Initiative asks for real Elemental Surge dice and records legal Steel Will rerolls" do
     Rails.application.load_seed
     mage = Character.create!(
+      account: @account,
       name: "Elemental Surge Sheet",
       level: 17,
       character_class: CharacterClass.find_by!(name: "Mage"),
@@ -1297,6 +1384,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "Reaver sheet renders and tracks Bonescythe summon and shatter actions" do
     Rails.application.load_seed
     reaver = Character.create!(
+      account: @account,
       name: "Bonescythe Tracker",
       level: 3,
       character_class: CharacterClass.find_by!(name: "Shadowmancer"),
@@ -1437,6 +1525,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "should track a keyed class resource and reject a value above its maximum" do
     Rails.application.load_seed
     mage = Character.create!(
+      account: @account,
       name: "Tracked Mage",
       level: 2,
       character_class: CharacterClass.find_by!(name: "Mage"),
@@ -1474,6 +1563,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "should track a source-defined ancestry ability use within its limit" do
     Rails.application.load_seed
     halfling = Character.create!(
+      account: @account,
       name: "Tracked Halfling",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Halfling"),
@@ -1510,6 +1600,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "gaining a Wound refreshes Dragonborn's source-defined bonus damage use" do
     Rails.application.load_seed
     dragonborn = Character.create!(
+      account: @account,
       name: "Wounded Dragonborn",
       level: 2,
       character_class: CharacterClass.find_by!(name: "Mage"),
@@ -1541,6 +1632,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "healing to full refreshes a Gnome's source-defined ally reroll" do
     Rails.application.load_seed
     gnome = Character.create!(
+      account: @account,
       name: "Healed Gnome",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Gnome"),
@@ -1570,6 +1662,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "field rest rejects spending unavailable Hit Dice with a source explanation" do
     Rails.application.load_seed
     mage = Character.create!(
+      account: @account,
       name: "Careful Mage",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Human"),
@@ -1596,6 +1689,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   test "the sheet offers and records Epic Mana as an explicit Field Rest healing replacement" do
     Rails.application.load_seed
     mage = Character.create!(
+      account: @account,
       name: "Epic Mana Rest",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Human"),
@@ -1672,6 +1766,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   private
     def canonical_character_attributes
       {
+        account: @account,
         description: "Ready for the road.",
         character_class_id: @character_class.id,
         ancestry_id: @ancestry.id,

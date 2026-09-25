@@ -1,4 +1,6 @@
 class CharacterImportsController < ApplicationController
+  before_action :require_account, only: %i[new create]
+
   def new
     @errors = []
   end

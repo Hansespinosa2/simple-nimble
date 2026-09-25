@@ -4,8 +4,11 @@ require "test_helper"
 class LevelUpsControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed unless CharacterClass.where(name: "Berserker").exists?
+    @account = create_account(display_name: "Level-up Player", email: "level-up-#{SecureRandom.hex(4)}@example.com")
+    sign_in(@account)
     @character = Character.find_or_initialize_by(name: "Controller Hero")
     @character.assign_attributes(
+      account: @account,
       level: 1,
       character_class: CharacterClass.find_by!(name: "Berserker"),
       ancestry: Ancestry.find_by!(name: "Human"),
@@ -69,6 +72,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
   # S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "level-three page separates story-based subclasses and explains the GM rule" do
     commander = Character.create!(
+      account: @account,
       name: "Commander Story Choice Hero",
       character_class: CharacterClass.find_by!(name: "Commander"),
       ancestry: Ancestry.find_by!(name: "Human"),
@@ -224,6 +228,7 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
   test "level-three Mage page exposes the utility-school choice" do
     Rails.application.load_seed
     mage = Character.create!(
+      account: @account,
       name: "Utility Choice Controller Hero",
       level: 1,
       character_class: CharacterClass.find_by!(name: "Mage"),

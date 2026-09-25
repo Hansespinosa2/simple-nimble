@@ -4,9 +4,9 @@ require "test_helper"
 class StorySubclassChangeTest < ActiveSupport::TestCase
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Oathsworn")
-    @owner = Account.create!(display_name: "Sheet owner", email: "owner-#{SecureRandom.hex(5)}@example.com")
-    @gm = Account.create!(display_name: "Campaign GM", email: "gm-#{SecureRandom.hex(5)}@example.com", role: "gm")
-    @player = Account.create!(display_name: "Campaign player", email: "player-#{SecureRandom.hex(5)}@example.com")
+    @owner = create_account(display_name: "Sheet owner", email: "owner-#{SecureRandom.hex(5)}@example.com")
+    @gm = create_account(display_name: "Campaign GM", email: "gm-#{SecureRandom.hex(5)}@example.com")
+    @player = create_account(display_name: "Campaign player", email: "player-#{SecureRandom.hex(5)}@example.com")
     @campaign = Campaign.create!(owner_account: @gm, name: "Oathbound Story")
     @campaign.campaign_memberships.create!(account: @gm, role: "gm")
     @campaign.campaign_memberships.create!(account: @player, role: "player")

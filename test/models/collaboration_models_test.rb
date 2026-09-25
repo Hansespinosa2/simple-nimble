@@ -2,21 +2,23 @@ require "test_helper"
 
 # S-03:AC-1 S-03:AC-3 S-03:AC-4 S-08:AC-1 S-08:AC-3 S-09:AC-3
 class CollaborationModelsTest < ActiveSupport::TestCase
-  test "accounts generate stable session identities and enforce roles" do
-    player = Account.create!(display_name: "Player", email: "player-#{SecureRandom.hex(4)}@example.com")
-    gm = Account.create!(display_name: "GM", email: "gm-#{SecureRandom.hex(4)}@example.com", role: "gm")
+  test "accounts have stable session identities while GM authority belongs to a campaign" do
+    player = create_account(display_name: "Player", email: "player-#{SecureRandom.hex(4)}@example.com")
+    gm = create_account(display_name: "GM", email: "gm-#{SecureRandom.hex(4)}@example.com")
 
     assert player.session_token.present?
     assert_not_equal player.session_token, gm.session_token
-    assert_not player.gm?
-    assert gm.gm?
-    assert_not Account.new(display_name: "Imposter", role: "admin").valid?
+    campaign = Campaign.create!(owner_account: gm, name: "Role-scoped GM Campaign")
+    campaign.campaign_memberships.create!(account: gm, role: "gm")
+    assert campaign.gm?(gm)
+    assert_not campaign.gm?(player)
+    assert_not player.has_attribute?("role")
   end
 
   test "campaign membership distinguishes owners, members, and outsiders" do
-    owner = Account.create!(display_name: "Owner", email: "owner-#{SecureRandom.hex(4)}@example.com")
-    member = Account.create!(display_name: "Member", email: "member-#{SecureRandom.hex(4)}@example.com")
-    outsider = Account.create!(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
+    owner = create_account(display_name: "Owner", email: "owner-#{SecureRandom.hex(4)}@example.com")
+    member = create_account(display_name: "Member", email: "member-#{SecureRandom.hex(4)}@example.com")
+    outsider = create_account(display_name: "Outsider", email: "outsider-#{SecureRandom.hex(4)}@example.com")
     campaign = Campaign.create!(owner_account: owner, name: "Model Campaign")
     campaign.campaign_memberships.create!(account: owner, role: "gm")
     campaign.campaign_memberships.create!(account: member, role: "player")
@@ -30,7 +32,7 @@ class CollaborationModelsTest < ActiveSupport::TestCase
   end
 
   test "a character share is read-only, unique per campaign, and has a public path" do
-    owner = Account.create!(display_name: "Share Owner", email: "share-owner-#{SecureRandom.hex(4)}@example.com")
+    owner = create_account(display_name: "Share Owner", email: "share-owner-#{SecureRandom.hex(4)}@example.com")
     campaign = Campaign.create!(owner_account: owner, name: "Share Campaign")
     character = Character.create!(name: "Shared Model Hero", account: owner)
     share = CharacterShare.create!(character:, campaign:, created_by_account: owner, permission: "read")

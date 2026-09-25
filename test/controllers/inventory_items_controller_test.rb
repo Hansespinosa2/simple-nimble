@@ -4,7 +4,10 @@ require "test_helper"
 class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Mage")
+    @account = create_account(display_name: "Inventory Player", email: "inventory-#{SecureRandom.hex(4)}@example.com")
+    sign_in(@account)
     @character = Character.create!(
+      account: @account,
       name: "Inventory Test Mage",
       character_class: CharacterClass.find_by!(name: "Mage"),
       ancestry: Ancestry.find_by!(name: "Human"),
@@ -165,7 +168,7 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "only the character owner can change structured inventory" do
-    @character.update!(account: Account.create!(display_name: "Owner", email: "inventory-owner@example.com"))
+    @character.update!(account: create_account(display_name: "Owner", email: "inventory-owner@example.com"))
 
     assert_no_difference("InventoryItem.count") do
       post character_inventory_items_url(@character), params: {
@@ -173,7 +176,6 @@ class InventoryItemsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to character_url(@character)
-    assert_equal "Only the player who owns this character can edit it.", flash[:alert]
+    assert_response :not_found
   end
 end

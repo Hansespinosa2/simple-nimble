@@ -1,18 +1,17 @@
-<% content_for :title, "Set up workspace" %>
+<% content_for :title, "Sign in" %>
 
 <div class="page-shell narrow-shell session-shell">
   <section class="session-card panel">
     <div class="session-mark">✦</div>
-    <p class="eyebrow">Your private workspace</p>
-    <h1>Make Nimble yours.</h1>
-    <p class="hero-subtitle">A lightweight profile lets you own characters and create campaign sharing links. No password is needed for this local workspace yet.</p>
-    <% if @account.errors.any? %><div class="alert-card alert-card-danger"><span class="alert-icon">!</span><ul><% @account.errors.full_messages.each { |message| %><li><%= message %></li><% } %></ul></div><% end %>
-    <%= form_with model: @account, url: sessions_path, class: "session-form" do |form| %>
-      <div class="field"><%= form.label :display_name, "What should your table call you?" %><%= form.text_field :display_name, placeholder: "e.g. Andrés", autofocus: true %></div>
-      <div class="field"><%= form.label :email, "Email (optional)" %><%= form.email_field :email, placeholder: "you@example.com" %><span class="field-hint">Used only to recognize this workspace on this device.</span></div>
-      <div class="field"><%= form.label :role, "Your table role" %><%= form.select :role, [["Player", "player"], ["GM", "gm"]] %></div>
-      <%= form.submit "Enter workspace", class: "button button-primary button-full" %>
+    <p class="eyebrow">Welcome back</p>
+    <h1>Sign in to Nimble.</h1>
+    <p class="hero-subtitle">Your characters and campaign access are private to your account.</p>
+    <% if flash[:alert].present? %><div class="alert-card alert-card-danger" role="alert"><span class="alert-icon">!</span><%= flash[:alert] %></div><% end %>
+    <%= form_with url: session_path, class: "session-form" do |form| %>
+      <div class="field"><%= form.label :email %><%= form.email_field :email, placeholder: "you@example.com", autocomplete: "email", autofocus: true, required: true %></div>
+      <div class="field"><%= form.label :password %><%= form.password_field :password, autocomplete: "current-password", required: true %></div>
+      <%= form.submit "Sign in", class: "button button-primary button-full" %>
     <% end %>
-    <p class="session-footnote">Sharing remains read-only unless a future permission explicitly says otherwise.</p>
+    <p class="session-footnote">New to Nimble? <%= link_to "Create an account", new_account_path %>.</p>
   </section>
 </div>

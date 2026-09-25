@@ -5,8 +5,8 @@ class CharactersController < ApplicationController
     spell_choices spell_ids subclass_name subclass_choices feature_choices
   ].freeze
 
+  before_action :require_account
   before_action :set_character, only: %i[ show edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
-  before_action :require_character_owner, only: %i[ edit update destroy finalize tracker begin_encounter game_feature end_encounter safe_rest field_rest history ]
   before_action :set_rules_canon_options, only: %i[ index show new edit create update finalize ]
 
   # GET /characters or /characters.json
@@ -35,7 +35,7 @@ class CharactersController < ApplicationController
   # POST /characters or /characters.json
   def create
     @character = Character.new(character_params)
-    @character.account = current_account if current_account.present?
+    @character.account = current_account
     @character.ruleset_version ||= current_ruleset
 
     respond_to do |format|
@@ -258,14 +258,7 @@ class CharactersController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_character
-      @character = Character.find(params.expect(:id))
-    end
-
-    def require_character_owner
-      return if current_account.blank? && @character.account.blank?
-      return if current_account.present? && @character.account == current_account
-
-      redirect_to @character, alert: "Only the player who owns this character can edit it."
+      @character = current_account.characters.find(params.expect(:id))
     end
 
     # Populates the rules-canon dropdowns (spec 02/05 creation-flow choices)
@@ -318,9 +311,7 @@ class CharactersController < ApplicationController
     end
 
     def visible_characters
-      return Character.includes(:character_class, :ancestry, :background, :trait_set) if current_account.blank?
-
-      Character.where(account: [ current_account, nil ]).includes(:character_class, :ancestry, :background, :trait_set)
+      current_account.characters.includes(:character_class, :ancestry, :background, :trait_set)
     end
 
     def current_ruleset

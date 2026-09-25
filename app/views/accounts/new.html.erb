@@ -1,0 +1,24 @@
+<% content_for :title, "Create account" %>
+
+<div class="page-shell narrow-shell session-shell">
+  <section class="session-card panel">
+    <div class="session-mark">✦</div>
+    <p class="eyebrow">Your private workspace</p>
+    <h1>Create your account.</h1>
+    <p class="hero-subtitle">Your password protects your character sheets and campaign access. Use at least 12 characters.</p>
+    <% if @account.errors.any? %>
+      <div class="alert-card alert-card-danger" role="alert">
+        <span class="alert-icon">!</span>
+        <ul><% @account.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+      </div>
+    <% end %>
+    <%= form_with model: @account, url: accounts_path, class: "session-form" do |form| %>
+      <div class="field"><%= form.label :display_name, "What should your table call you?" %><%= form.text_field :display_name, placeholder: "e.g. Andrés", autocomplete: "name", autofocus: true, required: true %></div>
+      <div class="field"><%= form.label :email %><%= form.email_field :email, placeholder: "you@example.com", autocomplete: "email", required: true %></div>
+      <div class="field"><%= form.label :password %><%= form.password_field :password, autocomplete: "new-password", minlength: 12, required: true %></div>
+      <div class="field"><%= form.label :password_confirmation, "Confirm password" %><%= form.password_field :password_confirmation, autocomplete: "new-password", minlength: 12, required: true %></div>
+      <%= form.submit "Create account", class: "button button-primary button-full" %>
+    <% end %>
+    <p class="session-footnote">Already have an account? <%= link_to "Sign in", new_session_path %>.</p>
+  </section>
+</div>

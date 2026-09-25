@@ -75,8 +75,11 @@ button, input, select, textarea { font: inherit; }
 .brand-name { font-family: Macondo, serif; font-size: 24px; letter-spacing: .01em; }
 .brand-tagline { color: var(--ink-soft); font-size: 12px; margin-left: 4px; }
 .app-nav { align-items: center; display: flex; gap: 7px; }
+.app-nav form { margin: 0; }
 .app-nav a { border-radius: 9px; color: var(--ink-soft); font-size: 14px; padding: 9px 12px; transition: background .15s, color .15s; }
 .app-nav a:hover, .app-nav a.active { background: var(--surface-muted); color: var(--ink); }
+.nav-sign-out { background: transparent; border: 0; border-radius: 9px; color: var(--ink-soft); cursor: pointer; font-size: 13px; padding: 9px 10px; }
+.nav-sign-out:hover { background: var(--surface-muted); color: var(--ink); }
 .nav-account { align-items: center; border-left: 1px solid var(--line); display: flex; gap: 9px; margin-left: 9px; padding-left: 18px; }
 .nav-avatar { align-items: center; background: var(--accent-pale); border-radius: 50%; color: var(--accent-deep); display: flex; font-size: 12px; font-weight: 750; height: 30px; justify-content: center; width: 30px; }
 .nav-account-label { color: var(--ink-soft); font-size: 13px; }

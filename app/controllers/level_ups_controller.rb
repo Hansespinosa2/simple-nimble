@@ -1,6 +1,6 @@
 class LevelUpsController < ApplicationController
+  before_action :require_account
   before_action :set_character
-  before_action :require_character_owner
   before_action :set_level_up, only: %i[show update]
 
   def new
@@ -33,14 +33,7 @@ class LevelUpsController < ApplicationController
 
   private
     def set_character
-      @character = Character.find(params.expect(:character_id))
-    end
-
-    def require_character_owner
-      return if current_account.blank? && @character.account.blank?
-      return if current_account.present? && @character.account == current_account
-
-      redirect_to @character, alert: "Only the player who owns this character can level it up."
+      @character = current_account.characters.find(params.expect(:character_id))
     end
 
     def set_level_up

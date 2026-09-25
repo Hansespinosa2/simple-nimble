@@ -1,6 +1,6 @@
 class InventoryItemsController < ApplicationController
+  before_action :require_account
   before_action :set_character
-  before_action :require_character_owner
   before_action :set_inventory_item, only: %i[update destroy]
 
   def create
@@ -47,18 +47,11 @@ class InventoryItemsController < ApplicationController
 
   private
     def set_character
-      @character = Character.find(params.expect(:character_id))
+      @character = current_account.characters.find(params.expect(:character_id))
     end
 
     def set_inventory_item
       @inventory_item = @character.inventory_items.find(params.expect(:id))
-    end
-
-    def require_character_owner
-      return if @character.account.blank? && current_account.blank?
-      return if current_account.present? && @character.account == current_account
-
-      redirect_to @character, alert: "Only the player who owns this character can edit it."
     end
 
     def inventory_item_params

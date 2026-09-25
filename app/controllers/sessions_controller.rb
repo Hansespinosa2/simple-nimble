@@ -1,24 +1,25 @@
 class SessionsController < ApplicationController
+  rate_limit to: 10, within: 3.minutes, only: :create
+
   def new
-    @account = Account.new
   end
 
   def create
-    account_params = params.expect(account: [ :display_name, :email, :role ])
-    @account = account_params[:email].present? ? Account.find_or_initialize_by(email: account_params[:email].downcase.strip) : Account.new
-    @account.assign_attributes(account_params)
+    account = Account.authenticate_by(email: params[:email], password: params[:password])
 
-    if @account.save
+    if account
       reset_session
-      session[:account_id] = @account.id
-      redirect_to characters_path, notice: "Welcome, #{@account.display_name}. This is your character workspace."
+      session[:account_id] = account.id
+      session[:authenticated_account_id] = account.id
+      redirect_to characters_path, notice: "Welcome back, #{account.display_name}."
     else
+      flash.now[:alert] = "Email or password is incorrect."
       render :new, status: :unprocessable_entity
     end
   end
 
   def destroy
     reset_session
-    redirect_to root_path, notice: "You are back in the shared workspace."
+    redirect_to new_session_path, notice: "You have been signed out."
   end
 end

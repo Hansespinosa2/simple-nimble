@@ -35,8 +35,9 @@
         <%= link_to "Campaigns", campaigns_path, class: (controller_name == "campaigns" ? "active" : nil) %>
         <% if current_account.present? %>
           <span class="nav-account"><span class="nav-avatar"><%= current_account.display_name[0, 1].upcase %></span><span class="nav-account-label"><%= current_account.display_name %></span></span>
+          <%= button_to "Sign out", session_path, method: :delete, class: "nav-sign-out" %>
         <% else %>
-          <%= link_to "Set up profile", new_session_path, class: "active" %>
+          <%= link_to "Sign in", new_session_path, class: (controller_name == "sessions" ? "active" : nil) %>
         <% end %>
       </nav>
     </header>
