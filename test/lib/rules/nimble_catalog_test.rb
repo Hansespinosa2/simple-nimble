@@ -46,15 +46,37 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     end
   end
 
-  test "spell unlocks are read from canonical class schedules" do
-    assert_equal 0, @catalog.spell_tier_for("Mage", 1)
-    assert_equal 1, @catalog.spell_tier_for("Mage", 2)
-    assert_equal 2, @catalog.spell_tier_for("Mage", 4)
-    assert_equal 9, @catalog.spell_tier_for("Mage", 18)
-    assert_equal 2, @catalog.spell_tier_for("Shadowmancer", 5)
-    assert_equal 0, @catalog.spell_tier_for("Berserker", 20)
-    assert_equal(-1, @catalog.spell_tier_for("Oathsworn", 1))
-    assert_equal 1, @catalog.spell_tier_for("Oathsworn", 2)
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-06:AC-2 S-09:AC-3
+  test "every spellcasting class tier schedule matches its published progression" do
+    source_schedules = {
+      "Mage" => [ "Heroes 2.0.1, pp. 31-35", { 1 => 0, 2 => 1, 4 => 2, 6 => 3, 8 => 4, 10 => 5, 12 => 6, 14 => 7, 16 => 8, 18 => 9 } ],
+      "Oathsworn" => [ "Heroes 2.0.1, pp. 37-41", { 1 => -1, 2 => 1, 4 => 2, 6 => 3, 8 => 4, 10 => 5, 13 => 6, 17 => 7 } ],
+      "Shadowmancer" => [ "Heroes 2.0.1, pp. 43-47", { 1 => 0, 2 => 1, 5 => 2, 7 => 3, 10 => 4, 13 => 5, 16 => 6, 19 => 7 } ],
+      "Shepherd" => [ "Heroes 2.0.1, pp. 49-53", { 1 => 0, 2 => 1, 4 => 2, 6 => 3, 8 => 4, 10 => 5, 12 => 6, 14 => 7, 16 => 8, 18 => 9 } ],
+      "Songweaver" => [ "Heroes 2.0.1, pp. 55-59", { 1 => 0, 2 => 1, 4 => 2, 6 => 3, 8 => 4, 10 => 5, 12 => 6, 14 => 7, 16 => 8, 18 => 9 } ],
+      "Stormshifter" => [ "Heroes 2.0.1, pp. 61-65", { 1 => 0, 2 => 1, 4 => 2, 6 => 3, 8 => 4, 10 => 5, 12 => 6, 14 => 7, 16 => 8, 18 => 9 } ]
+    }
+    max_level = @catalog.derived_values.fetch("max_level").to_i
+
+    source_schedules.each do |class_name, (source_ref, expected_schedule)|
+      class_rules = @catalog.class_for(class_name)
+      assert_equal source_ref, class_rules.fetch("source_ref"), "#{class_name} schedule citation"
+      assert_equal expected_schedule, class_rules.fetch("spell_tier_unlocks"), "#{class_name} published unlock levels"
+
+      (1..max_level).each do |level|
+        expected_tier = expected_schedule.select { |unlock_level, _tier| unlock_level <= level }.values.max.to_i
+        assert_equal expected_tier, @catalog.spell_tier_for(class_name, level), "catalog #{class_name} at level #{level}"
+        assert_equal expected_tier, CharacterClass.find_by!(name: class_name).spell_tier_for(level), "model #{class_name} at level #{level}"
+      end
+    end
+
+    noncasters = @catalog.classes.keys - source_schedules.keys
+    noncasters.each do |class_name|
+      assert_empty @catalog.class_for(class_name).fetch("spell_tier_unlocks"), "#{class_name} has no class-wide tier progression"
+      (1..max_level).each do |level|
+        assert_equal 0, @catalog.spell_tier_for(class_name, level), "#{class_name} at level #{level}"
+      end
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2
