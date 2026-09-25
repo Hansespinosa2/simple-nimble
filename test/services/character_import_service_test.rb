@@ -162,13 +162,41 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert_equal source.fetch("progression"), result.character.snapshot_payload.fetch("progression")
   end
 
+  # S-09:AC-3 S-10:AC-2 S-10:AC-6 S-10:AC-7
   test "the CSV interchange contract imports the same structured character data" do
-    source = build_payload(create_valid_character)
+    spell = Spell.non_utility.find_by!(school: "Fire", tier: 0)
+    original = create_valid_character("Mage", spells: [ spell ])
+    original.update!(current_gold: 23)
+    original.inventory_items.create!(name: "Travel journal", slots: 1)
+    source = build_payload(original)
     result = CharacterImportService.call(upload: upload(csv_for(source), "csv"), account: @account)
 
     assert result.success?, result.errors.to_sentence
-    assert result.character.draft?
-    assert_equal source.dig("rules", "class"), result.character.character_class.name
+    imported = result.character
+    assert imported.draft?
+    assert_equal source.fetch("rules"), imported.snapshot_payload.fetch("rules")
+    assert_equal source.fetch("stats"), imported.snapshot_payload.fetch("stats")
+    assert_equal source.fetch("skills"), imported.snapshot_payload.fetch("skills")
+    assert_equal source.fetch("traits"), imported.snapshot_payload.fetch("traits")
+    assert_equal source.fetch("spells"), imported.snapshot_payload.fetch("spells")
+    assert_equal source.fetch("inventory_items"), imported.snapshot_payload.fetch("inventory_items")
+    assert_equal source.dig("character", "name"), imported.name
+    assert_equal source.dig("character", "current_gold"), imported.current_gold
+    source_creation = source.fetch("creation")
+    imported_creation = imported.import_creation_snapshot
+    %w[rules stats skills traits spells].each do |field|
+      assert_equal source_creation.fetch(field), imported_creation.fetch(field), "creation #{field}"
+    end
+    %w[name stat_array stat_assignments starting_equipment_choice spell_school_choice language_choices feature_language_choices].each do |field|
+      expected = source_creation.dig("character", field)
+      actual = imported_creation.dig("character", field)
+      if expected.nil?
+        assert_nil actual, "creation.character.#{field}"
+      else
+        assert_equal expected, actual, "creation.character.#{field}"
+      end
+    end
+    assert_empty imported.interchange_level_ups
   end
 
   # S-10:AC-3 S-10:AC-4 S-10:AC-8 S-10:AC-9
@@ -298,6 +326,53 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert_includes invalid_equipped_item.errors.join(" "), "equipped is only allowed for catalog armor"
   end
 
+  # S-10:AC-6
+  test "unequipped starting armor imports with its canonical unworn slot count" do
+    original = create_valid_character("Mage")
+    armor = original.inventory_items.find_by!(name: "Adventurer's Garb")
+    armor.update!(equipped: false)
+    source = build_payload(original.reload)
+
+    result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
+
+    assert result.success?, result.errors.to_sentence
+    imported_armor = result.character.inventory_items.find_by!(name: "Adventurer's Garb")
+    assert_not imported_armor.equipped?
+    assert_equal 2, imported_armor.slots
+    assert_equal 2, imported_armor.catalog_slots
+  end
+
+  # S-10:AC-6 S-10:AC-7
+  test "starting-gear slot adjustments survive import without changing catalog slots" do
+    original = create_valid_character("Mage")
+    armor = original.inventory_items.find_by!(name: "Adventurer's Garb")
+    staff = original.inventory_items.find_by!(name: "Staff")
+    armor.update!(slots: 2)
+    staff.update!(slots: 3)
+    source = build_payload(original.reload)
+
+    result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
+
+    assert result.success?, result.errors.to_sentence
+    imported_items = result.character.inventory_items.index_by(&:name)
+    assert_equal [ 2, 1, true ], [ imported_items.fetch("Adventurer's Garb").slots, imported_items.fetch("Adventurer's Garb").catalog_slots, imported_items.fetch("Adventurer's Garb").equipped? ]
+    assert_equal [ 3, 2, false ], [ imported_items.fetch("Staff").slots, imported_items.fetch("Staff").catalog_slots, imported_items.fetch("Staff").equipped? ]
+    assert_equal source.fetch("inventory_items"), result.character.snapshot_payload.fetch("inventory_items")
+  end
+
+  # S-09:AC-3 S-10:AC-1 S-10:AC-8
+  test "malformed resource-track entries are rejected without creating records" do
+    source = build_payload(create_valid_character("Mage"))
+    source["traits"]["resource_tracks"] = [ "not an object" ]
+    counts = [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+
+    result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
+
+    assert_not result.success?
+    assert_includes result.errors.join(" "), "traits.resource_tracks[0] must be an object"
+    assert_equal counts, [ Character.count, LevelUp.count, CharacterRevision.count, InventoryItem.count ]
+  end
+
   test "an import without an account remains unowned" do
     result = CharacterImportService.call(upload: upload(JSON.generate(build_payload(create_valid_character))))
 
@@ -306,15 +381,17 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert result.character.draft?
   end
 
-  test "unsupported extensions, versions, malformed JSON, invalid encoding, and oversized files are rejected" do
+  # S-10:AC-1 S-10:AC-8
+  test "unsupported formats and malformed or oversized files are rejected clearly" do
     valid = build_payload(create_valid_character)
     bad_version = valid.merge("format_version" => 2)
 
     assert_includes CharacterImportService.call(upload: upload("{}", "pdf"), account: @account).errors.join, ".json and .csv"
     assert_includes CharacterImportService.call(upload: upload("{", "json"), account: @account).errors.join, "malformed"
+    assert_includes CharacterImportService.call(upload: upload("\"unterminated", "csv"), account: @account).errors.join, "CSV file is malformed"
     assert_includes CharacterImportService.call(upload: upload(JSON.generate(bad_version)), account: @account).errors.join, "version"
     assert_includes CharacterImportService.call(upload: upload("\xFF".b, "json"), account: @account).errors.join, "UTF-8"
-    oversized = upload("x" * (CharacterImportService::MAX_FILE_SIZE + 1), "json")
+    oversized = upload("x" * (CharacterImportService::MAX_FILE_SIZE + 1), "json", declared_size: 1)
     assert_includes CharacterImportService.call(upload: oversized, account: @account).errors.join, "larger than"
   end
 
@@ -404,11 +481,11 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
       end
     end
 
-    def upload(content, extension = "json")
+    def upload(content, extension = "json", declared_size: nil)
       content = content.to_s
-      Struct.new(:body, :original_filename) do
-        def read = body
-        def size = body.bytesize
-      end.new(content, "character.#{extension}")
+      Struct.new(:body, :original_filename, :declared_size) do
+        def read(length = nil) = length ? body.byteslice(0, length) : body
+        def size = declared_size || body.bytesize
+      end.new(content, "character.#{extension}", declared_size)
     end
 end

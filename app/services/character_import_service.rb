@@ -120,7 +120,8 @@ class CharacterImportService
         reject!("The import file is larger than #{MAX_FILE_SIZE / 1.megabyte} MB.")
       end
 
-      content = upload.read.to_s
+      content = upload.read(MAX_FILE_SIZE + 1).to_s
+      reject!("The import file is larger than #{MAX_FILE_SIZE / 1.megabyte} MB.") if content.bytesize > MAX_FILE_SIZE
       reject!("The import file is empty.") if content.blank?
       content = content.dup.force_encoding(Encoding::UTF_8)
       reject!("The import file must use UTF-8 encoding.") unless content.valid_encoding?
@@ -192,6 +193,7 @@ class CharacterImportService
       replay_level_ups!(character, payload.fetch("level_ups"))
       verify_replayed_state!(character, payload, creation, rules)
       restore_current_state!(character, payload)
+      verify_derived_traits!(payload.fetch("traits"), character)
       character
     end
 
@@ -342,7 +344,6 @@ class CharacterImportService
 
       base_stats = canonical_values!(creation.fetch("stats"), Character::STAT_NAMES, "creation.stats")
       reject!("The level-1 stat baseline changed during replay.") unless base_stats == normalized_values(character.stat_set, Character::STAT_NAMES) if current_level == 1
-      verify_derived_traits!(payload.fetch("traits"), character)
     end
 
     def restore_current_state!(character, payload)
@@ -361,8 +362,8 @@ class CharacterImportService
       unless source_tracks.nil?
         reject!("traits.resource_tracks must be an array.") unless source_tracks.is_a?(Array)
         tracks = Array(character.trait_set.resource_tracks).map(&:to_h).map(&:stringify_keys)
-        supplied = source_tracks.each_with_object({}) do |track, result|
-          reject!("Each traits.resource_tracks entry must be an object.") unless track.is_a?(Hash)
+        supplied = source_tracks.each_with_index.each_with_object({}) do |(track, index), result|
+          reject!("traits.resource_tracks[#{index}] must be an object.") unless track.is_a?(Hash)
           key = track["key"].to_s
           reject!("traits.resource_tracks contains a duplicate or blank key.") if key.blank? || result.key?(key)
           result[key] = nonnegative_integer!(track["current"], "traits.resource_tracks.#{key}.current")
@@ -415,32 +416,41 @@ class CharacterImportService
         starting = row["starting_gear"] == true
         profile = Rules::NimbleCatalog.equipment_armor_item(name)
         reject!("inventory_items[#{index}].equipped is only allowed for catalog armor.") if equipped && profile.blank?
-        item = starting_gear[name] if starting
-        reject!("inventory_items[#{index}] claims non-canonical starting gear.") if starting && item.blank?
-        if item
-          expected_slots = item.fetch("slots").to_i
-          expected_slots = profile.fetch("slots_worn").to_i if equipped
-          if row.key?("slots")
-            supplied_slots = positive_integer!(row["slots"], "inventory_items[#{index}].slots")
-            reject!("inventory_items[#{index}].slots must be #{expected_slots} for this starting-gear item.") unless supplied_slots == expected_slots
+        starting_item = starting_gear[name] if starting
+        reject!("inventory_items[#{index}] claims non-canonical starting gear.") if starting && starting_item.blank?
+        catalog_slots = if profile.present?
+          profile.fetch(equipped ? "slots_worn" : "slots_unworn").to_i
+        elsif starting_item.present?
+          starting_item.fetch("slots").to_i
+        end
+        source_ref = starting_item&.fetch("source_ref") || profile&.fetch("source_ref")
+        if catalog_slots
+          if row["catalog_slots"].present?
+            supplied_catalog_slots = positive_integer!(row["catalog_slots"], "inventory_items[#{index}].catalog_slots")
+            reject!("inventory_items[#{index}].catalog_slots must be #{catalog_slots} for this catalog item.") unless supplied_catalog_slots == catalog_slots
           end
-          character.inventory_items.create!(
-            name:,
-            slots: expected_slots,
-            starting_gear: true,
-            source_ref: item.fetch("source_ref"),
-            catalog_slots: expected_slots,
-            equipped:
-          )
-          next
+          if source_ref.present? && row["source_ref"].present?
+            reject!("inventory_items[#{index}].source_ref does not match the catalog item.") unless row["source_ref"] == source_ref
+          end
         end
 
-        slots = positive_integer!(row["slots"], "inventory_items[#{index}].slots")
-        if profile.present?
-          expected_slots = equipped ? profile.fetch("slots_worn").to_i : profile.fetch("slots_unworn").to_i
-          reject!("inventory_items[#{index}].slots must be #{expected_slots} for this armor state.") unless slots == expected_slots
+        slots = row["slots"].present? ? positive_integer!(row["slots"], "inventory_items[#{index}].slots") : catalog_slots
+        slots ||= positive_integer!(row["slots"], "inventory_items[#{index}].slots")
+        created_item = if starting_item.present?
+          character.inventory_items.create!(
+            name:,
+            slots: catalog_slots,
+            starting_gear: true,
+            source_ref:,
+            catalog_slots:,
+            equipped:
+          )
+        elsif profile.present?
+          character.inventory_items.create!(name:, slots: catalog_slots, equipped:)
+        else
+          character.inventory_items.create!(name:, slots:, equipped:)
         end
-        character.inventory_items.create!(name:, slots:, equipped:)
+        created_item.update!(slots:) if slots != catalog_slots
       rescue ActiveRecord::RecordInvalid => error
         raise Rejected, [ "inventory_items[#{index}]: #{error.record.errors.full_messages.to_sentence}" ]
       end
@@ -454,10 +464,16 @@ class CharacterImportService
         reject!("traits.#{field} does not match the value calculated by the level-up history (expected #{expected.inspect}).") unless actual == expected
       end
       expected_tracks = Array(character.trait_set.resource_tracks).map(&:to_h).map(&:stringify_keys)
-      supplied_tracks = Array(source_traits["resource_tracks"]).map do |track|
-        track.to_h.stringify_keys.except("current")
+      if source_traits.key?("resource_tracks")
+        supplied_tracks = source_traits["resource_tracks"]
+        reject!("traits.resource_tracks must be an array.") unless supplied_tracks.is_a?(Array)
+        supplied_tracks.each_with_index do |track, index|
+          reject!("traits.resource_tracks[#{index}] must be an object.") unless track.is_a?(Hash)
+        end
+        supplied_tracks = supplied_tracks.map { |track| track.stringify_keys.except("current") }
+        expected_metadata = expected_tracks.map { |track| track.except("current") }
+        reject!("traits.resource_tracks metadata does not match the rules-derived resources.") unless supplied_tracks == expected_metadata
       end
-      reject!("traits.resource_tracks metadata does not match the rules-derived resources.") unless supplied_tracks == expected_tracks.map { |track| track.except("current") } if source_traits.key?("resource_tracks")
     end
 
     def validate_tracker_ranges!(character, updates)
