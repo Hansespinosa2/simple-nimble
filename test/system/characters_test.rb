@@ -93,6 +93,16 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='hitDiePreview']", text: "1d8"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the builder explains Elf Initiative advantage without treating it as a numeric bonus" do
+    visit new_character_url
+
+    select "Mage", from: "Class"
+    select "Elf", from: "Ancestry"
+
+    assert_selector "[data-character-builder-target='ancestryHint']", text: /Roll Initiative with advantage.*numeric Initiative bonus.*Core Rules 2\.0\.1, p\. 23/
+  end
+
   test "the guided builder previews structured skill and language grants" do
     visit new_character_url
 

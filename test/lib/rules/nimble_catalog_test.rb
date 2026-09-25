@@ -878,6 +878,31 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_match(/does not classify HP changes by source/, rule.fetch("manual_effect"))
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-08:AC-2 S-09:AC-3
+  test "situational ancestry features are surfaced as source-backed table reminders" do
+    expected_manual_ancestries = %w[
+      Elf Fiendkin Goblin Kobold Birdfolk Celestial Changeling Dryad/Shroomling
+      Minotaur/Beastfolk Oozeling/Construct Planarbeing Ratfolk Stoatling
+    ].sort
+    configured_manual_ancestries = @catalog.data.fetch("ancestry_feature_notes").keys +
+      @catalog.ancestry_derived_rules.fetch("ancestries").filter_map do |name, rule|
+        name if rule["manual_effect"].present?
+      end
+
+    assert_equal expected_manual_ancestries, configured_manual_ancestries.sort
+    configured_manual_ancestries.each do |name|
+      note = @catalog.ancestry_feature_note_for(name)
+      assert note.fetch("manual_effect").present?, "#{name} should explain how to apply its situational rule"
+      assert_match(/Core Rules 2\.0\.1, p\. 2[3-7]/, note.fetch("source_ref"), "#{name} source reference")
+      assert_match(/sheet/i, note.fetch("manual_effect"), "#{name} should disclose the automation boundary")
+    end
+
+    elf_rule = @catalog.ancestry_derived_rule_for("Elf")
+    assert_equal true, elf_rule.fetch("initiative_advantage")
+    assert_equal 0, Ancestry.find_by!(name: "Elf").initiative_modifier, "advantage is not a flat Initiative bonus"
+    assert_match(/does not roll the d20 or apply this advantage automatically/, elf_rule.fetch("manual_effect"))
+  end
+
   test "Commander weapon mastery is a choice at six and ten, not fourteen" do
     assert_includes @catalog.choice_pools_for("Commander", 6).map { |pool| pool.fetch("name") }, "Weapon Mastery"
     assert_includes @catalog.choice_pools_for("Commander", 10).map { |pool| pool.fetch("name") }, "Weapon Mastery"

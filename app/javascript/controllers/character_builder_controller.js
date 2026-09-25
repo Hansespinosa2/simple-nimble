@@ -257,7 +257,12 @@ export default class extends Controller {
     const resourceHint = characterClass?.resource?.name ? ` · ${characterClass.resource.name}` : ""
     const savesHint = characterClass ? ` · Saves ${this.abbreviate(characterClass.save_bonus)}+ / ${this.abbreviate(characterClass.save_penalty)}−` : ""
     this.setTargetText("classHint", characterClass ? `${characterClass.key_stats.map((stat) => this.abbreviate(stat)).join(" + ")} Key Stats · ${characterClass.hit_die} · ${characterClass.starting_hp} starting HP${savesHint}${resourceHint}` : "Two Key Stats shape your build.")
-    this.setTargetText("ancestryHint", ancestry?.summary || "Ancestry traits apply automatically.")
+    let ancestryHint = ancestry?.summary || "Ancestry traits apply automatically."
+    if (ancestry?.feature_note?.manual_effect) {
+      const note = ancestry.feature_note
+      ancestryHint += ` At-table reminder (not automatically resolved): ${note.manual_effect} (${note.source_ref}).`
+    }
+    this.setTargetText("ancestryHint", ancestryHint)
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
     if (background?.prerequisite_stat) backgroundHint += ` Requires ${this.abbreviate(background.prerequisite_stat)} ≤ ${background.prerequisite_max}.`

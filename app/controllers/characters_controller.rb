@@ -419,6 +419,7 @@ class CharactersController < ApplicationController
           {
             name: ancestry.name,
             summary: ancestry.trait_summary,
+            feature_note: Rules::NimbleCatalog.ancestry_feature_note_for(ancestry.name),
             speed_modifier: ancestry.speed_modifier,
             initiative_modifier: ancestry.initiative_modifier,
             all_skills_bonus: ancestry.all_skills_bonus,

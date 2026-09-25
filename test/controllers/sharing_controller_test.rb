@@ -57,6 +57,29 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".tracker-form", 0
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
+  test "the shared sheet explains Elf Initiative advantage separately from its numeric bonus" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Quick Initiative Shared Hero",
+      account: @player,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Elf"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select ".ancestry-rules-note", /Roll Initiative with advantage/
+    assert_select ".ancestry-rules-note", /numeric Initiative bonus/
+    assert_select ".ancestry-rules-note", /Core Rules 2\.0\.1, p\. 23/
+  end
+
   test "the read-only shared sheet includes structured inventory without edit controls" do
     @character.inventory_items.create!(name: "2 potions", slots: 1)
     @character.update!(current_gold: 150)

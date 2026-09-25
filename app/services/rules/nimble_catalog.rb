@@ -104,6 +104,11 @@ module Rules
         ancestry_derived_rules.fetch("ancestries", {}).fetch(ancestry_name.to_s, {})
       end
 
+      def ancestry_feature_note_for(ancestry_name)
+        notes = data.fetch("ancestry_feature_notes", {})
+        notes[ancestry_name.to_s] || ancestry_derived_rule_for(ancestry_name).slice("manual_effect", "source_ref")
+      end
+
       def starting_equipment_rules
         data.fetch("starting_equipment")
       end

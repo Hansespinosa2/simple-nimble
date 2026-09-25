@@ -2258,6 +2258,11 @@ background_feature_notes:
 ancestry_derived_rules:
   hit_die_sides: [6, 8, 10, 12, 20]
   ancestries:
+    Elf:
+      initiative_advantage: true
+      manual_effect: "Roll Initiative with advantage. The sheet shows the numeric Initiative bonus and records Initiative-triggered features, but does not roll the d20 or apply this advantage automatically."
+      source_ref: Core Rules 2.0.1, p. 23
+      source_quote: "Advantage on Initiative, +1 Speed. You know Elvish if your INT is not negative."
     "Oozeling/Construct":
       hit_die_size_steps: 1
       field_rest_hit_die_result: maximum
@@ -2265,6 +2270,41 @@ ancestry_derived_rules:
       manual_effect: "Magical healing always restores the minimum amount. The sheet advances your Hit Die and automatically uses its maximum for Field Rest healing, but it does not classify HP changes by source; apply the minimum when a magical effect heals you."
       source_ref: Core Rules 2.0.1, p. 26
       source_quote: "Increment your Hit Dice one step (d6 » d8 » d10 » d12 » d20); they always heal you for the maximum amount. Magical healing always heals the minimum amount."
+
+ancestry_feature_notes:
+  Fiendkin:
+    manual_effect: "Choose one neutral save; it is advantaged instead. The sheet does not roll saves or apply this advantage automatically."
+    source_ref: Core Rules 2.0.1, p. 24
+  Goblin:
+    manual_effect: "After an attack or negative effect targets you (after its damage), move 2 spaces for free, ignoring difficult terrain. The sheet does not track position or prompt for this movement."
+    source_ref: Core Rules 2.0.1, p. 24
+  Kobold:
+    manual_effect: "Gain +3 Influence with friendly characters and advantage on skill checks related to dragons. The sheet tracks Wily's limited use and Draconic, but does not apply these situational check bonuses."
+    source_ref: Core Rules 2.0.1, p. 24
+  Birdfolk:
+    manual_effect: "You have a fly Speed while wearing armor no heavier than Leather. Crits against you are Vicious (the attacker rolls 1 additional die), and forced movement moves you twice as far. The sheet does not evaluate armor weight or resolve these combat effects."
+    source_ref: Core Rules 2.0.1, p. 25
+  Celestial:
+    manual_effect: "Your disadvantaged save is Neutral instead. The sheet does not roll saves or adjust situational advantage automatically."
+    source_ref: Core Rules 2.0.1, p. 26
+  Changeling:
+    manual_effect: "You have 2 shifting skill points; when you take on another ancestry's appearance, you may place both points into any one skill, once per day. The sheet tracks daily use but does not apply or transfer this shifting skill bonus."
+    source_ref: Core Rules 2.0.1, p. 26
+  "Dryad/Shroomling":
+    manual_effect: "Whenever an enemy causes you one or more Wounds, all adjacent enemies are Dazed. The sheet records Wounds but does not identify the source or apply Dazed to nearby enemies."
+    source_ref: Core Rules 2.0.1, p. 26
+  "Minotaur/Beastfolk":
+    manual_effect: "After moving at least 4 spaces, you can push a creature in your path: a Medium creature 1 space, or a Small/Tiny creature up to 2 spaces. This can happen once per turn; the sheet does not track movement, size, or pushes."
+    source_ref: Core Rules 2.0.1, p. 26
+  Planarbeing:
+    manual_effect: "Whenever you Defend, you can gain 1 Wound to phase out temporarily and ignore the damage. The sheet applies −2 max Wounds but does not resolve this choice or negate damage."
+    source_ref: Core Rules 2.0.1, p. 26
+  Ratfolk:
+    manual_effect: "Gain +2 Armor if you moved on your last turn. The sheet cannot determine whether you moved, so this conditional bonus is not included in your displayed Armor."
+    source_ref: Core Rules 2.0.1, p. 27
+  Stoatling:
+    manual_effect: "When you make a single-target attack against a larger creature, roll 1 additional d6 for each size category it is larger; larger creatures do the same against you. The sheet does not resolve size-based attack dice."
+    source_ref: Core Rules 2.0.1, p. 27
 
 ancestry_resource_pools:
   Halfling:
