@@ -1059,6 +1059,82 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "catalog resource formulas derive every class and story-subclass pool at every level" do
+    Rails.application.load_seed
+    stat_values = { strength: 2, dexterity: 1, intelligence: 3, will: 4 }
+    stat_abbreviations = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }
+    formula_max = lambda do |formula, character_class, level|
+      case formula.to_s
+      when /\A\d+\z/
+        formula.to_i
+      when /\AMIN\(\s*(STR|DEX|INT|WIL)\s*,\s*LVL\s*\)\z/i
+        [ stat_values.fetch(stat_abbreviations.fetch(Regexp.last_match(1).upcase).to_sym), level ].min
+      when /\A\s*(\d+)\s*\*\s*LVL\b/i
+        Regexp.last_match(1).to_i * level
+      when /\bKEY\b/i
+        character_class.key_stats.map { |stat| stat_values.fetch(stat.to_sym) }.max
+      when /\b(STR|DEX|INT|WIL)\b/i
+        stat_token = Regexp.last_match(1).upcase
+        stat_value = stat_values.fetch(stat_abbreviations.fetch(stat_token).to_sym)
+        multiplier = formula.match(/\b#{stat_token}\s*\*\s*(\d+)/i)&.[](1)&.to_i ||
+          formula.match(/(\d+)\s*\*\s*#{stat_token}\b/i)&.[](1)&.to_i || 1
+        stat_value * multiplier + (formula.match?(/\+\s*LVL/i) ? level : 0)
+      else
+        flunk "Unsupported catalog resource formula: #{formula.inspect}"
+      end
+    end
+
+    Rules::NimbleCatalog.classes.each do |class_name, class_rules|
+      character_class = CharacterClass.find_by!(name: class_name)
+      subclass_names = [
+        nil,
+        *Array(class_rules["subclasses"]),
+        *Array(class_rules["story_based_subclasses"]).map { |subclass| subclass.fetch("name") }
+      ].uniq
+
+      subclass_names.each do |subclass_name|
+        class_pools = Array(class_rules.dig("resource", "pools")).reject do |pool|
+          pool["subclass_name"].present? && pool["subclass_name"] != subclass_name
+        end
+        replaced_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(class_name, subclass_name)
+        class_pools.reject! { |pool| replaced_pool_keys.include?(pool.fetch("key")) }
+        story_pools = Rules::NimbleCatalog.story_subclass_resource_pools_for(class_name, subclass_name)
+        pools_by_key = (class_pools + story_pools).index_by { |pool| pool.fetch("key") }
+        character = Character.new(character_class:, subclass_name:)
+
+        (1..Character::MAX_LEVEL).each do |level|
+          effects = character.derived_feature_effects(level:, subclass_name:).fetch("resource_max_modifiers", {})
+          tracks = character.derived_resource_tracks_for(stat_values:, level:, subclass_name:)
+          mana_track = tracks.find { |track| track.fetch("key") == "mana" }
+          expected_mana_max = mana_track&.fetch("max")
+          actual_mana_max = character.mana_max_for(stat_values:, level:)
+          mana_message = "#{class_name} #{subclass_name.inspect} L#{level} Mana projection must match its canonical pool"
+          expected_mana_max.nil? ? assert_nil(actual_mana_max, mana_message) : assert_equal(expected_mana_max, actual_mana_max, mana_message)
+
+          tracks.each do |track|
+            pool = pools_by_key[track.fetch("key")]
+            assert pool, "#{class_name} #{subclass_name.inspect} L#{level} #{track.fetch('key')} must have a catalog definition"
+            max_by_level = pool.fetch("max_by_level", {}).select { |unlock_level, _maximum| level >= unlock_level.to_i }
+            expected_max = if max_by_level.any?
+              max_by_level.max_by { |unlock_level, _maximum| unlock_level.to_i }.last.to_i
+            elsif pool["max_formula"].present?
+              formula_max.call(pool.fetch("max_formula"), character_class, level)
+            end
+            if expected_max.present?
+              expected_max += effects.fetch(track.fetch("key"), 0).to_i
+              expected_max = [ expected_max, pool.fetch("minimum_max").to_i ].max if pool.key?("minimum_max")
+            end
+
+            reference = pool["source_ref"].presence || class_rules.fetch("source_ref")
+            message = "#{class_name} #{subclass_name.inspect} L#{level} #{track.fetch('key')} should follow #{pool['max_formula'].inspect} (#{reference})"
+            expected_max.nil? ? assert_nil(track["max"], message) : assert_equal(expected_max, track["max"], message)
+          end
+        end
+      end
+    end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Spellblade gains INT temporary mana once at initiative and loses it when the encounter ends" do
     Rails.application.load_seed
     character = Character.create!(

@@ -1329,19 +1329,14 @@ class Character < ApplicationRecord
     )
   end
 
-  def mana_max_for(stat_values: nil, level: self.level)
+  def mana_max_for(stat_values: nil, level: self.level, feature_choices: recorded_feature_choices)
     return nil if character_class.blank?
 
-    resource_rules = character_class.resource_rules.to_h
-    return nil if level.to_i < resource_rules.fetch("max_start_level", 1).to_i
-
-    formula = resource_rules.fetch("max_formula", "").to_s.split(";").first.to_s
-    match = formula.match(/(?:mana\s+)?(STR|DEX|INT|WIL)\s*(?:\*\s*(\d+))?\s*\+\s*LVL/i)
-    return nil unless match
-
-    stat = { "STR" => "strength", "DEX" => "dexterity", "INT" => "intelligence", "WIL" => "will" }.fetch(match[1].upcase)
-    multiplier = match[2].to_i.nonzero? || 1
-    (value_for_stat(stat_values || current_stat_values, stat) * multiplier) + level.to_i
+    derived_resource_tracks_for(
+      stat_values: stat_values || current_stat_values,
+      level:,
+      feature_choices:
+    ).find { |track| track.fetch("key") == "mana" }&.fetch("max")
   end
 
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
