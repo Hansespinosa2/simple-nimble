@@ -499,7 +499,7 @@ sources must still be recorded manually because the app does not resolve them.
 
 Core Rules 2.0.1, p. 11 lists 18 distinct named conditions (17 bullets, with Grappled/Restrained grouped together). Bloodied, Dying, and Wounded are mechanically derived from tracked HP/Wounds; the other 15 named conditions can be recorded during play. The character sheet surfaces the three derived states automatically.
 
-Core Rules 2.0.1, p. 9 also requires a hero reduced from positive HP to 0 HP to gain 1 Wound and become Dying until HP is regained. The game-state tracker records that Wound on the transition (not on repeated saves at 0 HP), and shows Dying's action limit with source-defined exceptions, including the Zephyr's level-20 two-action maximum (Heroes 2.0.1, p. 69). It does not enforce action limits or automate the other tactical effects of Dying.
+Core Rules 2.0.1, p. 9 also requires a hero reduced from positive HP to 0 HP to gain 1 Wound and become Dying until HP is regained. The game-state tracker records that Wound on the transition (not on repeated saves at 0 HP), and shows Dying's action limit with source-defined exceptions: Berserker's level-4 Enduring Rage allows a maximum of 2 actions (Heroes 2.0.1, p. 8), as does Zephyr's level-20 capstone (Heroes 2.0.1, p. 69). It does not enforce action limits or automate the other tactical effects of Dying.
 
 The Wounds tracker also surfaces the Core Rules' default death threshold of 6 Wounds. The rules allow abilities to change that number; the tracker does not calculate feature-specific or situational exceptions.
 
