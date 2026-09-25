@@ -6,7 +6,7 @@
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_actions, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Actions"} %>
   </div>
   <div id="hit-die-traits" class="flex gap-1">
-    <%= render partial: "attributes/trait", locals: { field: trait_set_fields.text_field(:hit_die, disabled: read_only, placeholder: "1d6", class: "border-b-1 max-w-20 text-center text-4xl"), label: "Hit Die"} %>
+    <%= render partial: "attributes/trait", locals: { field: trait_set_fields.text_field(:hit_die, disabled: read_only, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Hit Die"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:current_hit_dice, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Current Hit Dice"} %>
     <%= render partial: "attributes/trait", locals: { field: trait_set_fields.number_field(:max_hit_dice, disabled: read_only, placeholder: 0, class: "border-b-1 max-w-20 text-center text-4xl"), label: "Max Hit Dice"} %>
   </div>

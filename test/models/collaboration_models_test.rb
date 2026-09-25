@@ -42,12 +42,14 @@ class CollaborationModelsTest < ActiveSupport::TestCase
   end
 
   test "revisions retain event labels and the snapshot that was recorded" do
-    character = Character.create!(name: "Revision Hero")
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
+    character_class = CharacterClass.find_by!(name: "Berserker")
+    character = Character.create!(name: "Revision Hero", character_class:)
     revision = character.record_revision!(event_type: "game_update", summary: "Changed HP", from_level: 1, to_level: 1)
 
     assert_equal "Game update", revision.event_label
     assert_equal "Changed HP", revision.summary
     assert_equal character.name, revision.snapshot.dig("character", "name")
-    assert_equal character.trait_set.max_hp, revision.snapshot.dig("traits", "max_hp")
+    assert_equal character_class.starting_hp, revision.snapshot.dig("traits", "max_hp")
   end
 end

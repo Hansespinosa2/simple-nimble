@@ -51,6 +51,20 @@ class CharacterLifecycleTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid) { character.finalize_creation! }
   end
 
+  test "classless drafts leave class-derived HP and Hit Die unknown until a class is chosen" do
+    character = Character.create!(name: "Unclassed draft", level: 1, ruleset_version: @ruleset)
+
+    assert_nil character.trait_set.max_hp
+    assert_nil character.trait_set.current_hp
+    assert_nil character.trait_set.hit_die
+
+    character.update!(character_class: @character_class)
+
+    assert_equal @character_class.starting_hp, character.trait_set.max_hp
+    assert_equal @character_class.starting_hp, character.trait_set.current_hp
+    assert_equal @character_class.hit_die, character.trait_set.hit_die
+  end
+
   test "creation requires all four starting skill points" do
     character = Character.create!(
       name: "Underfunded",

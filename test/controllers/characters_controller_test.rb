@@ -38,6 +38,8 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[stat_assignments][strength]']"
     assert_select "select[name='character[stat_assignments][will]']"
     assert_select "[data-character-builder-target='savesPreview']"
+    assert_select "strong[data-character-builder-target='hpPreview']", text: "—"
+    assert_select "strong[data-character-builder-target='hitDiePreview']", text: "—"
     assert_select "[data-character-builder-target='backgroundSpellChoiceField'][hidden]"
     assert_select "select[name='character[spell_choices][Academy Dropout][1][]'] option[value='Firebrand']"
     rules_payload = JSON.parse(Nokogiri::HTML(response.body).at_css("form.builder-form")["data-character-builder-rules-value"])
@@ -337,7 +339,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "draft", entry.fetch("status")
     assert_equal "Warrior", entry.fetch("class_name")
     assert_equal "Human", entry.fetch("ancestry_name")
-    assert_equal @character.trait_set.current_hp, entry.fetch("current_hp")
+    assert_nil entry.fetch("current_hp")
     assert_match %r{/characters/#{@character.id}\.json\z}, entry.fetch("url")
   end
 
@@ -353,7 +355,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], payload.dig("progression", "class_features")
     assert_equal @character.stat_set.strength, payload.dig("stats", "strength")
     assert_equal @character.skill_set.might, payload.dig("skills", "might")
-    assert_equal @character.trait_set.max_hp, payload.dig("traits", "max_hp")
+    assert_nil payload.dig("traits", "max_hp")
     assert_equal [], payload.fetch("spells")
     assert_equal CharacterImportService::FORMAT_NAME, payload.fetch("format")
     assert_equal CharacterImportService::FORMAT_VERSION, payload.fetch("format_version")
@@ -1427,6 +1429,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should reject impossible tracker state without changing derived limits" do
+    @character.update!(character_class: @character_class)
     original_hp = @character.trait_set.current_hp
     original_max_hp = @character.trait_set.max_hp
     original_revision_count = @character.character_revisions.where(event_type: "game_update").count

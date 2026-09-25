@@ -1201,7 +1201,7 @@ class Character < ApplicationRecord
   end
 
   def hit_die_for(level: self.level, subclass_name: self.subclass_name)
-    derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die || "1d6")
+    derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die)
   end
 
   def max_hit_dice_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
@@ -2121,7 +2121,9 @@ class Character < ApplicationRecord
       end
       level_value = level.to_i.positive? ? level.to_i : 1
       subclass_for_effects = self.subclass_name
-      starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      starting_hp = if character_class&.starting_hp
+        character_class.starting_hp + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      end
       max_actions = max_actions_for(level: level_value, subclass_name: subclass_for_effects)
       max_hit_dice = max_hit_dice_for(level: level_value, subclass_name: subclass_for_effects)
       max_wounds = DEFAULT_MAX_WOUNDS + derived_modifier_for(:max_wounds_modifier, level: level_value, subclass_name: subclass_for_effects)
@@ -2157,9 +2159,13 @@ class Character < ApplicationRecord
       )
 
       if preserved_tracker_state
-        target.current_hp = preserved_or_clamped_value(
-          preserved_tracker_state[:current_hp], preserved_tracker_state[:previous_max_hp], target.max_hp
-        )
+        target.current_hp = if preserved_tracker_state[:current_hp].nil? && preserved_tracker_state[:previous_max_hp].nil?
+          target.max_hp
+        else
+          preserved_or_clamped_value(
+            preserved_tracker_state[:current_hp], preserved_tracker_state[:previous_max_hp], target.max_hp
+          )
+        end
         target.current_wounds = preserved_or_clamped_value(
           preserved_tracker_state[:current_wounds], preserved_tracker_state[:previous_max_wounds], target.max_wounds
         )
@@ -2588,7 +2594,9 @@ class Character < ApplicationRecord
       level_value = level.to_i.positive? ? level.to_i : 1
       subclass_for_effects = self.subclass_name
       hit_die = hit_die_for(level: level_value, subclass_name: subclass_for_effects)
-      starting_hp = (character_class&.starting_hp || 10) + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      starting_hp = if character_class&.starting_hp
+        character_class.starting_hp + derived_modifier_for(:max_hp_modifier, level: level_value, subclass_name: subclass_for_effects)
+      end
       max_actions = max_actions_for(level: level_value, subclass_name: subclass_for_effects)
       stat_values = current_stat_values
       initiative = initiative_for(stat_values, level: level_value, subclass_name: subclass_for_effects)

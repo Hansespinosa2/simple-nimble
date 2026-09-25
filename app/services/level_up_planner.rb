@@ -223,7 +223,8 @@ class LevelUpPlanner
 
   def hit_die_size
     hit_die = character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)
-    hit_die.to_s.split("d").last.to_i.nonzero? || 6
+    sides = hit_die.to_s[/d(\d+)/i, 1]&.to_i
+    sides if sides&.positive?
   end
 
   def issues
@@ -313,10 +314,12 @@ class LevelUpPlanner
       result << issue("No stat increase is scheduled at level #{target_level}.", character.character_class&.source_reference || "Heroes 2.0.1, Class Progression", "Stat increases occur at scheduled class progression levels.")
     end
 
-    if level_up.hit_die_roll_one.blank? || level_up.hit_die_roll_two.blank?
-      result << issue("Roll both Hit Dice before applying this level-up.", "Chapter 3, Derived Values", "Roll your Hit Die with advantage and increase max HP by the higher result.")
-    elsif [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ].any? { |roll| roll.to_i > hit_die_size }
-      result << issue("Each Hit Die roll must be between 1 and #{hit_die_size}.", "Chapter 3, Derived Values", "Roll two results using the character's Hit Die.")
+    if hit_die_size.present?
+      if level_up.hit_die_roll_one.blank? || level_up.hit_die_roll_two.blank?
+        result << issue("Roll both Hit Dice before applying this level-up.", "Chapter 3, Derived Values", "Roll your Hit Die with advantage and increase max HP by the higher result.")
+      elsif [ level_up.hit_die_roll_one, level_up.hit_die_roll_two ].any? { |roll| roll.to_i > hit_die_size }
+        result << issue("Each Hit Die roll must be between 1 and #{hit_die_size}.", "Chapter 3, Derived Values", "Roll two results using the character's Hit Die.")
+      end
     end
 
     projected_skills = projected_skill_values
@@ -353,9 +356,9 @@ class LevelUpPlanner
     stats = projected_stats
     skills = projected_skill_values
     traits = {
-      "max_hp" => character.trait_set&.max_hp.to_i,
-      "hit_die" => character.trait_set&.hit_die.presence || character.character_class&.hit_die || "1d6",
-      "current_hp" => character.trait_set&.current_hp.to_i,
+      "max_hp" => character.character_class.present? ? character.trait_set&.max_hp : nil,
+      "hit_die" => character.character_class.present? ? (character.trait_set&.hit_die.presence || character.character_class.hit_die) : nil,
+      "current_hp" => character.character_class.present? ? character.trait_set&.current_hp : nil,
       "current_wounds" => character.trait_set&.current_wounds.to_i,
       "max_wounds" => character.trait_set&.max_wounds.to_i,
       "max_hit_dice" => character.trait_set&.max_hit_dice.to_i,
@@ -376,8 +379,10 @@ class LevelUpPlanner
       "resource_tracks" => character.trait_set&.resource_tracks
     }
 
-    hp_gain = [ level_up.hit_die_roll_one.to_i, level_up.hit_die_roll_two.to_i ].max
-    if character.trait_set
+    hp_gain = if hit_die_size.present?
+      [ level_up.hit_die_roll_one.to_i, level_up.hit_die_roll_two.to_i ].max
+    end
+    if character.trait_set && !hp_gain.nil? && !traits["max_hp"].nil?
       traits["max_hp"] += hp_gain
       current_level = character.level.to_i.positive? ? character.level.to_i : 1
       current_max_hp_modifier = character.derived_modifier_for(:max_hp_modifier, level: current_level, subclass_name: character.subclass_name)
@@ -486,6 +491,7 @@ class LevelUpPlanner
 
     def ensure_hit_die_rolls
       return if level_up.hit_die_roll_one.present? && level_up.hit_die_roll_two.present?
+      return if hit_die_size.nil?
 
       level_up.roll_hit_die!(hit_die_size, random_number: @random_number)
     end
@@ -804,20 +810,22 @@ class LevelUpPlanner
           source_ref: skill_point_progression_source_ref,
           quote: skill_point_progression_source_quote,
           rule_note: skill_point_progression_note
-        },
-        {
+        }
+      ]
+      if !hp_gain.nil?
+        explanations << {
           type: "auto_applied",
           message: "Max HP increases by #{hp_gain} (higher of #{level_up.hit_die_roll_one} and #{level_up.hit_die_roll_two} on #{character.hit_die_for(level: target_level, subclass_name: selected_subclass_name)}).",
           source_ref: "Chapter 3, Derived Values",
           quote: "HP Increase. Roll your Hit Die with advantage and increase your max HP by that much."
-        },
-        {
+        }
+      end
+      explanations << {
           type: "auto_applied",
           message: "Max Hit Dice increases by #{hit_dice_increase} to #{max_hit_dice}.",
           source_ref: hit_dice_progression.fetch("increase_source_ref"),
           quote: hit_dice_progression.fetch("increase_source_quote")
-        }
-      ]
+      }
       max_actions = character.max_actions_for(level: target_level, subclass_name: selected_subclass_name)
       if max_actions > character.trait_set.max_actions.to_i
         action_effects = character.derived_feature_effects(level: target_level, subclass_name: selected_subclass_name)

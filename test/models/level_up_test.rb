@@ -1,6 +1,6 @@
 require "test_helper"
 
-# S-01:AC-2 S-01:AC-3 S-04:AC-3 S-06:AC-1 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-06:AC-5 S-06:AC-6 S-07:AC-1 S-07:AC-2 S-07:AC-3 S-07:AC-5
+# S-01:AC-2 S-01:AC-3 S-02:AC-1 S-04:AC-3 S-05:AC-1 S-06:AC-1 S-06:AC-2 S-06:AC-3 S-06:AC-4 S-06:AC-5 S-06:AC-6 S-07:AC-1 S-07:AC-2 S-07:AC-3 S-07:AC-5
 class LevelUpTest < ActiveSupport::TestCase
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
@@ -49,6 +49,21 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal [ 12 ], generated_sides, "only the missing die should be rolled using the class Hit Die size"
     assert_equal 7, planner.preview.fetch("hp_gain"), "the higher preserved/generated roll determines max HP increase"
     assert_equal 27, planner.preview.fetch("traits").fetch("max_hp")
+  end
+
+  test "an unclassed draft level-up does not invent a Hit Die or HP preview" do
+    character = Character.create!(name: "Unclassed level-up draft", level: 1)
+    level_up = character.level_ups.build(from_level: 1, to_level: 2)
+    planner = LevelUpPlanner.new(character, level_up)
+
+    assert_nil planner.hit_die_size
+    assert_nil level_up.hit_die_roll_one
+    assert_nil level_up.hit_die_roll_two
+    assert_nil planner.preview.dig("traits", "max_hp")
+    assert_nil planner.preview.dig("traits", "hit_die")
+    assert_nil planner.preview.fetch("hp_gain")
+    assert_includes character.creation_issues.map { |issue| issue.fetch(:message) }, "Choose a class before finalizing."
+    assert_includes planner.issues.map { |issue| issue.fetch(:message) }, "Resolve the character's creation checks before leveling up."
   end
 
   test "finalizing a legal level-up applies a skill, stat, derived values, and revision" do
