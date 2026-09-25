@@ -371,7 +371,9 @@ class CharacterImportService
         reject!("traits.resource_tracks keys do not match the character's rules resources.") unless supplied.keys.sort == expected_keys
         tracks.each do |track|
           current = supplied.fetch(track.fetch("key"))
-          reject!("traits.resource_tracks.#{track.fetch('key')}.current must be between 0 and #{track.fetch('max')}.") if current > track.fetch("max").to_i
+          if track["max"].present? && current > track.fetch("max").to_i
+            reject!("traits.resource_tracks.#{track.fetch('key')}.current must be between 0 and #{track.fetch('max')}.")
+          end
           track["current"] = current
         end
         updates[:resource_tracks] = tracks

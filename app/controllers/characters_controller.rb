@@ -106,21 +106,47 @@ class CharactersController < ApplicationController
       :conditions, :inventory, :game_notes, :current_gold,
       { trait_set_attributes: [ :id, :current_actions, :current_hit_dice, :current_hp, :current_wounds, :current_mana, :current_resource, :temp_hp, { resource_tracks: [ [ :key, :current ] ] } ] }
     ])
-    zero_hp_wounds_gained = apply_zero_hp_wound!(tracker_attributes)
-    normalize_resource_tracks!(tracker_attributes)
+    saved = false
+    notice = nil
 
-    if @character.update(tracker_attributes)
-      summary = "In-game state updated"
-      notice = "Game state saved."
-      if zero_hp_wounds_gained.positive?
-        transition_rule = Rules::NimbleCatalog.zero_hp_transition_rules
-        wound_label = zero_hp_wounds_gained == 1 ? "1 Wound" : "#{zero_hp_wounds_gained} Wounds"
-        summary += "; gained #{zero_hp_wounds_gained} Wound#{'s' unless zero_hp_wounds_gained == 1} on reaching 0 HP"
-        summary += " (#{transition_rule.fetch('source_ref')})"
-        notice = "#{notice} The zero-HP rule added #{wound_label}. #{transition_rule.fetch('source_ref')}."
+    @character.with_lock do
+      wound_events = apply_wound_events!(tracker_attributes)
+      normalize_resource_tracks!(tracker_attributes, gained_wounds: wound_events.fetch(:gained_wounds))
+
+      if @character.update(tracker_attributes)
+        summary = "In-game state updated"
+        notice = "Game state saved."
+        if wound_events.fetch(:zero_hp_wounds_gained).positive?
+          transition_rule = Rules::NimbleCatalog.zero_hp_transition_rules
+          if wound_events.fetch(:ignored_wounds).positive?
+            summary += "; reached 0 HP while Unyielding Resolve ignored the first Wound (#{transition_rule.fetch('source_ref')})"
+          else
+            added_wounds = wound_events.fetch(:zero_hp_wounds_gained)
+            wound_label = added_wounds == 1 ? "1 Wound" : "#{added_wounds} Wounds"
+            summary += "; gained #{added_wounds} Wound#{'s' unless added_wounds == 1} on reaching 0 HP"
+            summary += " (#{transition_rule.fetch('source_ref')})"
+            notice = "#{notice} The zero-HP rule added #{wound_label}. #{transition_rule.fetch('source_ref')}."
+          end
+        end
+        if wound_events.fetch(:ignored_wounds).positive?
+          prevention_rule = @character.wound_prevention_rule
+          source_ref = prevention_rule.fetch("source_ref")
+          summary += "; Unyielding Resolve ignored the first Wound; Wound-triggered abilities still triggered (#{source_ref})"
+          notice = "#{notice} Unyielding Resolve ignored the first Wound; Wound-triggered abilities still triggered. #{source_ref}."
+          @character.record_revision!(
+            event_type: "unyielding_resolve",
+            summary: "Unyielding Resolve ignored the first Wound; Wound-triggered abilities still triggered (#{source_ref})",
+            from_level: @character.level,
+            to_level: @character.level
+          )
+        end
+        @character.record_revision!(event_type: "game_update", summary:, from_level: @character.level, to_level: @character.level)
+        saved = true
       end
-      @character.record_revision!(event_type: "game_update", summary:, from_level: @character.level, to_level: @character.level)
-      redirect_to @character, notice:
+    end
+
+    if saved
+      redirect_to @character, notice: notice
     else
       redirect_to @character, alert: "Game state could not be saved."
     end
@@ -270,35 +296,42 @@ class CharactersController < ApplicationController
       @character.creation_issues.each { |issue| @character.errors.add(:base, issue.fetch(:message)) }
     end
 
-    def apply_zero_hp_wound!(tracker_attributes)
+    def apply_wound_events!(tracker_attributes)
       trait_attributes = tracker_attributes[:trait_set_attributes]
-      return 0 if trait_attributes.blank?
-      return 0 unless trait_attributes[:current_hp].present? && trait_attributes[:current_hp].to_i.zero?
-      return 0 unless @character.trait_set&.current_hp.to_i.positive?
+      return { gained_wounds: 0, ignored_wounds: 0, zero_hp_wounds_gained: 0 } if trait_attributes.blank?
 
-      requested_wounds = trait_attributes[:current_wounds]
+      current_wounds = @character.trait_set&.current_wounds.to_i
+      current_hp = @character.trait_set&.current_hp.to_i
+      requested_wounds = trait_attributes[:current_wounds].present? ? trait_attributes[:current_wounds].to_i : current_wounds
       max_wounds = @character.trait_set.max_wounds.to_i
-      return 0 if requested_wounds.present? && requested_wounds.to_i > max_wounds
+      return { gained_wounds: 0, ignored_wounds: 0, zero_hp_wounds_gained: 0 } if requested_wounds > max_wounds
 
-      current_wounds = @character.trait_set.current_wounds.to_i
-      rule = Rules::NimbleCatalog.zero_hp_transition_rules
-      requested_gain = rule.fetch("wounds_gained").to_i
-      actual_gain = [ [ current_wounds + requested_gain, max_wounds ].min - current_wounds, 0 ].max
-      return 0 unless actual_gain.positive?
+      zero_hp_transition = trait_attributes[:current_hp].present? && trait_attributes[:current_hp].to_i.zero? && current_hp.positive?
+      zero_hp_wounds_gained = 0
+      if zero_hp_transition
+        rule = Rules::NimbleCatalog.zero_hp_transition_rules
+        requested_gain = rule.fetch("wounds_gained").to_i
+        zero_hp_wounds_gained = [ [ current_wounds + requested_gain, max_wounds ].min - current_wounds, 0 ].max
+        requested_wounds = [ requested_wounds, current_wounds + requested_gain ].max
+      end
 
-      submitted_wounds = requested_wounds.present? ? requested_wounds.to_i : current_wounds
-      trait_attributes[:current_wounds] = [ [ submitted_wounds, current_wounds + requested_gain ].max, max_wounds ].min
-      actual_gain
+      requested_wounds = [ requested_wounds, max_wounds ].min
+      gained_wounds = [ requested_wounds - current_wounds, 0 ].max
+      ignored_wounds = @character.unyielding_resolve_available? && gained_wounds.positive? ? 1 : 0
+      trait_attributes[:current_wounds] = requested_wounds - ignored_wounds if trait_attributes[:current_wounds].present? || zero_hp_transition || ignored_wounds.positive?
+
+      { gained_wounds:, ignored_wounds:, zero_hp_wounds_gained: }
     end
 
-    def normalize_resource_tracks!(tracker_attributes)
+    def normalize_resource_tracks!(tracker_attributes, gained_wounds:)
       trait_attributes = tracker_attributes[:trait_set_attributes]
       return if trait_attributes.blank?
 
       resource_tracks = @character.normalized_resource_tracks(
         trait_attributes[:resource_tracks],
         current_wounds: trait_attributes[:current_wounds],
-        current_hp: trait_attributes[:current_hp]
+        current_hp: trait_attributes[:current_hp],
+        gained_wounds:
       )
       trait_attributes[:resource_tracks] = resource_tracks
       legacy_values = @character.resource_tracker_values_for(resource_tracks)

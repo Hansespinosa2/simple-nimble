@@ -459,14 +459,36 @@ class Character < ApplicationRecord
   def initiative_resource_amount
     grant = initiative_resource_grant
     return 0 if grant.blank?
-    return grant.fetch("amount").to_i unless grant.fetch("amount").to_s == "maximum"
+    amount = if grant.fetch("amount", nil).to_s == "maximum"
+      track = Array(trait_set&.resource_tracks).map(&:to_h).find do |resource|
+        resource.fetch("key") == grant.fetch("resource_key")
+      end
+      return 0 if track.blank?
 
-    track = Array(trait_set&.resource_tracks).map(&:to_h).find do |resource|
-      resource.fetch("key") == grant.fetch("resource_key")
+      [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max
+    elsif grant["amount_stat"].present?
+      stat_value(grant.fetch("amount_stat")) + grant.fetch("amount_bonus_by_level", {}).sum do |unlock_level, bonus|
+        level.to_i >= unlock_level.to_i ? bonus.to_i : 0
+      end
+    else
+      grant.fetch("amount").to_i
     end
-    return 0 if track.blank?
 
-    [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max
+    amount
+  end
+
+  def wound_prevention_rule
+    Rules::NimbleCatalog.wound_prevention_rule_for(character_class&.name, level)
+  end
+
+  def unyielding_resolve_available?
+    rule = wound_prevention_rule
+    return false if rule.blank? || encounter_started_at.blank?
+
+    uses = character_revisions.where(event_type: "unyielding_resolve")
+      .where("created_at >= ?", encounter_started_at)
+      .count
+    uses < rule.fetch("uses_per_encounter", 1).to_i
   end
 
   def story_subclass_feature_note_entries(level: self.level)
@@ -754,9 +776,9 @@ class Character < ApplicationRecord
       raise ArgumentError, "#{grant.fetch('feature_label')} resource is unavailable on this sheet. #{grant.fetch('source_ref')}." unless track
 
       track = track.to_h
-      available_capacity = [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max
-      requested_amount = grant.fetch("amount").to_s == "maximum" ? available_capacity : grant.fetch("amount").to_i
-      gained_amount = [ requested_amount, available_capacity ].min
+      requested_amount = initiative_resource_amount
+      available_capacity = track["max"].present? ? [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max : nil
+      gained_amount = available_capacity ? [ requested_amount, available_capacity ].min : requested_amount
       tracks = tracks.map do |resource|
         resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => track.fetch("current").to_i + gained_amount) : resource
       end
@@ -1330,10 +1352,16 @@ class Character < ApplicationRecord
     end
   end
 
-  def normalized_resource_tracks(submitted_tracks, current_wounds: nil, current_hp: nil)
+  def normalized_resource_tracks(submitted_tracks, current_wounds: nil, current_hp: nil, gained_wounds: nil)
     submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
-    gained_wound = current_wounds.present? && current_wounds.to_i > (trait_set&.current_wounds || 0).to_i
+    gained_wounds = [ current_wounds.to_i - (trait_set&.current_wounds || 0).to_i, 0 ].max if gained_wounds.nil? && current_wounds.present?
+    gained_wounds = [ gained_wounds.to_i, 0 ].max
+    gained_wound = gained_wounds.positive?
     healed_to_full = current_hp.present? && current_hp.to_i > (trait_set&.current_hp || 0).to_i && current_hp.to_i >= (trait_set&.max_hp || 0).to_i
+    wound_grants = Rules::NimbleCatalog.resource_event_grants_for("wound_gained", character_class&.name, level)
+      .each_with_object(Hash.new(0)) do |grant, amounts|
+        amounts[grant.fetch("resource_key")] += grant.fetch("amount").to_i * gained_wounds
+      end
     baseline = if gained_wound || healed_to_full
       derived_resource_tracks_for(stat_values: current_stat_values).index_by { |track| track.fetch("key") }
     else
@@ -1347,6 +1375,10 @@ class Character < ApplicationRecord
       reset_events = Array(track["reset_events"].presence || baseline.dig(track["key"], "reset_events"))
       if (gained_wound && reset_events.include?("wound_gained")) || (healed_to_full && reset_events.include?("healed_to_max_hp"))
         current = track["max"]
+      end
+      if wound_grants[track["key"]].positive?
+        current = current.to_i + wound_grants.fetch(track["key"])
+        current = [ current, track["max"].to_i ].min if track["max"].present?
       end
 
       track.merge("current" => current, "reset_events" => reset_events)
@@ -1977,6 +2009,7 @@ class Character < ApplicationRecord
 
     def preserved_or_clamped_value(current, previous_max, new_max)
       return nil if current.nil?
+      return current if new_max.nil?
       return new_max if previous_max.present? && current >= previous_max
 
       [ current, new_max ].compact.min

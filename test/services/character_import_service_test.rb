@@ -102,6 +102,23 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
     assert imported.reload.playable?
   end
 
+  # S-02:AC-1 S-02:AC-2 S-10:AC-3 S-10:AC-6
+  test "an imported Zephyr may retain Burst charges above the DEX Initiative grant" do
+    original = create_level_two_zephyr
+    burst_track = original.trait_set.resource_tracks.sole
+    current = original.stat_value(:dexterity) + 2
+    original.trait_set.update!(resource_tracks: [ burst_track.merge("current" => current) ])
+    source = build_payload(original)
+
+    result = CharacterImportService.call(upload: upload(JSON.generate(source)), account: @account)
+
+    assert result.success?, result.errors.to_sentence
+    imported_track = result.character.trait_set.resource_tracks.sole
+    assert_nil imported_track["max"]
+    assert_equal current, imported_track.fetch("current")
+    assert result.character.draft?
+  end
+
   test "an imported draft cannot finalize if its verified progression ledger is broken" do
     imported = CharacterImportService.call(
       upload: upload(JSON.generate(build_payload(create_level_two_character))),
@@ -332,6 +349,23 @@ class CharacterImportServiceTest < ActiveSupport::TestCase
 
     def create_level_two_character
       character = create_valid_character
+      level_up = character.level_ups.create!(
+        from_level: 1,
+        to_level: 2,
+        skill_name: "might",
+        hit_die_roll_one: 8,
+        hit_die_roll_two: 4,
+        feature_choices: {},
+        spell_choices: {},
+        language_choices: [],
+        feature_language_choices: {}
+      )
+      LevelUpService.finalize!(level_up)
+      character.reload
+    end
+
+    def create_level_two_zephyr
+      character = create_valid_character("Zephyr")
       level_up = character.level_ups.create!(
         from_level: 1,
         to_level: 2,

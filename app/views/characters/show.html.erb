@@ -169,6 +169,17 @@
               <% end %>
             </div>
           <% end %>
+          <% if @character.wound_prevention_rule.present? %>
+            <div class="safe-rest-action">
+              <p class="eyebrow"><%= @character.wound_prevention_rule.fetch("feature_name") %></p>
+              <p>Once each recorded encounter, the first Wound you would gain is ignored. The tracker still triggers Wound-based abilities such as Kinetic Momentum, so the Burst is gained. <%= @character.wound_prevention_rule.fetch("source_ref") %>.</p>
+              <% if @character.encounter_started_at.present? %>
+                <span class="field-hint"><%= @character.unyielding_resolve_available? ? "Ready — the first Wound this encounter will be ignored." : "Already used this encounter." %></span>
+              <% else %>
+                <span class="field-hint">Record Initiative to start tracking this encounter.</span>
+              <% end %>
+            </div>
+          <% end %>
           <% bonescythe = @character.story_subclass_weapon_entry %>
           <% if bonescythe.present? %>
             <div class="safe-rest-action">

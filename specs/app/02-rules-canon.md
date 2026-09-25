@@ -195,7 +195,7 @@ Each class has one or more special resource pools that must be modeled for legal
 | Shepherd | Mana | (WIL×3)+LVL; recharges on Safe Rest |
 | Songweaver | Mana | formula in Heroes book; recharges on Safe Rest |
 | Stormshifter | Mana + Beastshift charges | Mana: (WIL×3)+LVL; Beastshift: DEX charges/Safe Rest |
-| Zephyr | Bursts of Speed | DEX charges gained when rolling Initiative; +1/Wound (L3) |
+| Zephyr | Bursts of Speed | At level 2, gain DEX Bursts when rolling Initiative (plus 1 at level 20); at level 3+, gain 1 whenever you gain a Wound. No maximum is stated for the encounter pool. The level-4 Unyielding Resolve ignores the first Wound each encounter, but Wound-triggered abilities still trigger. Heroes 2.0.1, pp. 67–69 |
 
 ---
 

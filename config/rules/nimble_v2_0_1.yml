@@ -655,14 +655,15 @@ classes:
       any_two: [20]
     resource:
       name: Bursts of Speed
-      max_formula: DEX
       pools:
         - key: bursts_of_speed
           name: Bursts of Speed
-          max_formula: DEX
+          start_level: 2
           initial_current: 0
           reset: Encounter ends
           reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, pp. 67-68
+          source_quote: "When you roll Initiative, gain DEX Bursts of Speed to use during that encounter. Whenever you gain a Wound, gain a Burst of Speed."
     subclasses: [Way of Flame, Way of Pain]
 
 progression:
@@ -1620,6 +1621,21 @@ story_subclass_initiative_features:
         source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
 
 initiative_resource_grants:
+  Zephyr:
+    all:
+      - feature_name: Burst of Speed
+        minimum_level: 2
+        resource_key: bursts_of_speed
+        amount_stat: dexterity
+        amount_bonus_by_level: {20: 1}
+        summary: "Initiative rolled; gained %{amount} Bursts of Speed"
+        feature_label: "Zephyr · Burst of Speed"
+        description: "When you roll Initiative, gain DEX Bursts of Speed for this encounter (plus 1 at level 20)."
+        action_label: "Record Initiative Roll · gain %{amount} Bursts of Speed"
+        source_ref: Heroes 2.0.1, pp. 67, 69
+        source_quote: "When you roll Initiative, gain DEX Bursts of Speed to use during that encounter."
+        amount_bonus_source_ref: Heroes 2.0.1, p. 69
+        amount_bonus_source_quote: "+1 additional burst of speed when you roll Initiative."
   Commander:
     Spellblade:
       - feature_name: Arcane Command
@@ -1642,6 +1658,24 @@ initiative_resource_grants:
         action_label: "Record Initiative Roll · summon up to %{amount} minions"
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Summon 2 shadow minions for free when you roll Initiative."
+
+resource_event_grants:
+  wound_gained:
+    Zephyr:
+      - feature_name: Kinetic Momentum
+        minimum_level: 3
+        resource_key: bursts_of_speed
+        amount: 1
+        source_ref: Heroes 2.0.1, p. 68
+        source_quote: "Whenever you gain a Wound, gain a Burst of Speed."
+
+wound_prevention:
+  Zephyr:
+    - feature_name: Unyielding Resolve
+      minimum_level: 4
+      uses_per_encounter: 1
+      source_ref: Heroes 2.0.1, p. 68
+      source_quote: "Ignore the first Wound you would suffer each encounter (when-Wounded abilities, such as Kinetic Momentum, still trigger)."
 
 story_subclass_empowered_orders:
   Commander:

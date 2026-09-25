@@ -21,6 +21,7 @@ class CharacterRevision < ApplicationRecord
     "field_rest" => "Field Rest",
     "inventory_update" => "Inventory update",
     "game_update" => "Game update",
+    "unyielding_resolve" => "Unyielding Resolve",
     "story_subclass_change" => "GM-approved story subclass change",
     "edited" => "Edited"
   }.freeze

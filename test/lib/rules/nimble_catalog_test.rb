@@ -179,6 +179,40 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 76", spellblade_grant.fetch("source_ref")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Zephyr Burst grants, wound triggers, and Wound prevention follow the cited level thresholds" do
+    zephyr = @catalog.classes.fetch("Zephyr")
+    burst_pool = zephyr.dig("resource", "pools").sole
+    assert_equal "bursts_of_speed", burst_pool.fetch("key")
+    assert_equal 2, burst_pool.fetch("start_level")
+    assert_nil burst_pool["max_formula"], "the source does not set a maximum on the encounter pool"
+    assert_equal [ "encounter_end" ], burst_pool.fetch("reset_events")
+    assert_equal "Heroes 2.0.1, pp. 67-68", burst_pool.fetch("source_ref")
+
+    assert_nil @catalog.initiative_resource_grant_for("Zephyr", "", 1)
+    initiative = @catalog.initiative_resource_grant_for("Zephyr", "Way of Flame", 2)
+    assert_equal "Burst of Speed", initiative.fetch("feature_name")
+    assert_equal "dexterity", initiative.fetch("amount_stat")
+    assert_equal({ 20 => 1 }, initiative.fetch("amount_bonus_by_level"))
+    assert_equal "Heroes 2.0.1, pp. 67, 69", initiative.fetch("source_ref")
+    assert_equal "Heroes 2.0.1, p. 69", initiative.fetch("amount_bonus_source_ref")
+    assert_nil @catalog.initiative_resource_grant_for("Zephyr", "Way of Pain", 1)
+
+    assert_empty @catalog.resource_event_grants_for("wound_gained", "Zephyr", 2)
+    kinetic_momentum = @catalog.resource_event_grants_for("wound_gained", "Zephyr", 3).sole
+    assert_equal "Kinetic Momentum", kinetic_momentum.fetch("feature_name")
+    assert_equal "bursts_of_speed", kinetic_momentum.fetch("resource_key")
+    assert_equal 1, kinetic_momentum.fetch("amount")
+    assert_equal "Heroes 2.0.1, p. 68", kinetic_momentum.fetch("source_ref")
+    assert_equal "Whenever you gain a Wound, gain a Burst of Speed.", kinetic_momentum.fetch("source_quote")
+    assert_nil @catalog.wound_prevention_rule_for("Zephyr", 3)
+    unyielding = @catalog.wound_prevention_rule_for("Zephyr", 4)
+    assert_equal "Unyielding Resolve", unyielding.fetch("feature_name")
+    assert_equal 1, unyielding.fetch("uses_per_encounter")
+    assert_includes unyielding.fetch("source_quote"), "still trigger"
+    assert_equal "Heroes 2.0.1, p. 68", unyielding.fetch("source_ref")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "every published class follows its source-defined stat schedule through the catalog maximum" do
     max_level = @catalog.derived_values.fetch("max_level").to_i

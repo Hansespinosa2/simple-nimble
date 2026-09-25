@@ -1137,6 +1137,47 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Zephyr Initiative grants uncapped DEX Bursts plus the level-twenty bonus" do
+    Rails.application.load_seed
+    zephyr_class = CharacterClass.find_by!(name: "Zephyr")
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Fearless")
+    level_one = Character.create!(name: "Zephyr Before Burst", character_class: zephyr_class, ancestry:, background:, stat_array: "balanced")
+    level_two = Character.create!(name: "Zephyr Initiator", level: 2, character_class: zephyr_class, ancestry:, background:, stat_array: "balanced")
+    level_twenty = Character.create!(name: "Windborne Initiator", level: 20, character_class: zephyr_class, ancestry:, background:, stat_array: "balanced")
+
+    assert_nil level_one.initiative_resource_grant
+    assert_empty level_one.trait_set.resource_tracks
+    assert_nil level_two.initiative_resource_grant["amount"]
+    assert_equal level_two.stat_value(:dexterity), level_two.initiative_resource_amount
+    bursts = level_two.trait_set.resource_tracks.sole
+    assert_equal "bursts_of_speed", bursts.fetch("key")
+    assert_nil bursts["max"]
+    assert_equal 0, bursts.fetch("current")
+
+    previously_capped_bursts = bursts.merge("max" => level_two.stat_value(:dexterity), "current" => level_two.stat_value(:dexterity))
+    previous_tracker_state = {
+      resource_tracks: [ previously_capped_bursts ],
+      current_mana: nil,
+      previous_max_mana: nil,
+      current_resource: nil,
+      previous_max_resource: nil
+    }
+    preserved_bursts = level_two.preserved_resource_tracks([ bursts ], previous_tracker_state)
+    assert_equal previously_capped_bursts.fetch("current"), preserved_bursts.sole.fetch("current"), "changing the rule to an uncapped pool must not discard saved charges"
+
+    level_two.begin_encounter!
+    assert_equal level_two.stat_value(:dexterity), level_two.reload.trait_set.resource_tracks.sole.fetch("current")
+    level_two.end_encounter!
+    assert_equal 0, level_two.reload.trait_set.resource_tracks.sole.fetch("current")
+
+    assert_equal level_twenty.stat_value(:dexterity) + 1, level_twenty.initiative_resource_amount
+    level_twenty.begin_encounter!
+    assert_equal level_twenty.stat_value(:dexterity) + 1, level_twenty.reload.trait_set.resource_tracks.sole.fetch("current")
+    assert_includes level_twenty.character_revisions.where(event_type: "initiative_roll").sole.summary, "#{level_twenty.stat_value(:dexterity) + 1} Bursts of Speed"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Reaver's level-15 initiative feature is once per encounter and respects its minion limit" do
     Rails.application.load_seed
     shadowmancer = Character.create!(

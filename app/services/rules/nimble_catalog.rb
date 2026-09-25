@@ -404,12 +404,23 @@ module Rules
       def initiative_resource_grant_for(class_name, subclass_name, level)
         class_name = class_name.to_s
         subclass_name = subclass_name.to_s
-        grants = Array(data.fetch("initiative_resource_grants", {}).fetch(class_name, {}).fetch(subclass_name, []))
+        class_grants = data.fetch("initiative_resource_grants", {}).fetch(class_name, {})
+        grants = Array(class_grants.fetch("all", [])) + Array(class_grants.fetch(subclass_name, []))
 
         grants.find do |grant|
-          unlock_level = story_subclass_feature_unlock_level_for(class_name, subclass_name, grant.fetch("feature_name"))
+          unlock_level = grant["minimum_level"] || story_subclass_feature_unlock_level_for(class_name, subclass_name, grant.fetch("feature_name"))
           unlock_level.present? && level.to_i >= unlock_level
         end
+      end
+
+      def resource_event_grants_for(event, class_name, level)
+        Array(data.fetch("resource_event_grants", {}).fetch(event.to_s, {}).fetch(class_name.to_s, []))
+          .select { |grant| level.to_i >= grant.fetch("minimum_level").to_i }
+      end
+
+      def wound_prevention_rule_for(class_name, level)
+        Array(data.fetch("wound_prevention", {}).fetch(class_name.to_s, []))
+          .find { |rule| level.to_i >= rule.fetch("minimum_level").to_i }
       end
 
       def story_subclass_empowered_orders_for(class_name, subclass_name)

@@ -593,6 +593,112 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Kinetic Momentum starts at level three and grants one Burst per Wound gained" do
+    Rails.application.load_seed
+    zephyr_class = CharacterClass.find_by!(name: "Zephyr")
+    ancestry = Ancestry.find_by!(name: "Human")
+    level_two = Character.create!(name: "Untrained Momentum", level: 2, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
+    level_three = Character.create!(name: "Kinetic Momentum", level: 3, character_class: zephyr_class, ancestry:, background: @background, stat_array: "balanced")
+
+    patch tracker_character_url(level_two), params: {
+      character: { trait_set_attributes: { id: level_two.trait_set.id, current_wounds: 1, resource_tracks: [ { key: "bursts_of_speed", current: 0 } ] } }
+    }
+    assert_equal 1, level_two.reload.trait_set.current_wounds
+    assert_equal 0, level_two.trait_set.resource_tracks.sole.fetch("current"), "level 2 has not gained Kinetic Momentum yet"
+
+    patch tracker_character_url(level_three), params: {
+      character: { trait_set_attributes: { id: level_three.trait_set.id, current_wounds: 2, resource_tracks: [ { key: "bursts_of_speed", current: 0 } ] } }
+    }
+    assert_equal 2, level_three.reload.trait_set.current_wounds
+    assert_equal 2, level_three.trait_set.resource_tracks.sole.fetch("current"), "two Wounds produce two Bursts"
+    assert_nil level_three.trait_set.resource_tracks.sole["max"]
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Zephyr tracks Wound gains, Unyielding Resolve, and Kinetic Momentum through encounter changes" do
+    Rails.application.load_seed
+    zephyr = Character.create!(
+      name: "Kinetic Tracker",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: @background,
+      stat_array: "balanced"
+    )
+    burst_key = "bursts_of_speed"
+    dexterity = zephyr.stat_value(:dexterity)
+    zephyr.begin_encounter!
+    burst_track = zephyr.reload.trait_set.resource_tracks.sole
+    assert_nil burst_track["max"]
+    assert_equal dexterity, burst_track.fetch("current")
+
+    get character_url(zephyr)
+    assert_response :success
+    assert_select ".safe-rest-action", /the first Wound you would gain is ignored/i
+    assert_select ".safe-rest-action", /still triggers Wound-based abilities such as Kinetic Momentum/i
+    assert_select ".safe-rest-action .field-hint", /Ready — the first Wound this encounter will be ignored\./
+
+    patch tracker_character_url(zephyr), params: {
+      character: {
+        trait_set_attributes: {
+          id: zephyr.trait_set.id,
+          current_hp: 0,
+          current_wounds: 0,
+          resource_tracks: [ { key: burst_key, current: dexterity } ]
+        }
+      }
+    }
+
+    assert_redirected_to character_url(zephyr)
+    assert_equal 0, zephyr.reload.trait_set.current_wounds, "Unyielding Resolve prevents the first Wound"
+    assert_equal dexterity + 1, zephyr.trait_set.resource_tracks.sole.fetch("current"), "Kinetic Momentum still triggers on the ignored Wound"
+    assert zephyr.character_revisions.exists?(event_type: "unyielding_resolve")
+    assert_includes flash[:notice], "Wound-triggered abilities still triggered"
+
+    patch tracker_character_url(zephyr), params: {
+      character: {
+        trait_set_attributes: {
+          id: zephyr.trait_set.id,
+          current_hp: 0,
+          current_wounds: 0,
+          resource_tracks: [ { key: burst_key, current: dexterity + 1 } ]
+        }
+      }
+    }
+    assert_equal dexterity + 1, zephyr.reload.trait_set.resource_tracks.sole.fetch("current"), "remaining at 0 HP is not a new Wound event"
+    assert_equal 1, zephyr.character_revisions.where(event_type: "unyielding_resolve").count
+
+    patch tracker_character_url(zephyr), params: {
+      character: {
+        trait_set_attributes: {
+          id: zephyr.trait_set.id,
+          current_hp: zephyr.trait_set.max_hp,
+          current_wounds: 1,
+          resource_tracks: [ { key: burst_key, current: dexterity + 1 } ]
+        }
+      }
+    }
+    assert_equal 1, zephyr.reload.trait_set.current_wounds, "the once-per-encounter protection does not prevent a second Wound"
+    assert_equal dexterity + 2, zephyr.trait_set.resource_tracks.sole.fetch("current"), "each Wound gained adds another Burst, above the DEX Initiative amount"
+
+    patch end_encounter_character_url(zephyr)
+    assert_equal 0, zephyr.reload.trait_set.resource_tracks.sole.fetch("current")
+    patch begin_encounter_character_url(zephyr)
+    patch tracker_character_url(zephyr), params: {
+      character: {
+        trait_set_attributes: {
+          id: zephyr.trait_set.id,
+          current_wounds: 2,
+          resource_tracks: [ { key: burst_key, current: dexterity } ]
+        }
+      }
+    }
+    assert_equal 1, zephyr.reload.trait_set.current_wounds
+    assert_equal dexterity + 1, zephyr.trait_set.resource_tracks.sole.fetch("current"), "Unyielding Resolve resets for the next encounter and its ignored Wound still grants a Burst"
+    assert_equal 2, zephyr.character_revisions.where(event_type: "unyielding_resolve").count
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet exposes an encounter end action that refreshes only encounter counters" do
     Rails.application.load_seed
