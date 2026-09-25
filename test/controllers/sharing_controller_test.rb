@@ -33,6 +33,24 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wound-death-rule-note", /You die when you have taken 6 Wounds/
   end
 
+  # S-02:AC-1 S-02:AC-4 S-08:AC-2 S-09:AC-3
+  test "the shared sheet initiative caption follows the rules catalog" do
+    catalog = Rules::NimbleCatalog.data
+    original_derived_values = catalog.fetch("derived_values")
+    catalog["derived_values"] = original_derived_values.merge("initiative_formula" => "WIL")
+    share = @character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
+    sign_in(@player)
+
+    begin
+      get shared_character_url(share.share_token)
+
+      assert_response :success
+      assert_select ".vital-card .vital-foot", text: "WIL + origin", count: 1
+    ensure
+      catalog["derived_values"] = original_derived_values
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
   test "the shared sheet preserves the ancestry's source-backed manual healing reminder" do
     Rails.application.load_seed

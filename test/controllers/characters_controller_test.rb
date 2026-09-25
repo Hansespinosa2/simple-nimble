@@ -113,6 +113,22 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # S-02:AC-1 S-02:AC-4 S-09:AC-3
+  test "the initiative formula caption follows the rules catalog" do
+    catalog = Rules::NimbleCatalog.data
+    original_derived_values = catalog.fetch("derived_values")
+    catalog["derived_values"] = original_derived_values.merge("initiative_formula" => "WIL")
+
+    begin
+      get character_url(@character)
+
+      assert_response :success
+      assert_select ".vital-card .vital-foot", text: "WIL + origin", count: 1
+    ensure
+      catalog["derived_values"] = original_derived_values
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
   test "rest guidance and action labels follow catalog values" do
     catalog = Rules::NimbleCatalog.data
