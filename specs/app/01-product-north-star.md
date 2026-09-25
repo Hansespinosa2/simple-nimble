@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Cross-functional team
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-09-25
 
 ---
 
@@ -36,10 +36,8 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 | Shared campaign collaboration matters, but it is not the core promise | `[Validated]` | User prioritized character legality over collaboration |
 | Accounts and login are required from the start of shared functionality | `[Validated]` | Direct user answer |
 | Character editing is legal-only for v1; freeform editing is a future feature | `[Validated]` | Direct user answer |
-| Import of existing characters is in scope from the start | `[Validated]` | Direct user answer |
-| The threshold for "no rulebook needed" is zero — verified through UX testing | `[Validated]` | Direct user answer |
-| Character editing is legal-only for v1; freeform editing is a future feature | `[Validated]` | Direct user answer |
-| Import of existing characters is in scope from the start | `[Validated]` | Direct user answer |
+| Import accepts guided, structured JSON and CSV, validates Nimble v2.0.1, and saves successful imports as drafts | `[Validated]` | Product decision; see S-10 |
+| Imports above level 1 require the complete, sequential level-up history | `[Validated]` | Unverifiable progression is rejected, not inferred; see S-10 |
 | The threshold for "no rulebook needed" is zero — verified through UX testing | `[Validated]` | Direct user answer |
 
 ## 4. In scope
@@ -89,6 +87,8 @@ Run golden user journeys for creation and level-up and confirm a player can comp
 | AC-4 | Negative | The product does not require the player to use a separate spreadsheet or paper aid for the core creation and level-up flows. | `[Validated]` |
 | AC-5 | Negative | The first release does not optimize for real-time tactical combat assistance. | `[Validated]` |
 | AC-6 | Dependency | Rules content required for creation and level-up exists in structured, versioned form before those flows are considered complete. | `[Validated]` |
+| AC-7 | Behavioral | A player can import a supported JSON or CSV character, have its choices validated against Nimble rules, and receive a draft rather than an automatically playable character. | `[Validated: S-10]` |
+| AC-8 | Negative | Import never guesses missing higher-level progression or accepts a story-based subclass without the GM-approved change flow. | `[Validated: S-10]` |
 
 ## 9. Failure conditions
 

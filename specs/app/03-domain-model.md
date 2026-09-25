@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-09-24
+> **Last updated:** 2026-09-25
 
 ---
 
@@ -46,6 +46,7 @@ specs can be expressed without inventing hidden entities.
 | S-3 | Rules context entity | Character legality should depend on canon plus optional overrides |
 | S-4 | Campaign and membership entities | Needed for sharing and GM visibility |
 | S-5 | Revision/audit shape | Needed for strict legality, character history, and narrowly authorized story changes |
+| S-6 | Import representation | Reuse `Character`, `LevelUp`, and `CharacterRevision`; import does not create an alternate character or progression entity |
 
 ## 5. Out of scope
 
@@ -76,7 +77,8 @@ Suggested entity set (updated from 02-rules-canon.md S-1 entity extraction):
 7. `CampaignMembership`
 8. `CharacterShare` or equivalent join model
 9. `StorySubclassChange` — links a character, campaign, approving GM, and resulting character revision; stores the replaced and granted subclasses, required story note, rule citation, and any structured subclass choices resolved at the change. It is an auditable exception, not general edit permission.
-10. Rule content entities:
+10. Imported characters reuse `Character`, `LevelUp`, and `CharacterRevision`; import is not a permission bypass or an alternate progression source (see S-10).
+11. Rule content entities:
    - `Class` (11 classes with full level 1–20 progression tables)
    - `Ancestry` *(formerly "Race")* — 5 common + 14 exotic
    - `Spell` (6 schools × up to 9 tiers + cantrips; see schema in 02-rules-canon.md §12)
@@ -117,6 +119,7 @@ Current repo entities that likely remain but need reframing:
 | AC-3 | Behavioral | The model can preserve prior character states or revisions relevant to legality and audit. | `[Validated]` |
 | AC-4 | Negative | Campaign membership is not used as a substitute for account ownership. | `[Validated]` |
 | AC-5 | Dependency | Creation, level-up, and sharing specs must not introduce entities that are absent from this spec. | `[Validated]` |
+| AC-6 | Dependency | Import reuses the canonical character, level-up, ownership, ruleset, and revision entities; it does not create an alternate progression or import entity. | `[Validated: S-10]` |
 
 ## 9. Failure conditions
 

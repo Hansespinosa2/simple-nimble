@@ -316,6 +316,11 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal @character.skill_set.might, payload.dig("skills", "might")
     assert_equal @character.trait_set.max_hp, payload.dig("traits", "max_hp")
     assert_equal [], payload.fetch("spells")
+    assert_equal CharacterImportService::FORMAT_NAME, payload.fetch("format")
+    assert_equal CharacterImportService::FORMAT_VERSION, payload.fetch("format_version")
+    assert_equal 1, payload.dig("creation", "character", "level")
+    assert_equal [], payload.fetch("level_ups")
+    assert_equal [], payload.fetch("inventory_items")
     assert_equal "Draft", payload.fetch("status_label")
   end
 

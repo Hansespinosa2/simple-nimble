@@ -9,7 +9,10 @@
       <h1>Your heroes</h1>
       <p class="hero-subtitle">Build cleanly. Play confidently. Keep every important change in one place.</p>
     </div>
-    <%= link_to "+ New character", new_character_path, class: "button button-primary" %>
+    <div class="page-footer-actions">
+      <%= link_to "Import character", new_character_import_path, class: "button button-secondary" %>
+      <%= link_to "+ New character", new_character_path, class: "button button-primary" %>
+    </div>
   </section>
 
   <div class="dashboard-metrics">

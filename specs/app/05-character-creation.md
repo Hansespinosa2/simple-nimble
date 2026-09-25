@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-23
+> **Last updated:** 2026-09-25
 
 ---
 
@@ -47,7 +47,7 @@ choices, calculates required values, and produces a playable valid character.
 
 | ID | Exclusion | Why excluded |
 |---|---|---|
-| X-1 | Importing an existing paper or external-sheet character | Needs a separate spec |
+| X-1 | Import parsing and migration behavior | Defined separately in S-10; imported results re-enter the lifecycle as drafts |
 | X-2 | Freeform unrestricted creation mode as the default | Conflicts with strict legality goal |
 | X-3 | Full campaign onboarding during creation | Collaboration is not the primary creation outcome |
 

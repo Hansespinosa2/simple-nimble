@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer
-> **Last updated:** 2026-07-22
+> **Last updated:** 2026-09-25
 
 ---
 
@@ -28,7 +28,7 @@ and campaign sharing without ambiguous ownership or legality rules.
 | Decision | Status | Notes |
 |---|---|---|
 | First anchor scope is create a new character and level it up inside the app | `[Validated]` | Direct user answer |
-| Import, editing, and archive/history matter but are not the anchor starting point | `[Validated]` | User likes them, but not first |
+| Structured character import is in scope, but does not bypass creation or level-up validation | `[Validated]` | JSON/CSV imports become owned drafts; see S-10 |
 | Strict legality gates should block invalid finalized states for now | `[Validated]` | Direct user answer |
 | Invalid drafts are saveable; characters may be saved in an incomplete state | `[Validated]` | Direct user answer |
 | Sharing is a permission overlay, not a lifecycle state | `[Validated]` | Direct user answer |
@@ -42,13 +42,14 @@ and campaign sharing without ambiguous ownership or legality rules.
 | S-2 | Validated playable state | Character meets legality requirements |
 | S-3 | Level-up transition state | Character enters a guided progression workflow |
 | S-4 | Shared state | Character can be visible in a campaign context |
+| S-5 | Imported draft | Import creates a player-owned draft only after rules validation and progression replay |
 
 ## 5. Out of scope
 
 | ID | Exclusion | Why excluded |
 |---|---|---|
 | X-1 | Retirement/archive rules | Important later but not anchor scope |
-| X-2 | Full import migration lifecycle | Needs separate spec |
+| X-2 | PDF, image, spreadsheet, or incomplete-history import | Inputs are ambiguous or cannot prove legal progression; see S-10 |
 | X-3 | Simultaneous co-editing lifecycle | Collaboration is initially read-focused |
 
 ## 6. Actors and roles

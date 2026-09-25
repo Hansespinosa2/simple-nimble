@@ -2,9 +2,9 @@
 
 This directory contains the product and system specifications for `simple-nimble`.
 
-The repo currently contains a thin Rails CRUD prototype for characters and spells.
-These specs define the intended product beyond that prototype so the codebase can
-be evolved deliberately instead of by ad hoc feature work.
+The repo contains a rules-aware Rails application for character creation,
+progression, game tracking, and campaign sharing. These specs record the product
+contract and connect implementation to observable acceptance criteria.
 
 ## Directory structure
 
@@ -15,7 +15,7 @@ be evolved deliberately instead of by ad hoc feature work.
 
 ## Product spec set
 
-Start with these files in `application/`:
+Start with these files in `app/`:
 
 1. `SPEC_INDEX.md` - map of the full specification system
 2. `SPEC_TEMPLATE.md` - reusable template for new bounded specs
@@ -28,6 +28,7 @@ Start with these files in `application/`:
 9. `07-rules-explanations.md` - how the app explains legal and illegal states
 10. `08-campaign-sharing.md` - player/GM/campaign collaboration model
 11. `09-evaluation-and-coverage.md` - acceptance, evaluation, and coverage model
+12. `10-character-import.md` - versioned JSON/CSV import and progression replay
 
 ## Current status
 
@@ -37,7 +38,7 @@ Start with these files in `application/`:
 
 ## Spec Sync: Tracking Acceptance Criteria Implementation
 
-Each specification document (01 through 09) contains **acceptance criteria** in section 8. These criteria define what must be true for the feature to be considered complete.
+Each numbered specification document contains **acceptance criteria** in section 8. These criteria define what must be true for the feature to be considered complete.
 
 The `spec sync` system automatically tracks which acceptance criteria have been implemented, are in-progress, blocked, or still todo.
 

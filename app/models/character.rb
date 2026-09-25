@@ -72,7 +72,7 @@ class Character < ApplicationRecord
   before_validation :sync_starting_equipment, if: :should_sync_starting_equipment?
   after_create :sync_starting_gear_inventory
   after_update :sync_starting_gear_inventory, if: :starting_gear_loadout_changed?
-  after_commit :record_initial_revision, on: :create
+  after_create :record_initial_revision
 
   scope :drafts, -> { where(status: "draft") }
   scope :playable, -> { where(status: "playable") }
@@ -104,6 +104,10 @@ class Character < ApplicationRecord
 
   def legal_for_creation?
     creation_issues.empty?
+  end
+
+  def imported_character?
+    character_revisions.where(event_type: "imported").exists?
   end
 
   def known_spell_schools
@@ -1339,6 +1343,7 @@ class Character < ApplicationRecord
 
   def creation_issues
     issues = []
+    issues.concat(imported_progression_issues)
     issues << rule_issue("Choose a class before finalizing.", "Chapter 2, Class Rules", "Every hero has one class.") if character_class.blank?
     issues << rule_issue("Choose an ancestry before finalizing.", "Chapter 2, Ancestry Rules", "Every hero has one ancestry.") if ancestry.blank?
     issues << rule_issue("Choose a background before finalizing.", "Chapter 2, Backgrounds", "Every hero has one background.") if background.blank?
@@ -1350,7 +1355,9 @@ class Character < ApplicationRecord
         "Choose a stat array, then place its four values across your four stats."
       )
     end
-    issues << rule_issue("Start new characters at level 1.", "Chapter 3, Character Creation", "A starting character begins at level 1.") if level.present? && level != 1 && !playable? && !level_up_in_progress?
+    if level.present? && level != 1 && !playable? && !level_up_in_progress? && !imported_character?
+      issues << rule_issue("Start new characters at level 1.", "Chapter 3, Character Creation", "A starting character begins at level 1.")
+    end
     issues.concat(language_selection_issues) if character_class.present? && stat_array.present? && stat_assignments_valid?
 
     spell_school_choice_rule = character_class&.spell_school_choice_rule
@@ -1561,6 +1568,41 @@ class Character < ApplicationRecord
     }
   end
 
+  def import_creation_snapshot
+    finalized_revision = character_revisions.where(event_type: "finalized", to_level: 1).order(:created_at, :id).first
+    return finalized_revision.snapshot if finalized_revision
+
+    created_revision = character_revisions.where(event_type: "created").order(:created_at, :id).first
+    if created_revision && created_revision.snapshot.to_h.dig("character", "level").to_i == 1
+      return created_revision.snapshot
+    end
+    return snapshot_payload if level.to_i == 1
+
+    nil
+  end
+
+  def interchange_level_ups
+    level_ups.order(:to_level, :id).map do |level_up|
+      {
+        "from_level" => level_up.from_level,
+        "to_level" => level_up.to_level,
+        "status" => level_up.status,
+        "hit_die_roll_one" => level_up.hit_die_roll_one,
+        "hit_die_roll_two" => level_up.hit_die_roll_two,
+        "skill_name" => level_up.skill_name,
+        "skill_from" => level_up.skill_from,
+        "stat_name" => level_up.stat_name,
+        "second_stat_name" => level_up.second_stat_name,
+        "subclass_name" => level_up.subclass_name,
+        "feature_choices" => normalize_interchange_choices(level_up.feature_choices),
+        "spell_choices" => normalize_interchange_choices(level_up.spell_choices),
+        "language_choices" => Array(level_up.language_choices).compact_blank.map(&:to_s),
+        "feature_language_choices" => level_up.feature_language_choices.to_h.stringify_keys.transform_values { |choices| Array(choices).compact_blank.map(&:to_s) },
+        "notes" => level_up.notes
+      }
+    end
+  end
+
   def record_revision!(event_type:, summary:, from_level: nil, to_level: nil)
     character_revisions.create!(
       event_type: event_type,
@@ -1586,6 +1628,12 @@ class Character < ApplicationRecord
   end
 
   private
+    def normalize_interchange_choices(choices)
+      choices.to_h.stringify_keys.transform_values do |selections|
+        Array(selections).compact_blank.map(&:to_s)
+      end
+    end
+
     def require_reaver!(ability)
       feature = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", ability)
       return feature if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && story_subclass_feature_unlocked?(ability)
@@ -1750,9 +1798,27 @@ class Character < ApplicationRecord
     def level_changes_require_level_up_transition
       return unless persisted? && will_save_change_to_level?
       return if @applying_level_up_transition
-      return if attribute_in_database("status") == "draft"
+      return if attribute_in_database("status") == "draft" && !imported_character?
 
       errors.add(:level, "can only change through a finalized level-up")
+    end
+
+    def imported_progression_issues
+      return [] unless imported_character?
+
+      expected_levels = (2..level.to_i).to_a
+      transitions = level_ups.order(:to_level, :id).map do |level_up|
+        [ level_up.from_level, level_up.to_level, level_up.status ]
+      end
+      return [] if transitions.length == expected_levels.length && transitions.each_with_index.all? do |(from_level, to_level, status), index|
+        from_level == expected_levels[index] - 1 && to_level == expected_levels[index] && status == "finalized"
+      end
+
+      [ rule_issue(
+        "The imported level-up history does not match the character's current level.",
+        "Chapter 4, Character Lifecycle",
+        "An imported character can be finalized only when its complete sequential level-up history is preserved."
+      ) ]
     end
 
     def canonical_choices_changed?

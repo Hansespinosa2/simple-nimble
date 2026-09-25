@@ -2,7 +2,7 @@
 
 > **System purpose:** define a linked set of documents that acts as product context,
 > implementation success criteria, and evaluation input for `simple-nimble`.
-> **Current status:** draft set established from repo analysis plus product discovery on 2026-07-22.
+> **Current status:** draft set established from repo analysis plus product discovery; import format and history requirements resolved on 2026-09-25.
 
 ---
 
@@ -45,6 +45,7 @@ The core product promise is:
 | S-07 | `07-rules-explanations.md` | Defines explanation UX and citation expectations | S-02, S-05, S-06 | 7 |
 | S-08 | `08-campaign-sharing.md` | Defines accounts, campaigns, roles, and sharing | S-01, S-03, S-04 | 8 |
 | S-09 | `09-evaluation-and-coverage.md` | Defines evaluation, golden scenarios, and spec coverage | All prior specs | 9 |
+| S-10 | `10-character-import.md` | Defines structured JSON/CSV validation and draft import | S-02, S-03, S-04, S-06, S-07 | 10 |
 
 ## Recommended authoring order
 
@@ -62,10 +63,9 @@ These are worth direct product attention because they change multiple downstream
 
 | Decision | Why it matters | Current status |
 |---|---|---|
-| Exact first-release scope between creation, editing, import, and level-up | Changes lifecycle, permissions, and evaluation scope | `[Validated: v1 anchor is create + level-up]` |
+| First-release workflow scope | Changes creation, progression, and migration priorities | `[Resolved: create + level-up are the core anchor; structured JSON/CSV import is also in scope; see S-10]` |
 | House-rule model depth | Changes rules canon, domain model, and explanation system | `[Validated: out of scope for v1, see 02-rules-canon.md X-4]` |
 | GM edit permissions | Changes sharing, ownership, audit history, and conflict rules | `[Resolved: general editing is out; S-08 permits a narrow, auditable story-subclass replacement]` |
-| Import strategy for existing characters | Changes creation and lifecycle significantly | `[Unknown: TBD]` |
 
 
 ## Definition of success for the spec system

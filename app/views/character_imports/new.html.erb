@@ -1,0 +1,54 @@
+<% content_for :title, "Import a character" %>
+
+<div class="page-shell">
+  <section class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Bring your hero with you</p>
+      <h1>Import a character</h1>
+      <p class="hero-subtitle">Upload a Nimble character as JSON or CSV. We verify the rules and save a draft for you to review.</p>
+    </div>
+    <%= link_to "← Back to characters", characters_path, class: "button button-quiet" %>
+  </section>
+
+  <% if @errors.present? %>
+    <section class="alert-card alert-card-danger" role="alert" aria-live="polite">
+      <div><strong>We couldn't import this character.</strong>
+        <ul>
+          <% @errors.each do |error| %><li><%= error %></li><% end %>
+        </ul>
+      </div>
+    </section>
+  <% end %>
+
+  <section class="panel import-panel">
+    <div class="panel-heading">
+      <div><p class="eyebrow">Supported format</p><h2>Start from an export or template</h2></div>
+      <span class="badge badge-draft">Draft only</span>
+    </div>
+    <p>JSON exports from this app are ready to re-import. For other tools, use the version 1 template and enter exact names from Nimble v2.0.1.</p>
+    <div class="page-footer-actions">
+      <%= link_to "Download JSON template", character_import_template_path(kind: "json"), class: "button button-secondary" %>
+      <%= link_to "Download CSV template", character_import_template_path(kind: "csv"), class: "button button-secondary" %>
+    </div>
+    <ul class="import-guidance">
+      <li>Level 1 imports need a valid creation baseline.</li>
+      <li>Level 2–20 imports must include every finalized level-up in order, including both Hit Die rolls and all choices. We won't guess missing history.</li>
+      <li>CSV is one character per file: the first row is the template header, the next row contains the character, and each section cell holds JSON.</li>
+      <li>Class, ancestry, background, spell, and choice names must match the rules catalog exactly.</li>
+      <li>Story-based subclasses still require the GM-approved story-change action.</li>
+      <li>Files are limited to 1 MB. PDFs, images, and spreadsheet workbooks aren't supported.</li>
+    </ul>
+  </section>
+
+  <section class="panel import-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Upload</p><h2>Choose your character file</h2></div></div>
+    <%= form_with url: character_imports_path, method: :post, multipart: true, local: true do |form| %>
+      <div class="field">
+        <%= form.label :file, "JSON or CSV file" %>
+        <%= form.file_field :file, accept: ".json,.csv,application/json,text/csv", required: true %>
+        <p class="field-hint">Successful imports become drafts. Your account owns the imported character; ownership in the file is ignored.</p>
+      </div>
+      <%= form.submit "Validate and import as draft", class: "button button-primary" %>
+    <% end %>
+  </section>
+</div>

@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   get "spells", to: "spells#index"
   get "spells/:id", to: "spells#show", as: "spell"
+  get "characters/import", to: "character_imports#new", as: :new_character_import
+  post "characters/import", to: "character_imports#create", as: :character_imports
+  get "characters/import/template/:kind", to: "character_imports#template", as: :character_import_template,
+      constraints: { kind: /json|csv/ }
   resources :characters do
     member do
       post :finalize
