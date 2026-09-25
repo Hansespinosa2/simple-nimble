@@ -197,6 +197,65 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_equal 7, next_utility_pool.fetch("level")
   end
 
+  test "Spellblade story approval rejects an Order already known from the class" do
+    commander = create_commander
+    commander.update_columns(
+      level: 4,
+      feature_choices: { "Commander's Orders" => { "2" => [ "Face Me!", "Hold the Line!" ] } }
+    )
+    share = commander.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    spell_choices = {
+      "Deep Knowledge · tiered spell" => { "3" => "Flame Dart" },
+      "Deep Knowledge · Utility Spell" => { "3" => "Firebrand" }
+    }
+
+    error = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: commander,
+        share:,
+        approved_by: @gm,
+        current_subclass: "Champion of the Bulwark",
+        to_subclass: "Spellblade",
+        story_note: "An alliance with the fire cult changes the commander's path.",
+        spell_choices:,
+        feature_choices: { "Arcane Command" => { "4" => "Order: Face Me!" } }
+      )
+    end
+
+    assert_equal "Choose a different Commander’s Order; Face Me! is already known.", error.message
+    assert_equal "Champion of the Bulwark", commander.reload.subclass_name
+    assert_empty commander.story_subclass_changes
+  end
+
+  test "Spellblade story approval rejects a spell duplicated across granted choice pools" do
+    commander = create_commander
+    commander.update_columns(level: 4)
+    share = commander.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    repeated_spell = "Flame Dart"
+    spell_choices = {
+      "Deep Knowledge · tiered spell" => { "3" => repeated_spell },
+      "Deep Knowledge · Utility Spell" => { "3" => "Firebrand" }
+    }
+
+    error = assert_raises(ArgumentError) do
+      StorySubclassChangeService.call(
+        character: commander,
+        share:,
+        approved_by: @gm,
+        current_subclass: "Champion of the Bulwark",
+        to_subclass: "Spellblade",
+        story_note: "An alliance with the fire cult changes the commander's path.",
+        spell_choices:,
+        feature_choices: { "Arcane Command" => { "4" => "Spell: #{repeated_spell}" } }
+      )
+    end
+
+    assert_match(/Choose a different spell/, error.message)
+    assert_includes error.message, repeated_spell
+    assert_equal "Champion of the Bulwark", commander.reload.subclass_name
+    assert_empty commander.story_subclass_changes
+  end
+
   test "Spellblade approval rejects spells above the Deep Knowledge tier" do
     commander = create_commander
     share = commander.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")

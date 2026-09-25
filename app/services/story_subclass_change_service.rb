@@ -21,7 +21,7 @@ class StorySubclassChangeService
 
       approved_spell_choices = validate_spell_choices!(character, to_subclass, spell_choices)
       approved_feature_choices = validate_feature_choices!(character, to_subclass, feature_choices)
-      validate_spellblade_choice_conflicts!(character, to_subclass, approved_feature_choices, approved_spell_choices)
+      validate_story_choice_group_conflicts!(character, to_subclass, approved_feature_choices, approved_spell_choices)
       approved_companion = validate_companion!(character, to_subclass, companion_name:, companion_size:)
       granted_spell_names = Rules::NimbleCatalog.story_subclass_spell_grants_for(character.character_class&.name, to_subclass)
       replaced_feature_pools = Rules::NimbleCatalog.story_subclass_replaced_feature_choice_pools_for(character.character_class&.name, to_subclass)
@@ -229,26 +229,20 @@ class StorySubclassChangeService
   end
   private_class_method :story_choice_source_refs
 
-  def self.validate_spellblade_choice_conflicts!(character, subclass_name, feature_choices, spell_choices)
-    return unless character.character_class&.name == "Commander" && subclass_name == "Spellblade"
-
-    selections = feature_choices.values.flat_map { |levels| levels.values.flatten }
-    order_selections = selections.filter_map { |selection| selection.delete_prefix("Order: ") if selection.start_with?("Order: ") }
-    prior_orders = character.recorded_feature_choices.fetch("Commander's Orders", [])
-    repeated_orders = order_selections & prior_orders
-    if repeated_orders.any? || order_selections.uniq.length != order_selections.length
-      raise ArgumentError, "Choose a different Commander’s Order; an Order can only be selected once."
+  def self.validate_story_choice_group_conflicts!(character, subclass_name, feature_choices, spell_choices)
+    group_rules = Rules::NimbleCatalog.story_subclass_choice_groups_for(character.character_class&.name, subclass_name)
+    Rules::StorySubclassChoiceGroups.conflicts_for(
+      character:,
+      definitions: group_rules,
+      feature_choices:,
+      spell_choices:
+    ).each do |conflict|
+      definition = group_rules.fetch(conflict.fetch(:group))
+      message = definition.fetch("conflict_message").gsub("%{selections}", conflict.fetch(:selections).join(", "))
+      raise ArgumentError, message
     end
-
-    selected_spells = selections.filter_map { |selection| selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ") }
-    selected_spells.concat(spell_choices.values.flat_map { |levels| levels.values.flatten })
-    previously_known = character.sheet_spells.pluck(:name)
-    repeated_spells = (selected_spells & previously_known) | selected_spells.tally.select { |_spell, count| count > 1 }.keys
-    return if repeated_spells.empty?
-
-    raise ArgumentError, "Choose a different spell for each Arcane Command and Deep Knowledge choice (#{repeated_spells.join(', ')} is already selected)."
   end
-  private_class_method :validate_spellblade_choice_conflicts!
+  private_class_method :validate_story_choice_group_conflicts!
 
   def self.validate_spell_choices!(character, subclass_name, raw_choices)
     expected_pools = character.story_subclass_spell_choice_pools_through(subclass_name:, level: character.level)

@@ -267,6 +267,12 @@ module Rules
           .fetch(subclass_name.to_s, {})
       end
 
+      def story_subclass_choice_groups_for(class_name, subclass_name)
+        data.fetch("story_subclass_choice_groups", {})
+          .fetch(class_name.to_s, {})
+          .fetch(subclass_name.to_s, {})
+      end
+
       def story_subclass_replaced_feature_choice_pools_for(class_name, subclass_name)
         story_subclass_feature_choice_pool_rules_for(class_name, subclass_name)
           .values

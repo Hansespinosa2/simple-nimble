@@ -1683,6 +1683,7 @@ story_subclass_feature_choice_pools:
         source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
         choices: {4: 1, 6: 1, 10: 1}
         kind: arcane_command_order_or_spell
+        choice_groups: [commander_orders, unique_spells]
         option_sources:
           - type: choice_pool
             class_name: Commander
@@ -1700,6 +1701,7 @@ story_subclass_feature_choice_pools:
         source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
         choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
         kind: arcane_command_combat_ability
+        choice_groups: [commander_orders, unique_spells]
         replace_existing_options: true
         option_sources:
           - type: choice_pool
@@ -1722,6 +1724,29 @@ story_subclass_feature_choice_pools:
         source_quote: "Instead of your first 2 Thrill of the Hunt (TotH) abilities, you can select Go for the Throat! and Protect Me! to use with your companion."
         choices: {2: 2}
         options: ["Go for the Throat!", "Protect Me!"]
+
+story_subclass_choice_groups:
+  Commander:
+    Spellblade:
+      commander_orders:
+        prefix: "Order: "
+        recorded_feature_choice_pools: ["Commander's Orders"]
+        include_recorded_prefixed_feature_choices: true
+        include_current_prefixed_feature_choices: true
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school."
+        conflict_message: "Choose a different Commander’s Order; %{selections} is already known."
+      unique_spells:
+        prefix: "Spell: "
+        include_recorded_prefixed_feature_choices: true
+        include_current_prefixed_feature_choices: true
+        include_recorded_spell_choices: true
+        include_current_spell_choices: true
+        include_known_sheet_spells: true
+        exclude_story_granted_spells: true
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "Whenever you could choose a Combat Tactic or Weapon Mastery, instead choose another Commander’s Order or a tier 1 (or lower) spell from any spell school. Choose any tier 1 (or lower) spell and any Utility Spell."
+        conflict_message: "Choose a different spell for each Arcane Command and Deep Knowledge choice; %{selections} is already selected."
 
 story_subclass_companions:
   Hunter:

@@ -626,21 +626,27 @@ class LevelUpPlanner
         end
       end
 
-      validate_arcane_command_choices(result)
+      validate_story_choice_groups(result)
     end
 
     def available_feature_options(pool, selected)
-      if %w[arcane_command_order_or_spell arcane_command_combat_ability].include?(pool["story_choice_kind"] || pool["kind"])
-        options = Array(pool.fetch("options", [])).select do |option|
-          if option.start_with?("Order: ")
-            order = option.delete_prefix("Order: ")
-            recorded_order_selections.exclude?(order) && current_order_selections(pool.fetch("name")).exclude?(order)
-          elsif option.start_with?("Spell: ")
-            spell = option.delete_prefix("Spell: ")
-            recorded_spell_selections.exclude?(spell) && current_spell_selections(pool.fetch("name")).exclude?(spell)
-          else
-            true
-          end
+      story_choice_groups = Array(pool["story_choice_groups"])
+      if story_choice_groups.present?
+        group_rules = Rules::NimbleCatalog.story_subclass_choice_groups_for(character.character_class&.name, character.subclass_name).slice(*story_choice_groups)
+        taken_by_group = group_rules.transform_values do |definition|
+          Rules::StorySubclassChoiceGroups.selections_for(
+            character:,
+            definition:,
+            feature_choices:,
+            spell_choices:
+          )
+        end
+        options = Array(pool.fetch("options", [])).reject do |option|
+          matching_group = group_rules.find { |_name, rule| option.start_with?(rule.fetch("prefix")) }
+          next false unless matching_group
+
+          group_name, definition = matching_group
+          taken_by_group.fetch(group_name).include?(option.delete_prefix(definition.fetch("prefix")))
         end
         return (options | selected)
       end
@@ -667,56 +673,17 @@ class LevelUpPlanner
       end | selected
     end
 
-    def validate_arcane_command_choices(result)
-      return unless character.character_class&.name == "Commander" && character.subclass_name == "Spellblade"
-
-      selected = feature_choices.values.flatten
-      order_picks = recorded_order_selections + current_order_selections(nil)
-      repeated_orders = order_picks.tally.select { |_order, count| count > 1 }.keys
-      if repeated_orders.any?
-        result << issue(
-          "Choose a different Commander’s Order; #{repeated_orders.join(', ')} is already known.",
-          "Heroes 2.0.1, p. 76",
-          "Arcane Command lets the Spellblade choose another Commander’s Order or a tier 1 (or lower) spell."
-        )
-      end
-
-      spell_picks = recorded_spell_selections + current_spell_selections(nil) + spell_choices.values.flatten
-      known_spells = character.sheet_spells.pluck(:name) - character.story_granted_spell_names
-      repeated_spells = (spell_picks & known_spells) | spell_picks.tally.select { |_spell, count| count > 1 }.keys
-      return if repeated_spells.empty?
-
-      result << issue(
-        "Choose a different spell for each Arcane Command and Deep Knowledge choice; #{repeated_spells.join(', ')} is already selected.",
-        "Heroes 2.0.1, p. 76",
-        "Arcane Command grants one tier 1 (or lower) spell from any school in place of the class choice."
-      )
-    end
-
-    def recorded_order_selections
-      character.recorded_feature_choices.fetch("Commander's Orders", []) +
-        character.recorded_feature_choices.values.flatten.filter_map do |selection|
-          selection.delete_prefix("Order: ") if selection.start_with?("Order: ")
-        end
-    end
-
-    def current_order_selections(except_pool_name)
-      feature_choices.except(except_pool_name).values.flatten.filter_map do |selection|
-        selection.delete_prefix("Order: ") if selection.start_with?("Order: ")
-      end
-    end
-
-    def recorded_spell_selections
-      subclass_spell_selections = character.recorded_spell_choices.values.flatten
-      arcane_command_selections = character.recorded_feature_choices.values.flatten.filter_map do |selection|
-        selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
-      end
-      subclass_spell_selections + arcane_command_selections
-    end
-
-    def current_spell_selections(except_pool_name)
-      feature_choices.except(except_pool_name).values.flatten.filter_map do |selection|
-        selection.delete_prefix("Spell: ") if selection.start_with?("Spell: ")
+    def validate_story_choice_groups(result)
+      group_rules = Rules::NimbleCatalog.story_subclass_choice_groups_for(character.character_class&.name, character.subclass_name)
+      Rules::StorySubclassChoiceGroups.conflicts_for(
+        character:,
+        definitions: group_rules,
+        feature_choices:,
+        spell_choices:
+      ).each do |conflict|
+        definition = group_rules.fetch(conflict.fetch(:group))
+        message = definition.fetch("conflict_message").gsub("%{selections}", conflict.fetch(:selections).join(", "))
+        result << issue(message, definition.fetch("source_ref"), definition.fetch("source_quote"))
       end
     end
 

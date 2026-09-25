@@ -534,6 +534,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Arcane Command", arcane_command.fetch("name")
     assert_equal "arcane_command_order_or_spell", arcane_command.fetch("kind")
     assert_equal [ "choice_pool", "spell_catalog" ], arcane_command.fetch("option_sources").map { |source| source.fetch("type") }
+    assert_equal [ "commander_orders", "unique_spells" ], arcane_command.fetch("choice_groups")
     assert_equal "Commander's Orders", arcane_command.fetch("option_sources").first.fetch("pool_name")
     assert_equal [ 0, 1 ], arcane_command.fetch("option_sources").last.values_at("min_tier", "max_tier")
     assert_equal "Heroes 2.0.1, p. 76", arcane_command.fetch("source_ref")
@@ -546,6 +547,10 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "arcane_command_combat_ability", combat_ability.fetch("kind")
     assert combat_ability.fetch("replace_existing_options")
     assert_equal "repeatable_options", combat_ability.fetch("option_sources").last.fetch("option_field")
+    assert_equal [ "commander_orders", "unique_spells" ], combat_ability.fetch("choice_groups")
+    choice_groups = @catalog.story_subclass_choice_groups_for("Commander", "Spellblade")
+    assert_equal [ "Commander's Orders" ], choice_groups.fetch("commander_orders").fetch("recorded_feature_choice_pools")
+    assert choice_groups.fetch("unique_spells").fetch("include_known_sheet_spells")
     assert_empty @catalog.story_subclass_feature_choice_pools_for("Commander", "Spellblade", 5)
   end
 

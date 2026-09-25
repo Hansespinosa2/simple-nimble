@@ -327,6 +327,7 @@ class Character < ApplicationRecord
           "story_source_ref" => story_pool.fetch("source_ref"),
           "story_source_quote" => story_pool.fetch("source_quote"),
           "story_choice_kind" => story_pool["kind"],
+          "story_choice_groups" => story_pool.fetch("choice_groups", []),
           "story_option_sources" => story_pool.fetch("option_sources", [])
         )
       else
@@ -335,6 +336,7 @@ class Character < ApplicationRecord
           "story_source_ref" => story_pool.fetch("source_ref"),
           "story_source_quote" => story_pool.fetch("source_quote"),
           "story_choice_kind" => story_pool["kind"],
+          "story_choice_groups" => story_pool.fetch("choice_groups", []),
           "story_option_sources" => story_pool.fetch("option_sources", [])
         )
       end
