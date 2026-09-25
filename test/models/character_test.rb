@@ -396,14 +396,28 @@ class CharacterTest < ActiveSupport::TestCase
       stat_array: "balanced",
       starting_equipment_choice: "starting_gold"
     )
+    shielded = Character.create!(
+      name: "Shielded Swift Zephyr",
+      character_class:,
+      ancestry:,
+      background:,
+      level: 9,
+      stat_array: "balanced",
+      starting_equipment_choice: "starting_gold"
+    )
     worn_armor = armored.inventory_items.create!(name: "Rusty Mail", equipped: true)
+    shielded.inventory_items.create!(name: "Wooden Buckler", equipped: true)
 
     assert unarmored.unarmored?
     assert_not armored.unarmored?
+    assert shielded.unarmored?, "A shield adds Armor but is not body armor (Core Rules 2.0.1, p. 33)."
     assert_equal 8, unarmored.speed_for(level: 2)
     assert_equal armored.initiative_for(level: 2) + 2, unarmored.initiative_for(level: 2)
     assert_equal 10, unarmored.trait_set.speed
     assert_equal armored.trait_set.initiative + 9, unarmored.trait_set.initiative
+    assert_equal unarmored.trait_set.speed, shielded.trait_set.speed
+    assert_equal unarmored.trait_set.initiative, shielded.trait_set.initiative
+    assert_equal unarmored.trait_set.armor + 2, shielded.trait_set.armor
     assert_equal 6, armored.trait_set.speed
     assert_equal armored.initiative_for(level: 2), armored.trait_set.initiative
 
