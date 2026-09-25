@@ -593,10 +593,12 @@ class LevelUpPlanner
         end
         repeated_across_pools = (selections - repeatable_options) & (prior_cross_pool_choices + current_cross_pool_choices)
         unless repeated_across_pools.empty?
+          pool_label = pool.fetch("unique_across_pools_label", "feature-choice pool")
+          source_quote = pool.fetch("unique_across_pools_source_quote", pool.fetch("source_quote", "Choose a distinct option from the listed choices."))
           result << issue(
-            "#{repeated_across_pools.join(', ')} has already been selected from another Commander ability list.",
+            "#{repeated_across_pools.join(', ')} has already been selected from another #{pool_label}.",
             pool.fetch("source_ref"),
-            "Choose another ability; the Commander may not select the same Combat Ability twice."
+            source_quote
           )
         end
 

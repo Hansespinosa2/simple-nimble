@@ -766,6 +766,57 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_not planner.valid?
     issue = planner.issues.find { |item| item[:message].include?("already been selected from another Commander ability list") }
     assert_equal "Heroes 2.0.1, pp. 20, 22", issue.fetch(:source_ref)
+    assert_equal "Choose another Combat Ability or gain +1 max Combat Dice.", issue.fetch(:quote)
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-4 S-09:AC-3
+  test "cross-pool duplicate validation uses generic catalog rules for any class" do
+    original_catalog = Rules::NimbleCatalog.data
+    changed_catalog = original_catalog.deep_dup
+    berserker_pools = changed_catalog.fetch("choice_pools").fetch("Berserker")
+    berserker_pools["Test Historical Talent"] = {
+      "source_ref" => "Test rules, p. 99",
+      "choices" => { 2 => 1 },
+      "options" => [ "Shared Test Talent" ]
+    }
+    berserker_pools["Test Current Talent"] = {
+      "source_ref" => "Test rules, p. 100",
+      "source_quote" => "Choose a new talent from this list.",
+      "unique_across_pools" => [ "Test Historical Talent", "Test Current Talent" ],
+      "unique_across_pools_label" => "test talent list",
+      "unique_across_pools_source_quote" => "Choose another distinct talent.",
+      "choices" => { 4 => 1 },
+      "options" => [ "Shared Test Talent", "Different Test Talent" ]
+    }
+    Rules::NimbleCatalog.instance_variable_set(:@data, changed_catalog)
+
+    begin
+      @character.update_columns(feature_choices: {
+        "Test Historical Talent" => { "2" => [ "Shared Test Talent" ] }
+      })
+      level_up = @character.level_ups.build(
+        from_level: 3,
+        to_level: 4,
+        skill_name: "might",
+        stat_name: "strength",
+        feature_choices: {
+          "Savage Arsenal" => [ "Death Blow" ],
+          "Test Current Talent" => [ "Shared Test Talent" ]
+        },
+        hit_die_roll_one: 2,
+        hit_die_roll_two: 8
+      )
+      planner = LevelUpPlanner.new(@character, level_up)
+      issue = planner.issues.find do |item|
+        item[:message] == "Shared Test Talent has already been selected from another test talent list."
+      end
+
+      assert issue, planner.issues.map { |item| item.fetch(:message) }.join(" | ")
+      assert_equal "Test rules, p. 100", issue.fetch(:source_ref)
+      assert_equal "Choose another distinct talent.", issue.fetch(:quote)
+    ensure
+      Rules::NimbleCatalog.instance_variable_set(:@data, original_catalog)
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-08:AC-4 S-09:AC-3

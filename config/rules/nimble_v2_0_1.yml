@@ -1222,6 +1222,8 @@ choice_pools:
       source_ref: Heroes 2.0.1, pp. 20, 22
       choices: {6: 1, 8: 1, 10: 1, 12: 1, 16: 1}
       unique_across_pools: ["Commander's Orders", "Combat Tactics", "Combat Ability"]
+      unique_across_pools_label: "Commander ability list"
+      unique_across_pools_source_quote: "Choose another Combat Ability or gain +1 max Combat Dice."
       repeatable_options: ["+1 max Combat Dice"]
       option_effects:
         "+1 max Combat Dice":
