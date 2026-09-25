@@ -4,7 +4,7 @@ export default class extends Controller {
   static targets = [
     "characterClass", "ancestry", "background", "statArray", "spellSchoolChoice", "spellSchoolChoiceField", "spellSchoolChoiceHint", "backgroundSpellChoice", "backgroundSpellChoiceField", "classHint", "ancestryHint", "backgroundHint",
     "rulesCallout", "hpPreview", "armorPreview", "initiativePreview", "hitDiePreview", "saveDcPreview", "manaPreview", "languagesPreview", "statAssignment", "startingEquipmentChoice", "startingEquipmentPreview", "backgroundEquipmentNote",
-    "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "skillBudget", "languageChoiceHint"
+    "speedPreview", "woundsPreview", "resourcePreview", "savesPreview", "previewNote", "derivedEffectNote", "skillBudget", "languageChoiceHint"
   ]
 
   static values = { rules: Object }
@@ -163,6 +163,7 @@ export default class extends Controller {
     const classEffects = this.classDerivedEffectsFor(characterClass, level)
     const startingEquipmentChoice = this.hasStartingEquipmentChoiceTarget ? this.startingEquipmentChoiceTarget.value : "class_gear"
     const unarmored = this.isUnarmored(characterClass, startingEquipmentChoice)
+    this.updateDerivedEffectNote(characterClass, level, unarmored)
     const initiativeStat = this.statNameForAbbreviation(derived.initiative_formula)
     const initiativeLevelBonus = classEffects.initiative_level_bonus || (unarmored && classEffects.unarmored_initiative_level_bonus)
     const initiative = Number(stats[initiativeStat] || 0) + (ancestry?.initiative_modifier || 0) + (background?.initiative_modifier || 0) +
@@ -203,6 +204,34 @@ export default class extends Controller {
         })
         return combined
       }, {})
+  }
+
+  updateDerivedEffectNote(characterClass, level, unarmored) {
+    if (!this.hasDerivedEffectNoteTarget) return
+
+    const effectNamePattern = /(?:_modifiers?|_bonuses?|_multipliers?|_stat_addition)$/
+    const notes = Object.entries(characterClass?.derived_effects || {})
+      .filter(([effectLevel]) => Number(effectLevel) <= level)
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .flatMap(([effectLevel, effects]) => Object.keys(effects)
+        .filter((name) => effectNamePattern.test(name) || name === "hit_die")
+        .filter((name) => effects[name] !== false && effects[name] !== 0 && effects[name] !== null)
+        .flatMap((name) => {
+          const sourceQuote = effects[`${name}_source_quote`] || effects.source_quote
+          const sourceRef = effects[`${name}_source_ref`] || effects.source_ref
+          if (!sourceQuote || !sourceRef) return []
+
+          const isUnarmoredCondition = name.startsWith("unarmored_") || sourceQuote.toLowerCase().includes("while unarmored")
+          const condition = isUnarmoredCondition
+            ? (unarmored ? "applies while unarmored" : "not applied while wearing body armor")
+            : null
+          const prefix = condition ? `Level ${effectLevel}: ${condition}. ` : `Level ${effectLevel}: `
+          return [`${prefix}${sourceQuote} (${sourceRef})`]
+        }))
+
+    const uniqueNotes = [...new Set(notes)]
+    this.derivedEffectNoteTarget.textContent = uniqueNotes.join(" ")
+    this.derivedEffectNoteTarget.hidden = uniqueNotes.length === 0
   }
 
   statNameForAbbreviation(abbreviation) {
@@ -325,8 +354,18 @@ export default class extends Controller {
 
   isUnarmored(characterClass, startingEquipmentChoice) {
     const armorCatalog = this.rulesValue.equipment_armor || {}
-    const startingGear = startingEquipmentChoice === "class_gear" ? (characterClass?.starting_gear || []) : []
-    return !startingGear.some((name) => armorCatalog[name]?.kind === "armor")
+    const currentEquipment = this.rulesValue.character_equipment_state || {}
+    const selectionMatchesCurrentLoadout = currentEquipment.persisted &&
+      currentEquipment.character_class_name === characterClass?.name &&
+      currentEquipment.starting_equipment_choice === startingEquipmentChoice
+    const equippedNames = selectionMatchesCurrentLoadout
+      ? (currentEquipment.equipped_body_armor_names || [])
+      : [
+        ...(currentEquipment.other_equipped_body_armor_names || []),
+        ...(startingEquipmentChoice === "class_gear" ? (characterClass?.starting_gear || []) : [])
+      ]
+
+    return !equippedNames.some((name) => armorCatalog[name]?.kind === "armor")
   }
 
   equipmentArmorValue(rules, stats) {

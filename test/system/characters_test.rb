@@ -233,13 +233,37 @@ class CharactersTest < ApplicationSystemTestCase
 
       assert_selector "[data-character-builder-target='speedPreview']", text: "6", exact_text: true
       assert_selector "[data-character-builder-target='initiativePreview']", text: "+4", exact_text: true
+      assert_selector "[data-character-builder-target='derivedEffectNote']",
+        text: "Level 2: not applied while wearing body armor. While unarmored, gain +2 speed and +LVL Initiative. (Heroes 2.0.1, p. 67)", exact_text: true
 
       select "Starting gold instead (50 gp per level)", from: "Starting equipment"
       assert_selector "[data-character-builder-target='speedPreview']", text: "8", exact_text: true
       assert_selector "[data-character-builder-target='initiativePreview']", text: "+6", exact_text: true
+      assert_selector "[data-character-builder-target='derivedEffectNote']",
+        text: "Level 2: applies while unarmored. While unarmored, gain +2 speed and +LVL Initiative. (Heroes 2.0.1, p. 67)", exact_text: true
     ensure
       zephyr_rules["starting_gear"] = original_gear
     end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "editing a draft includes its currently equipped body armor in the Zephyr preview" do
+    character = Character.create!(
+      name: "Armored Zephyr Draft",
+      level: 2,
+      character_class: CharacterClass.find_by!(name: "Zephyr"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "standard",
+      starting_equipment_choice: "starting_gold"
+    )
+    character.inventory_items.create!(name: "Rusty Mail", equipped: true)
+
+    visit edit_character_url(character)
+
+    assert_selector "[data-character-builder-target='speedPreview']", text: "6", exact_text: true
+    assert_selector "[data-character-builder-target='derivedEffectNote']",
+      text: "Level 2: not applied while wearing body armor. While unarmored, gain +2 speed and +LVL Initiative. (Heroes 2.0.1, p. 67)", exact_text: true
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3

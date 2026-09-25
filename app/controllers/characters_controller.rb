@@ -314,6 +314,15 @@ class CharactersController < ApplicationController
     end
 
     def builder_rules
+      persisted_character = @character&.persisted?
+      character_equipment_state = {
+        persisted: persisted_character || false,
+        character_class_name: @character&.character_class&.name,
+        starting_equipment_choice: @character&.starting_equipment_choice,
+        equipped_body_armor_names: persisted_character ? body_armor_names(@character.equipped_armor_profiles) : [],
+        other_equipped_body_armor_names: persisted_character ? equipped_nonstarting_body_armor_names : []
+      }
+
       {
         stat_arrays: Character::STAT_ARRAYS,
         derived_values: Rules::NimbleCatalog.derived_values,
@@ -322,6 +331,7 @@ class CharactersController < ApplicationController
         languages: Rules::NimbleCatalog.language_rules,
         starting_equipment: Rules::NimbleCatalog.starting_equipment_rules,
         equipment_armor: Rules::NimbleCatalog.equipment_armor_items,
+        character_equipment_state:,
         classes: @character_classes.index_by(&:id).transform_values do |character_class|
           {
             key_stats: character_class.key_stats,
@@ -372,5 +382,18 @@ class CharactersController < ApplicationController
           }
         end
       }
+    end
+
+    def body_armor_names(profiles)
+      profiles.filter_map do |profile|
+        profile.fetch("name") if profile.fetch("rules").fetch("kind") == "armor"
+      end
+    end
+
+    def equipped_nonstarting_body_armor_names
+      @character.inventory_items.where(equipped: true, starting_gear: false).filter_map do |item|
+        rules = Rules::NimbleCatalog.equipment_armor_item(item.name)
+        item.name if rules&.fetch("kind") == "armor"
+      end
     end
 end
