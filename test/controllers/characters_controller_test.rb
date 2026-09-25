@@ -1,4 +1,5 @@
 require "test_helper"
+require "stringio"
 
 # S-01:AC-1 S-01:AC-3 S-01:AC-4 S-05:AC-1 S-05:AC-3 S-05:AC-4 S-05:AC-5 S-06:AC-6 S-07:AC-4 S-07:AC-6 S-09:AC-3
 class CharactersControllerTest < ActionDispatch::IntegrationTest
@@ -503,6 +504,43 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal [], payload.fetch("level_ups")
     assert_equal [], payload.fetch("inventory_items")
     assert_equal "Draft", payload.fetch("status_label")
+  end
+
+  # S-09:AC-3 S-10:AC-3 S-10:AC-7
+  test "a versioned JSON sheet export round-trips its complete level-up history" do
+    character = Character.create!(canonical_character_attributes.merge(name: "Export Replay Hero"))
+    character.finalize_creation!
+    level_up = character.level_ups.create!(
+      from_level: 1,
+      to_level: 2,
+      skill_name: "might",
+      hit_die_roll_one: 8,
+      hit_die_roll_two: 4,
+      feature_choices: {},
+      spell_choices: {},
+      language_choices: [],
+      feature_language_choices: {}
+    )
+    LevelUpService.finalize!(level_up)
+    character.reload
+
+    get character_url(character, format: :json)
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal CharacterImportService::FORMAT_NAME, payload.fetch("format")
+    assert_equal CharacterImportService::FORMAT_VERSION, payload.fetch("format_version")
+    assert_equal 2, payload.dig("character", "level")
+    assert_equal 1, payload.dig("creation", "character", "level")
+    assert_equal character.interchange_level_ups, payload.fetch("level_ups")
+
+    result = CharacterImportService.call(upload: StringIO.new(response.body))
+
+    assert result.success?, result.errors.to_sentence
+    assert result.character.draft?
+    assert_equal character.level, result.character.level
+    assert_equal character.interchange_level_ups, result.character.interchange_level_ups
+    assert_equal character.snapshot_payload.fetch("progression"), result.character.snapshot_payload.fetch("progression")
   end
 
   test "JSON sheet payload includes recorded feature choices" do
