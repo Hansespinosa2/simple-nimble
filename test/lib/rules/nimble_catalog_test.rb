@@ -79,6 +79,25 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     end
   end
 
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-09:AC-3
+  test "Shepherd and Songweaver feature pools unlock at every printed choice level" do
+    shepherd_pool = @catalog.choice_pool_for("Shepherd", "Sacred Grace")
+    assert_equal "Heroes 2.0.1, p. 52", shepherd_pool.fetch("source_ref")
+    assert_equal({ 5 => 2, 9 => 1, 13 => 1 }, shepherd_pool.fetch("choices"))
+
+    songweaver_pool = @catalog.choice_pool_for("Songweaver", "A People Person")
+    assert_equal "Heroes 2.0.1, p. 58", songweaver_pool.fetch("source_ref")
+    assert_equal({ 5 => 2 }, songweaver_pool.fetch("choices"))
+    assert_equal [ "Stompy", "Gran Gran (NOT a hag)", "Mal, the Malevolent Imp", "Linos, the Everfriendly" ], songweaver_pool.fetch("options")
+
+    { "Shepherd" => [ "Sacred Grace", { 5 => 2, 9 => 1, 13 => 1 } ], "Songweaver" => [ "A People Person", { 5 => 2 } ] }.each do |class_name, (pool_name, expected_counts)|
+      expected_counts.each do |level, count|
+        pool = CharacterClass.find_by!(name: class_name).feature_choice_pools_for(level).find { |choice_pool| choice_pool.fetch("name") == pool_name }
+        assert_equal count, pool.fetch("count"), "#{class_name} #{pool_name} at level #{level}"
+      end
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2
   test "Songweaver's additional spell school choices match its cited class rule" do
     rule = @catalog.spell_school_choice_for("Songweaver")

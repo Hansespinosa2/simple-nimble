@@ -266,24 +266,25 @@ ends; it does not refill Safe Rest or daily-use resources.
 
 Each class has one or more pools of abilities from which the player picks at designated levels.
 
-| Class | Pool Name | Pool Size | First Choice Level |
-|---|---|---|---|
-| Berserker | Savage Arsenal | 12 abilities | L4; additional at L6, L8, L10, L12, L14, L16 |
-| The Cheat | Underhanded Abilities | ~10 abilities | L4; additional at L6, L8, L10, L12, L14, L16, L18 |
-| Commander | Coordinated Strike! | Granted automatically | L1; not a selectable Commander’s Order |
-| Commander | Commander's Orders | 5 selectable orders | Choose 2 at L2 |
-| Commander | Combat Tactics | 5 tactic types | Choose 1 at L4 |
-| Commander | Combat Ability | Commander’s Orders or Combat Tactics not already chosen, or +1 max Combat Dice (repeatable) | Choose 1 at L6, L8, L10, L12, and L16 |
-| Commander | Weapon Mastery | 3 types (Slashing/Bludgeoning/Piercing) | Choose at L6 and L10; complete mastery is granted at L14 |
-| Hunter | Thrill of the Hunt | ~15 abilities | L2 (2 choices); additional at L4, L6, L8, L12, L14 |
-| Mage | Spellshaper | 8 abilities | L4 (2 choices); +1 at L9, L13 |
-| Oathsworn | Sacred Decrees | ~10 decrees | L3; additional at L6, L9, L12, L14, L16 |
-| Shadowmancer | Lesser Shadow Invocations | ~10 | L3; +1 at L8, L11 |
-| Shadowmancer | Greater Shadow Invocations | ~11 | L4; +1 at L6, L9, L14, L18 |
-| Shepherd | Sacred Graces | ~10 graces | L5 (2 choices); +1 at L9 |
-| Songweaver | A "People Person" NPCs | 4 unique NPCs | granted by class |
-| Stormshifter | Chimeric Boons | 9 boons | L6 (2 choices); +1 at L9, L12, L17 |
-| Zephyr | Martial Arts Abilities | ~10 abilities | L4; +1 at L6, L8, L10, L12, L14, L16, L18 |
+| Class | Pool Name | Pool Size | Choice Schedule | Source |
+|---|---|---|---|---|
+| Berserker | Savage Arsenal | 12 abilities | L4; additional at L6, L8, L10, L12, L14, L16 | Heroes 2.0.1, p. 10 |
+| The Cheat | Underhanded Ability | 10 abilities | L4; additional at L6, L8, L10, L12, L14, L16, L18 | Heroes 2.0.1, p. 16 |
+| Commander | Coordinated Strike! | Granted automatically | L1; not a selectable Commander’s Order | Heroes 2.0.1, p. 19 |
+| Commander | Commander's Orders | 5 selectable orders | Choose 2 at L2 | Heroes 2.0.1, p. 19 |
+| Commander | Combat Tactics | 5 tactic types | Choose 1 at L4 | Heroes 2.0.1, p. 22 |
+| Commander | Combat Ability | Commander’s Orders or Combat Tactics not already chosen, or +1 max Combat Dice (repeatable) | Choose 1 at L6, L8, L10, L12, and L16 | Heroes 2.0.1, pp. 20, 22 |
+| Commander | Weapon Mastery | 3 types (Slashing/Bludgeoning/Piercing) | Choose at L6 and L10; complete mastery is granted at L14 | Heroes 2.0.1, p. 22 |
+| Hunter | Thrill of the Hunt | 14 abilities | L2 (2 choices); additional at L4, L6, L8, L12, L14 | Heroes 2.0.1, p. 28 |
+| Mage | Spellshaper | 8 abilities | L4 (2 choices); +1 at L9, L13 | Heroes 2.0.1, p. 34 |
+| Oathsworn | Sacred Decree | 10 decrees | L3; additional at L6, L9, L12, L14, L16 | Heroes 2.0.1, p. 40 |
+| Shadowmancer | Lesser Shadow Invocation | 10 invocations | L3; +1 at L8, L11 | Heroes 2.0.1, p. 46 |
+| Shadowmancer | Greater Shadow Invocation | 11 invocations | L4; +1 at L6, L9, L14, L18 | Heroes 2.0.1, p. 46 |
+| Shepherd | Sacred Grace | 8 graces | L5 (2 choices); +1 at L9 and L13 | Heroes 2.0.1, p. 52 |
+| Songweaver | A “People Person” | 4 unique NPCs | Choose 2 at L5 | Heroes 2.0.1, p. 58 |
+| Songweaver | Lyrical Weaponry | 5 abilities | L4; +1 at L9, L13, L17 | Heroes 2.0.1, p. 58 |
+| Stormshifter | Chimeric Boon | 9 boons | L6 (2 choices); +1 at L9, L12, L17 | Heroes 2.0.1, p. 64 |
+| Zephyr | Martial Arts | 11 abilities | L4; +1 at L6, L8, L10, L12, L14, L16, L18 | Heroes 2.0.1, p. 70 |
 
 ---
 
