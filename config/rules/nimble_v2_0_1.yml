@@ -1685,11 +1685,14 @@ story_subclass_feature_notes:
       - name: Shadow Exploit
         unlock_level: 3
         effect: Sacrifice a shadow minion to cast a spell at your highest unlocked tier; each subsequent Shadow Exploit cast this encounter costs one more minion.
+        minion_resource_key: shadow_minions
+        cost_resource_key: reaver_shadow_exploit_next_cost
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Sacrifice a shadow minion to cast a spell at the highest tier you have unlocked. Each subsequent spell you cast in this encounter costs 1 additional minion."
       - name: Martyr Spawn
         unlock_level: 3
         effect: Whenever you Defend, you may sacrifice a shadow minion to take no damage.
+        resource_key: shadow_minions
         shadow_minions_spent: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Whenever you Defend, you can sacrifice a shadow minion to take no damage."
@@ -1701,6 +1704,7 @@ story_subclass_feature_notes:
       - name: Reap
         unlock_level: 7
         effect: When the Bonescythe crits or kills a creature, summon a shadow minion for free.
+        resource_key: shadow_minions
         shadow_minions_gained: 1
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "When your Bonescythe crits, or kills a creature, summon a shadow minion for free."

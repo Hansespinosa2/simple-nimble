@@ -947,14 +947,14 @@ class Character < ApplicationRecord
   end
 
   def summon_shadow_minion!
-    rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
+    rule = Rules::NimbleCatalog.class_resource_pool_for(character_class&.name, "shadow_minions")
     raise ArgumentError, "Shadow Minion summon rules are unavailable. Heroes 2.0.1, p. 43." unless rule
 
     amount = rule.fetch("summon_amount").to_i
     action_cost = rule.fetch("summon_action_cost").to_i
     minions = "#{amount} Shadow Minion#{'s' unless amount == 1}"
     actions = "#{action_cost} action#{'s' unless action_cost == 1}"
-    apply_shadow_minion_change!(amount, action_cost:, summary: "Summoned #{minions} (#{actions})")
+    apply_shadow_minion_change!(amount, action_cost:, resource_key: rule.fetch("key"), summary: "Summoned #{minions} (#{actions})")
   end
 
   def martyr_spawn!
@@ -963,6 +963,7 @@ class Character < ApplicationRecord
     minions = "#{amount} Shadow Minion#{'s' unless amount == 1}"
     apply_shadow_minion_change!(
       -amount,
+      resource_key: feature.fetch("resource_key"),
       summary: "Martyr Spawn sacrificed #{minions} to negate Defend damage",
       required_story_subclass_feature: "Martyr Spawn"
     )
@@ -970,17 +971,19 @@ class Character < ApplicationRecord
 
   def use_shadow_exploit!(spell_name:)
     with_lock do
-      require_story_subclass_feature!("Shadow Exploit")
+      feature = require_story_subclass_feature!("Shadow Exploit")
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
         raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
       end
 
+      minion_resource_key = feature.fetch("minion_resource_key")
+      cost_resource_key = feature.fetch("cost_resource_key")
       tracks = Array(trait_set.resource_tracks).map(&:to_h)
-      minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
-      cost_track = tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" }
+      minion_track = tracks.find { |track| track.fetch("key") == minion_resource_key }
+      cost_track = tracks.find { |track| track.fetch("key") == cost_resource_key }
       raise ArgumentError, "Reaver resource tracking is unavailable. Heroes 2.0.1, p. 78." unless minion_track && cost_track
-      cost_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost")
+      cost_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for(character_class&.name, subclass_name, cost_resource_key)
       raise ArgumentError, "Shadow Exploit cost rules are unavailable. Heroes 2.0.1, p. 78." unless cost_rule
 
       cost = cost_track.fetch("current").to_i
@@ -991,9 +994,9 @@ class Character < ApplicationRecord
 
       tracks = tracks.map do |track|
         case track.fetch("key")
-        when "shadow_minions"
+        when minion_resource_key
           track.merge("current" => track.fetch("current").to_i - cost)
-        when "reaver_shadow_exploit_next_cost"
+        when cost_resource_key
           track.merge("current" => cost + increment)
         else
           track
@@ -1059,10 +1062,11 @@ class Character < ApplicationRecord
 
       summary = "Bonescythe hit recorded; weapon shattered"
       if story_subclass_feature_unlocked?("Reap") && %w[critical kill].include?(hit_outcome)
-        reap = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Reap")
+        reap = Rules::NimbleCatalog.story_subclass_feature_note_for(character_class&.name, subclass_name, "Reap")
+        resource_key = reap.fetch("resource_key")
         amount = reap.fetch("shadow_minions_gained").to_i
         tracks = Array(trait_set.resource_tracks).map(&:to_h)
-        minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
+        minion_track = tracks.find { |track| track.fetch("key") == resource_key }
         raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
 
         current = minion_track.fetch("current").to_i
@@ -1070,7 +1074,7 @@ class Character < ApplicationRecord
         gained = [ amount, maximum - current ].min
         if gained.positive?
           tracks = tracks.map do |track|
-            track.fetch("key") == "shadow_minions" ? track.merge("current" => current + gained) : track
+            track.fetch("key") == resource_key ? track.merge("current" => current + gained) : track
           end
           trait_set.update!(resource_tracks: tracks)
           minions = gained == 1 ? "a Shadow Minion" : "#{gained} Shadow Minions"
@@ -1877,16 +1881,12 @@ class Character < ApplicationRecord
       raise ArgumentError, "#{feature_name} requires a level #{minimum_level} #{owner}. #{source_ref}."
     end
 
-    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_story_subclass_feature: nil)
+    def apply_shadow_minion_change!(amount, resource_key:, summary:, action_cost: 0, required_story_subclass_feature: nil)
       with_lock do
-        if required_story_subclass_feature.present?
-          require_story_subclass_feature!(required_story_subclass_feature)
-        elsif character_class&.name != "Shadowmancer"
-          raise ArgumentError, "Only a Shadowmancer can summon Shadow Minions. Heroes 2.0.1, p. 43."
-        end
+        require_story_subclass_feature!(required_story_subclass_feature) if required_story_subclass_feature.present?
 
         tracks = Array(trait_set&.resource_tracks).map(&:to_h)
-        minion_track = tracks.find { |track| track.fetch("key") == "shadow_minions" }
+        minion_track = tracks.find { |track| track.fetch("key") == resource_key }
         raise ArgumentError, "Shadow Minions are unavailable on this sheet. Heroes 2.0.1, p. 43." unless minion_track
 
         current = minion_track.fetch("current").to_i
@@ -1896,7 +1896,7 @@ class Character < ApplicationRecord
         raise ArgumentError, "You can control at most #{maximum} Shadow Minion#{'s' unless maximum == 1}." if updated_count > maximum
 
         updates = { resource_tracks: tracks.map do |track|
-          track.fetch("key") == "shadow_minions" ? track.merge("current" => updated_count) : track
+          track.fetch("key") == resource_key ? track.merge("current" => updated_count) : track
         end }
         if action_cost.positive?
           actions = trait_set.current_actions.to_i

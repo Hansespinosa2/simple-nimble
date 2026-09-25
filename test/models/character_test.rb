@@ -1247,6 +1247,55 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 0, nonpositive_int_tracks.fetch("shadow_minions").fetch("max")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-09:AC-3
+  test "Shadow Minion summoning follows the class resource rule instead of a hard-coded class name" do
+    Rails.application.load_seed
+    catalog = Rules::NimbleCatalog.data
+    original_classes = catalog.fetch("classes")
+    ordinary_mage = Character.create!(
+      name: "Mage Without Minion Rule",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    assert_raises(ArgumentError) { ordinary_mage.summon_shadow_minion! }
+    assert_not ordinary_mage.trait_set.resource_tracks.any? { |track| track.fetch("key") == "shadow_minions" }
+
+    changed_classes = original_classes.deep_dup
+    changed_classes.fetch("Mage").fetch("resource").fetch("pools") << {
+      "key" => "shadow_minions",
+      "name" => "Shadow Minions",
+      "max_formula" => "1",
+      "initial_current" => 0,
+      "summon_amount" => 1,
+      "summon_action_cost" => 1,
+      "source_ref" => "Fixture Rules, p. 1",
+      "source_quote" => "Summon one minion."
+    }
+
+    begin
+      catalog["classes"] = changed_classes
+      mage = Character.create!(
+        name: "Catalog-Gated Summoner",
+        character_class: CharacterClass.find_by!(name: "Mage"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background: Background.find_by!(name: "Fearless"),
+        stat_array: "balanced"
+      )
+      actions_before = mage.trait_set.current_actions
+
+      revision = mage.summon_shadow_minion!
+
+      minion_track = mage.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadow_minions" }
+      assert_equal 1, minion_track.fetch("current")
+      assert_equal actions_before - 1, mage.trait_set.current_actions
+      assert_equal "shadow_minion_update", revision.event_type
+    ensure
+      catalog["classes"] = original_classes
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Zephyr Initiative grants uncapped DEX Bursts plus the level-twenty bonus" do
     Rails.application.load_seed
