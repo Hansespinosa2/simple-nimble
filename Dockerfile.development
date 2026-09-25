@@ -1,0 +1,22 @@
+FROM ruby:3.4.3-slim
+
+ENV APP_HOME=/rails \
+    BUNDLE_PATH=/usr/local/bundle \
+    RAILS_ENV=development
+
+RUN apt-get update \
+  && apt-get install --no-install-recommends -y build-essential ca-certificates curl git libsqlite3-dev libyaml-dev pkg-config \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR ${APP_HOME}
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install \
+  && rm -rf /root/.bundle/cache /usr/local/bundle/cache \
+  && gem install --no-document foreman
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["bin/dev"]

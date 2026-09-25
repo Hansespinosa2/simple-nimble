@@ -3,7 +3,10 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
+
+permissions:
+  contents: read
 
 jobs:
   scan_ruby:
@@ -88,3 +91,65 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+
+  spec-sync:
+    name: Spec Sync Deployment Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Validate spec sync
+        run: bundle exec rake spec_sync:validate
+
+  docker-build:
+    name: Build production and development images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build --file Dockerfile --tag simple-nimble-production:ci .
+
+      - name: Build development image
+        run: docker build --file Dockerfile.development --tag simple-nimble-development:ci .
+
+  publish-deployment-ref:
+    name: Authorize deployment after CI
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main')
+    needs: [ scan_ruby, scan_js, lint, test, spec-sync, docker-build ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Publish the CI-approved deployment ref
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          case "$GITHUB_REF_NAME" in
+            dev|main) deployment_ref="refs/heads/simple-nimble-deploy-$GITHUB_REF_NAME" ;;
+            *) exit 0 ;;
+          esac
+
+          current_sha="$(git ls-remote --heads origin "refs/heads/$GITHUB_REF_NAME" | awk 'NR == 1 { print $1 }')"
+          if [[ "$current_sha" != "$GITHUB_SHA" ]]; then
+            echo "Skipping stale run for $GITHUB_SHA; $GITHUB_REF_NAME is now $current_sha"
+            exit 0
+          fi
+
+          git push origin "$GITHUB_SHA:$deployment_ref"
