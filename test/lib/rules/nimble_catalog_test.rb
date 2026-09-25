@@ -501,6 +501,24 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal({ "resource_max_modifiers" => { "combat_dice" => 2 } }, effects)
   end
 
+  # S-02:AC-1 S-02:AC-4 S-09:AC-3
+  test "level-derived numeric modifiers stack generically across scheduled levels" do
+    original_data = @catalog.data
+    changed_data = original_data.deep_dup
+    hunter_schedule = changed_data.fetch("derived_effects").fetch("classes").fetch("Hunter")
+    hunter_schedule[2] = hunter_schedule.fetch(2, {}).merge("initiative_modifier" => 1)
+    hunter_schedule[4] = hunter_schedule.fetch(4, {}).merge("initiative_modifier" => 2)
+    @catalog.instance_variable_set(:@data, changed_data)
+
+    begin
+      assert_equal 0, @catalog.derived_effects_for("Hunter", nil, 1).fetch("initiative_modifier", 0)
+      assert_equal 1, @catalog.derived_effects_for("Hunter", nil, 2).fetch("initiative_modifier")
+      assert_equal 3, @catalog.derived_effects_for("Hunter", nil, 4).fetch("initiative_modifier")
+    ensure
+      @catalog.instance_variable_set(:@data, original_data)
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-06:AC-2 S-06:AC-4 S-09:AC-3
   test "all classes unlock one source-backed level-nineteen Epic Boon from the twelve published options" do
     expected_options = [
