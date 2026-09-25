@@ -671,11 +671,11 @@ class CharactersTest < ApplicationSystemTestCase
 
     assert_selector ".derived-condition-chip", text: "Bloodied"
     assert_selector ".derived-condition-chip", text: "Wounded"
-    assert_text "Death at 6 Wounds by default"
+    assert_text "Death at 6 Wounds for this sheet"
     find("details.wound-death-rule-note summary").click
     assert_text "You die when you have taken 6 Wounds (unless you have an ability that changes this number)."
     assert_text "Core Rules 2.0.1, p. 9"
-    assert_text "does not calculate feature-specific or situational exceptions"
+    assert_text "situational or unstructured maximum-Wound effects remain manual"
     assert_selector "datalist#nimble-condition-suggestions option[value='Poisoned']", visible: :all
     assert_selector "datalist#nimble-condition-suggestions option[value='Smoldering']", visible: :all
     assert_no_selector "datalist#nimble-condition-suggestions option[value='Bloodied']", visible: :all
@@ -708,6 +708,25 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal max_hp, character.reload.trait_set.current_hp
     assert_equal 2, character.trait_set.current_wounds
     assert_equal "Poisoned, Smoldering, Inspired", character.reload.conditions
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the sheet lowers Planarbeing's death threshold with its maximum Wounds" do
+    planarbeing = Character.create!(
+      name: "Thin Veil Sheet Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Planarbeing"),
+      background: @background,
+      stat_array: "balanced"
+    )
+
+    visit character_url(planarbeing)
+
+    assert_text "0 / 4"
+    assert_text "Death at 4 Wounds for this sheet"
+    find("details.wound-death-rule-note summary").click
+    assert_text "You die when you have taken 6 Wounds (unless you have an ability that changes this number)."
+    assert_text "The sheet displays the character's calculated maximum Wounds as the current death threshold."
   end
 
   # S-02:AC-1 S-02:AC-2 S-06:AC-3 S-07:AC-2 S-09:AC-3

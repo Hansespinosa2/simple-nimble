@@ -137,6 +137,29 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Derived · read-only"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
+  test "the shared sheet uses the character's calculated maximum Wounds as its death threshold" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Thin Veil Shared Hero",
+      account: @player,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Planarbeing"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select ".wound-death-rule-note summary", /Death at 4 Wounds for this sheet/
+    assert_select ".wound-death-rule-note", /current death threshold/
+    assert_select ".wound-death-rule-note", /Core Rules 2\.0\.1, p\. 9/
+  end
+
   # S-05:AC-1 S-05:AC-2 S-08:AC-1 S-08:AC-3 S-09:AC-1 S-09:AC-3
   test "the read-only shared sheet shows class starting gear and the unitemized background-gear notice" do
     Rails.application.load_seed

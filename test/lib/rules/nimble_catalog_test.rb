@@ -476,7 +476,8 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 6, death_rules.fetch("default_wounds")
     assert_equal "Core Rules 2.0.1, p. 9", death_rules.fetch("source_ref")
     assert_includes death_rules.fetch("source_quote"), "unless you have an ability that changes this number"
-    assert_match(/does not calculate feature-specific or situational exceptions/, death_rules.fetch("tracker_note"))
+    assert_match(/calculated maximum Wounds as the current death threshold/, death_rules.fetch("tracker_note"))
+    assert_match(/situational or unstructured maximum-Wound effects remain manual/, death_rules.fetch("tracker_note"))
     assert_match(/does not automate other condition effects or durations/, conditions.fetch("tracker_note"))
     assert_match(/does not enforce Dying's action limit/, conditions.fetch("tracker_note"))
   end

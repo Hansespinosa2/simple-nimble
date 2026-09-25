@@ -122,6 +122,7 @@ class CharacterTest < ActiveSupport::TestCase
       background: Background.find_by!(name: "Fearless"),
       stat_array: "balanced"
     )
+    assert_equal 6, character.wound_death_threshold
     traits = character.trait_set
     max_hp = traits.max_hp
 
@@ -152,6 +153,21 @@ class CharacterTest < ActiveSupport::TestCase
     dying = zephyr.derived_condition_entries.find { |entry| entry.fetch("name") == "Dying" }
     assert_equal 2, dying.fetch("actions_limited_to")
     assert_equal "Heroes 2.0.1, p. 69", dying.fetch("effects_source_ref")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the death threshold follows permanent maximum-Wound modifiers" do
+    Rails.application.load_seed
+    planarbeing = Character.create!(
+      name: "Thin Veil Planarbeing",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Planarbeing"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+
+    assert_equal 4, planarbeing.trait_set.max_wounds
+    assert_equal 4, planarbeing.wound_death_threshold
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-06:AC-3 S-09:AC-3

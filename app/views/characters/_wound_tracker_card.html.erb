@@ -1,10 +1,11 @@
 <% death_rules = Rules::NimbleCatalog.wound_death_threshold_rules %>
+<% death_threshold = character.wound_death_threshold %>
 <div class="vital-card">
   <span class="vital-label">Wounds</span>
   <strong><%= character.trait_set&.current_wounds || "—" %><small> / <%= character.trait_set&.max_wounds || "—" %></small></strong>
   <span class="vital-foot">Hit Dice <%= character.trait_set&.current_hit_dice || "—" %>/<%= character.trait_set&.max_hit_dice || "—" %></span>
   <details class="resource-rule-note wound-death-rule-note">
-    <summary>Death at <%= death_rules.fetch("default_wounds") %> Wounds by default · <%= death_rules.fetch("source_ref") %></summary>
+    <summary>Death at <%= death_threshold %> Wounds for this sheet · <%= death_rules.fetch("source_ref") %></summary>
     <p><%= death_rules.fetch("source_quote") %></p>
     <p><%= death_rules.fetch("tracker_note") %></p>
   </details>

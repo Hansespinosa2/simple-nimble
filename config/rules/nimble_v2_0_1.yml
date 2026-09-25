@@ -134,7 +134,7 @@ condition_tracking:
     default_wounds: 6
     source_ref: "Core Rules 2.0.1, p. 9"
     source_quote: "You die when you have taken 6 Wounds (unless you have an ability that changes this number)."
-    tracker_note: "Some abilities change the death threshold. The tracker displays the source's default but does not calculate feature-specific or situational exceptions."
+    tracker_note: "The sheet displays the character's calculated maximum Wounds as the current death threshold. The default is 6; situational or unstructured maximum-Wound effects remain manual (for example, Devoted Protector's nearby-ally benefit)."
   minor_status_examples:
     - Charged
     - Distracted

@@ -258,6 +258,13 @@ class Character < ApplicationRecord
     end
   end
 
+  def wound_death_threshold
+    maximum_wounds = trait_set&.max_wounds.to_i
+    return maximum_wounds if maximum_wounds.positive?
+
+    Rules::NimbleCatalog.wound_death_threshold_rules.fetch("default_wounds").to_i
+  end
+
   def progression_features_through(level = self.level)
     return [] if character_class.blank?
 
