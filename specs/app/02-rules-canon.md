@@ -4,7 +4,7 @@
 > **Status:** Draft
 > **Decision owner:** Product owner
 > **Primary executor:** Engineer plus rules/content curator
-> **Last updated:** 2026-07-23
+> **Last updated:** 2026-09-25
 
 ---
 
@@ -201,16 +201,16 @@ Each class has one or more special resource pools that must be modeled for legal
 
 #### 5. Spell Tier Unlocks (per class)
 
-Spellcasting classes unlock higher spell tiers at specific levels. Non-casters have none.
+Spellcasting classes unlock higher spell tiers at specific levels. Non-casters have no class-wide tier schedule. These levels are transcribed from the published class progressions:
 
-| Class | Cantrips | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Mage | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 |
-| Oathsworn | L2 | L2 | L4 | L6 | L8 | L10 | L13 | L17 | — | — |
-| Shadowmancer | L1 | L2 | L5 | L7 | L10 | L13 | L16 | L19 | — | — |
-| Shepherd | L1 | L2 | L4 | L6 | L8 | L9 | L11 | L14 | L16 | L18 |
-| Stormshifter | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 |
-| Songweaver | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | — | — |
+| Class | Cantrips | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | Source |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Mage | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 | Heroes 2.0.1, pp. 31–35 |
+| Oathsworn | L2 | L2 | L4 | L6 | L8 | L10 | L13 | L17 | — | — | Heroes 2.0.1, pp. 37–41 |
+| Shadowmancer | L1 | L2 | L5 | L7 | L10 | L13 | L16 | L19 | — | — | Heroes 2.0.1, pp. 43–47 |
+| Shepherd | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 | Heroes 2.0.1, pp. 49–53 |
+| Stormshifter | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 | Heroes 2.0.1, pp. 61–65 |
+| Songweaver | L1 | L2 | L4 | L6 | L8 | L10 | L12 | L14 | L16 | L18 | Heroes 2.0.1, pp. 55–59 |
 
 Non-casters (Berserker, The Cheat, Commander, Hunter, Zephyr): no mana or tier unlocks unless granted by subclass or background.
 
