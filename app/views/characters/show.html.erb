@@ -55,8 +55,12 @@
 
   <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
   <% story_feature_notes = @character.story_subclass_feature_note_entries.index_by { |note| note.fetch("name") } %>
-  <% shadow_minion_rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions") %>
-  <% shadow_exploit_cost_rule = Rules::NimbleCatalog.story_subclass_resource_pool_for("Shadowmancer", "Reaver", "reaver_shadow_exploit_next_cost") %>
+  <% character_class_name = @character.character_class&.name %>
+  <% shadow_minions = resource_tracks.find { |track| track.fetch("key") == "shadow_minions" } %>
+  <% shadow_minion_rule = Rules::NimbleCatalog.class_resource_pool_for(character_class_name, shadow_minions&.fetch("key")) %>
+  <% shadow_exploit_feature = story_feature_notes["Shadow Exploit"] %>
+  <% shadow_exploit_cost_key = shadow_exploit_feature&.fetch("cost_resource_key", nil) %>
+  <% shadow_exploit_cost_rule = Rules::NimbleCatalog.story_subclass_resource_pools_for(character_class_name, @character.subclass_name).find { |pool| pool.fetch("key") == shadow_exploit_cost_key } %>
   <% if resource_tracks.any? %>
     <section class="panel resource-summary-panel">
       <div class="panel-heading compact"><div><p class="eyebrow">Game resources</p><h2>Ready to spend</h2></div><span class="mini-label">Tracked with the sheet</span></div>
@@ -321,35 +325,33 @@
               <% end %>
             </div>
           <% end %>
-          <% shadow_minions = resource_tracks.find { |track| track.fetch("key") == "shadow_minions" } %>
-          <% if shadow_minions.present? %>
+          <% if shadow_minions.present? && shadow_minion_rule.present? %>
             <% minion_count = shadow_minions.fetch("current").to_i %>
             <% minion_capacity = shadow_minions.fetch("max").to_i %>
             <% summon_amount = shadow_minion_rule.fetch("summon_amount").to_i %>
             <% summon_action_cost = shadow_minion_rule.fetch("summon_action_cost").to_i %>
-            <% reaver = @character.subclass_name == "Reaver" %>
+            <% tiered_spells = @character.sheet_spells.select { |spell| spell.tier.to_i.positive? && spell.available_to?(@character) } %>
             <div class="safe-rest-action">
               <p class="eyebrow">Shadow Minions · <%= minion_count %> / <%= minion_capacity %></p>
               <p><%= shadow_minion_rule.fetch("summon_source_quote") %> Summoning costs <%= pluralize(summon_action_cost, "action") %>. <%= shadow_minion_rule.fetch("source_quote") %> (<%= shadow_minion_rule.fetch("source_ref") %>)</p>
-              <% if reaver && minion_count.positive? && @character.story_subclass_feature_unlocked?("Otherworldly Might") %>
-                <% otherworldly_might = story_feature_notes.fetch("Otherworldly Might") %>
+              <% otherworldly_might = story_feature_notes["Otherworldly Might"] %>
+              <% if minion_count.positive? && otherworldly_might.present? %>
                 <p class="field-hint"><strong>Otherworldly Might:</strong> <%= otherworldly_might.fetch("effect") %> (<%= otherworldly_might.fetch("source_ref") %>)</p>
               <% end %>
               <% if minion_count + summon_amount <= minion_capacity && @character.trait_set&.current_actions.to_i >= summon_action_cost %>
                 <%= button_to "Summon Shadow Minion · spend #{pluralize(summon_action_cost, 'action')}", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "summon_shadow_minion" } }, class: "button button-secondary button-full" %>
               <% end %>
               <% martyr_spawn = story_feature_notes["Martyr Spawn"] %>
-              <% if reaver && martyr_spawn.present? %>
+              <% if martyr_spawn.present? %>
                 <% martyr_cost = martyr_spawn.fetch("shadow_minions_spent").to_i %>
                 <p class="field-hint"><strong>Martyr Spawn:</strong> <%= martyr_spawn.fetch("effect") %> (<%= martyr_spawn.fetch("source_ref") %>)</p>
                 <% if minion_count >= martyr_cost %>
                   <%= button_to "Martyr Spawn · spend #{pluralize(martyr_cost, 'minion')} to negate Defend damage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "martyr_spawn" } }, class: "button button-secondary button-full" %>
                 <% end %>
               <% end %>
-              <% if reaver && @character.story_subclass_feature_unlocked?("Shadow Exploit") %>
-                <% next_cost = resource_tracks.find { |track| track.fetch("key") == "reaver_shadow_exploit_next_cost" } %>
-                <% tiered_spells = @character.sheet_spells.select { |spell| spell.tier.to_i.positive? && spell.available_to?(@character) } %>
-                <% if next_cost.present? && tiered_spells.any? %>
+              <% if shadow_exploit_feature.present? %>
+                <% next_cost = resource_tracks.find { |track| track.fetch("key") == shadow_exploit_cost_key } %>
+                <% if next_cost.present? && tiered_spells.any? && shadow_exploit_cost_rule.present? %>
                   <% next_cost_increment = shadow_exploit_cost_rule.fetch("increment_per_cast").to_i %>
                   <p class="field-hint">Shadow Exploit casts at your highest unlocked tier; next cost is <%= next_cost.fetch("current") %> minion<%= "s" unless next_cost.fetch("current").to_i == 1 %> and increases by <%= next_cost_increment %> minion<%= "s" unless next_cost_increment == 1 %> after each cast. Spend the spell's normal actions separately. (<%= shadow_exploit_cost_rule.fetch("source_ref") %>)</p>
                   <%= form_with url: game_feature_character_path(@character), method: :patch, scope: :game_feature, class: "field-rest-form" do |feature_form| %>
@@ -361,7 +363,7 @@
                     <%= feature_form.submit "Record Shadow Exploit cast", class: "button button-secondary button-full" %>
                   <% end %>
                 <% end %>
-                <% if @character.story_subclass_feature_unlocked?("My Blood, My Power") && tiered_spells.any? %>
+                <% if story_feature_notes["My Blood, My Power"].present? && tiered_spells.any? %>
                   <% my_blood = story_feature_notes.fetch("My Blood, My Power") %>
                   <% wounds_to_take = my_blood.fetch("wounds_to_take").to_i %>
                   <% my_blood_effect = my_blood.fetch("effect").sub(/\b\d+ Wounds?\b/i, "#{wounds_to_take} #{'Wound'.pluralize(wounds_to_take)}") %>
