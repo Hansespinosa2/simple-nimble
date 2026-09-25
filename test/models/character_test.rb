@@ -1873,6 +1873,69 @@ class CharacterTest < ActiveSupport::TestCase
     assert mage.character_revisions.exists?(event_type: "field_rest", summary: "Catch Breath: spent 1 Hit Die, recovered 5 HP")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "Oozeling Hit Dice advance one size and always heal their maximum on a Field Rest" do
+    Rails.application.load_seed
+    oozeling = Character.create!(
+      name: "Odd Constitution Mage",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Oozeling/Construct"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "standard",
+      stat_assignments: { strength: 0, dexterity: 2, intelligence: 2, will: -1 }
+    )
+    oozeling.trait_set.update!(current_hp: 0, current_hit_dice: 1)
+
+    assert_equal "1d8", oozeling.reload.trait_set.hit_die
+    result = oozeling.perform_field_rest!(mode: "catch_breath", hit_dice_count: 1)
+
+    assert_equal 8, result.fetch(:hp_recovered)
+    assert_equal 8, oozeling.reload.trait_set.current_hp
+    assert_equal 0, oozeling.trait_set.current_hit_dice
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "Oozeling advances every canonical class Hit Die by exactly one printed size" do
+    Rails.application.load_seed
+    die_sizes = Rules::NimbleCatalog.ancestry_hit_die_sides.map(&:to_i)
+    oozeling = Ancestry.find_by!(name: "Oozeling/Construct")
+
+    CharacterClass.where(name: Rules::NimbleCatalog.classes.keys).order(:name).each do |character_class|
+      match = character_class.hit_die.match(/\A(\d+)d(\d+)\z/i)
+      assert match, "#{character_class.name} should use a catalogued die format"
+      die_size_index = die_sizes.index(match[2].to_i)
+      assert die_size_index, "#{character_class.name}'s #{character_class.hit_die} should appear in the size ladder"
+      expected_size = die_sizes.fetch([ die_size_index + 1, die_sizes.length - 1 ].min)
+      character = Character.new(character_class:, ancestry: oozeling, level: 1)
+
+      assert_equal "#{match[1]}d#{expected_size}", character.hit_die_for, "#{character_class.name}'s Oozeling Hit Die"
+    end
+
+    wild_heart = Character.new(
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: oozeling,
+      subclass_name: "Wild Heart",
+      level: 3
+    )
+    assert_equal "1d12", wild_heart.hit_die_for, "ancestry advancement follows the subclass's d10 Hit Die upgrade"
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-06:AC-2
+  test "Oozeling's upgraded Hit Die also sets the level-up roll range" do
+    Rails.application.load_seed
+    character = Character.new(
+      level: 1,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Oozeling/Construct")
+    )
+    level_up = character.level_ups.build(from_level: 1, to_level: 2)
+    planner = LevelUpPlanner.new(character, level_up, random_number: ->(sides) { sides - 1 })
+
+    assert_equal 8, planner.hit_die_size
+    assert_equal 8, level_up.hit_die_roll_one
+    assert_equal 8, level_up.hit_die_roll_two
+  end
+
   # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
   test "Field Rest die result and stat modifier follow catalog rules" do
     Rails.application.load_seed

@@ -92,6 +92,18 @@ module Rules
         data.fetch("resting")
       end
 
+      def ancestry_derived_rules
+        data.fetch("ancestry_derived_rules", {})
+      end
+
+      def ancestry_hit_die_sides
+        ancestry_derived_rules.fetch("hit_die_sides", [])
+      end
+
+      def ancestry_derived_rule_for(ancestry_name)
+        ancestry_derived_rules.fetch("ancestries", {}).fetch(ancestry_name.to_s, {})
+      end
+
       def starting_equipment_rules
         data.fetch("starting_equipment")
       end

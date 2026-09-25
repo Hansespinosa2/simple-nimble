@@ -388,6 +388,7 @@ class CharactersController < ApplicationController
       {
         stat_arrays: Character::STAT_ARRAYS,
         derived_values: Rules::NimbleCatalog.derived_values,
+        ancestry_hit_die_sides: Rules::NimbleCatalog.ancestry_hit_die_sides,
         stats: Rules::NimbleCatalog.stats,
         skills: Rules::NimbleCatalog.skills,
         languages: Rules::NimbleCatalog.language_rules,
@@ -416,6 +417,7 @@ class CharactersController < ApplicationController
         end,
         ancestries: @ancestries.index_by(&:id).transform_values do |ancestry|
           {
+            name: ancestry.name,
             summary: ancestry.trait_summary,
             speed_modifier: ancestry.speed_modifier,
             initiative_modifier: ancestry.initiative_modifier,
@@ -424,6 +426,7 @@ class CharactersController < ApplicationController
             armor_modifier: ancestry.armor_modifier,
             max_hit_dice_modifier: ancestry.max_hit_dice_modifier,
             max_wounds_modifier: ancestry.max_wounds_modifier,
+            hit_die_size_steps: Rules::NimbleCatalog.ancestry_derived_rule_for(ancestry.name).fetch("hit_die_size_steps", 0),
             language_grants: ancestry.language_names
           }
         end,

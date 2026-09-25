@@ -182,7 +182,8 @@ export default class extends Controller {
     this.setTargetText("hpPreview", characterClass?.starting_hp || "—")
     this.setTargetText("armorPreview", array ? armor : "—")
     this.setTargetText("initiativePreview", array ? this.signed(initiative) : "—")
-    this.setTargetText("hitDiePreview", characterClass?.hit_die || "—")
+    const classHitDie = classEffects.hit_die || characterClass?.hit_die
+    this.setTargetText("hitDiePreview", this.advanceHitDieSize(classHitDie, ancestry?.hit_die_size_steps || 0))
     this.setTargetText("saveDcPreview", saveDc)
     this.setTargetText("savesPreview", saves)
     this.setTargetText("manaPreview", mana)
@@ -200,10 +201,22 @@ export default class extends Controller {
         Object.entries(effects).forEach(([name, value]) => {
           if (name.endsWith("_modifier")) combined[name] = Number(combined[name] || 0) + Number(value || 0)
           else if (name === "armor_multiplier") combined[name] = Number(value)
+          else if (name === "hit_die") combined[name] = value
           else if (typeof value === "boolean") combined[name] = value
         })
         return combined
       }, {})
+  }
+
+  advanceHitDieSize(hitDie, steps) {
+    if (!hitDie) return "—"
+    const match = String(hitDie).match(/^(\d+)d(\d+)$/i)
+    const dieSizes = (this.rulesValue.ancestry_hit_die_sides || []).map(Number)
+    const currentIndex = match && dieSizes.indexOf(Number(match[2]))
+    if (!match || currentIndex < 0 || !Number(steps)) return hitDie
+
+    const nextIndex = Math.max(0, Math.min(dieSizes.length - 1, currentIndex + Number(steps)))
+    return `${match[1]}d${dieSizes[nextIndex]}`
   }
 
   updateDerivedEffectNote(characterClass, level, unarmored) {

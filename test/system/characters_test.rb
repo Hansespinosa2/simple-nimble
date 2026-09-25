@@ -83,6 +83,16 @@ class CharactersTest < ApplicationSystemTestCase
     assert_includes battleaxe.text, "Core Rules 2.0.1, pp. 21, 34"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "the builder previews an Oozeling's ancestry-upgraded Hit Die" do
+    visit new_character_url
+
+    select "Mage", from: "Class"
+    select "Oozeling/Construct", from: "Ancestry"
+
+    assert_selector "[data-character-builder-target='hitDiePreview']", text: "1d8"
+  end
+
   test "the guided builder previews structured skill and language grants" do
     visit new_character_url
 
@@ -788,6 +798,32 @@ class CharactersTest < ApplicationSystemTestCase
     assert_text "Catch Breath complete: recovered 5 HP."
     assert_text "Field Rest"
     assert_equal 7, character.reload.trait_set.current_hp
+    assert_equal 0, character.trait_set.current_hit_dice
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3
+  test "the sheet advances Oozeling Hit Dice and uses their maximum without asking for a roll" do
+    character = Character.create!(
+      name: "Odd Constitution Sheet Hero",
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Oozeling/Construct"),
+      background: @background,
+      stat_array: "standard",
+      stat_assignments: { strength: 0, dexterity: 2, intelligence: 2, will: -1 }
+    )
+    character.trait_set.update!(current_hp: 0, current_hit_dice: 1)
+
+    visit character_url(character)
+
+    assert_text "1D8"
+    assert_text "using its maximum result"
+    assert_text "Magical healing always restores the minimum amount"
+    assert_text "Core Rules 2.0.1, p. 26"
+    assert_no_selector "#catch_breath_die_rolls"
+    click_on "Catch Breath · 10 min"
+
+    assert_text "Catch Breath complete: recovered 8 HP."
+    assert_equal 8, character.reload.trait_set.current_hp
     assert_equal 0, character.trait_set.current_hit_dice
   end
 

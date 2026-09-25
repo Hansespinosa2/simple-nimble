@@ -865,6 +865,19 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal [ "day_start" ], @catalog.ancestry_resource_pools_for("Changeling").first.fetch("reset_events")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "Oozeling Hit Die and healing rules are structured with their source citation" do
+    rule = @catalog.ancestry_derived_rule_for("Oozeling/Construct")
+
+    assert_equal [ 6, 8, 10, 12, 20 ], @catalog.ancestry_hit_die_sides.map(&:to_i)
+    assert_equal 1, rule.fetch("hit_die_size_steps")
+    assert_equal "maximum", rule.fetch("field_rest_hit_die_result")
+    assert_equal "minimum", rule.fetch("magical_healing_result")
+    assert_equal "Core Rules 2.0.1, p. 26", rule.fetch("source_ref")
+    assert_equal "Increment your Hit Dice one step (d6 » d8 » d10 » d12 » d20); they always heal you for the maximum amount. Magical healing always heals the minimum amount.", rule.fetch("source_quote")
+    assert_match(/does not classify HP changes by source/, rule.fetch("manual_effect"))
+  end
+
   test "Commander weapon mastery is a choice at six and ten, not fourteen" do
     assert_includes @catalog.choice_pools_for("Commander", 6).map { |pool| pool.fetch("name") }, "Weapon Mastery"
     assert_includes @catalog.choice_pools_for("Commander", 10).map { |pool| pool.fetch("name") }, "Weapon Mastery"

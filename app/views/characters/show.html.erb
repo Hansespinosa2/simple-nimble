@@ -51,6 +51,7 @@
     <%= render "characters/wound_tracker_card", character: @character %>
   </section>
   <%= render "characters/derived_conditions", character: @character %>
+  <%= render "characters/ancestry_feature_note", character: @character %>
 
   <% resource_tracks = @character.trait_set&.resource_tracks.to_a %>
   <% story_feature_notes = @character.story_subclass_feature_note_entries.index_by { |note| note.fetch("name") } %>
@@ -403,7 +404,7 @@
         </div>
         <div class="field-rest-action">
           <p class="eyebrow">Field Rest · <%= @character.trait_set&.hit_die || "Hit Die" %></p>
-          <p class="field-rest-summary">Catch Breath takes at least <%= catch_breath_rules.fetch("minimum_duration") %> <%= catch_breath_rules.fetch("duration_unit") %> and resolves <%= pluralize(catch_breath_rules.fetch("hit_dice_per_use"), "Hit Die") %> at a time, adding <%= stat_display_name(catch_breath_rules.fetch("stat_modifier")) %> to each die. Make Camp takes at least <%= make_camp_rules.fetch("minimum_duration") %> <%= make_camp_rules.fetch("duration_unit") %><%= " with food and sleep" if make_camp_rules.fetch("requires_food_and_sleep") %> and uses each die’s maximum, adding <%= stat_display_name(make_camp_rules.fetch("stat_modifier")) %> to each.</p>
+          <p class="field-rest-summary">Catch Breath takes at least <%= catch_breath_rules.fetch("minimum_duration") %> <%= catch_breath_rules.fetch("duration_unit") %> and resolves <%= pluralize(catch_breath_rules.fetch("hit_dice_per_use"), "Hit Die") %> at a time, <%= @character.field_rest_hit_die_result_for("catch_breath") == "maximum" ? "using its maximum result" : "rolling it" %> and adding <%= stat_display_name(catch_breath_rules.fetch("stat_modifier")) %>. Make Camp takes at least <%= make_camp_rules.fetch("minimum_duration") %> <%= make_camp_rules.fetch("duration_unit") %><%= " with food and sleep" if make_camp_rules.fetch("requires_food_and_sleep") %> and uses each die’s maximum, adding <%= stat_display_name(make_camp_rules.fetch("stat_modifier")) %> to each.</p>
           <span class="field-hint"><%= catch_breath_rules.fetch("source_ref") %> · Hit Dice available: <%= @character.trait_set&.current_hit_dice || 0 %></span>
           <% epic_mana_selected = @character.recorded_feature_choices.fetch("Epic Boon", []).include?("Epic Mana") %>
           <% epic_mana_available = epic_mana_selected && @character.trait_set.present? && @character.trait_set.current_mana.to_i < @character.trait_set.max_mana.to_i %>
@@ -416,7 +417,9 @@
               <%= rest_form.hidden_field :mode, value: "catch_breath" %>
               <%= rest_form.hidden_field :hit_dice, value: 1 %>
               <div class="field-rest-fields">
-                <div class="field"><%= rest_form.label :die_rolls, "Single Hit Die roll (d#{@character.hit_die_sides})", for: "catch_breath_die_rolls" %><%= rest_form.number_field :die_rolls, id: "catch_breath_die_rolls", min: 1, max: @character.hit_die_sides, step: 1 %></div>
+                <% if @character.field_rest_hit_die_result_for("catch_breath") == "rolled" %>
+                  <div class="field"><%= rest_form.label :die_rolls, "Single Hit Die roll (d#{@character.hit_die_sides})", for: "catch_breath_die_rolls" %><%= rest_form.number_field :die_rolls, id: "catch_breath_die_rolls", min: 1, max: @character.hit_die_sides, step: 1 %></div>
+                <% end %>
               </div>
               <% if epic_mana_available %><div class="field"><%= rest_form.check_box :convert_healing_to_mana, {}, "1", "0" %><%= rest_form.label :convert_healing_to_mana, "Use Epic Mana instead of this rest’s HP healing (1 Mana per 5 HP)" %></div><% end %>
               <%= rest_form.submit "Catch Breath · #{catch_breath_rules.fetch('minimum_duration')} #{catch_breath_rules.fetch('duration_unit') == 'minutes' ? 'min' : catch_breath_rules.fetch('duration_unit')}", class: "button button-secondary button-full" %>

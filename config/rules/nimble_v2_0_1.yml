@@ -2255,6 +2255,17 @@ background_feature_notes:
     manual_effect: "Choose a profession. Related checks have advantage, and you retain special knowledge about that work. The sheet does not record your profession or apply advantage automatically."
     source_ref: Core Rules 2.0.1, p. 29
 
+ancestry_derived_rules:
+  hit_die_sides: [6, 8, 10, 12, 20]
+  ancestries:
+    "Oozeling/Construct":
+      hit_die_size_steps: 1
+      field_rest_hit_die_result: maximum
+      magical_healing_result: minimum
+      manual_effect: "Magical healing always restores the minimum amount. The sheet advances your Hit Die and automatically uses its maximum for Field Rest healing, but it does not classify HP changes by source; apply the minimum when a magical effect heals you."
+      source_ref: Core Rules 2.0.1, p. 26
+      source_quote: "Increment your Hit Dice one step (d6 » d8 » d10 » d12 » d20); they always heal you for the maximum amount. Magical healing always heals the minimum amount."
+
 ancestry_resource_pools:
   Halfling:
     - key: ancestry_halfling_elusive

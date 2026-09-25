@@ -1,0 +1,4 @@
+<% ancestry_rule = Rules::NimbleCatalog.ancestry_derived_rule_for(character.ancestry&.name) %>
+<% if ancestry_rule["manual_effect"].present? %>
+  <p class="field-hint ancestry-rules-note"><% if ancestry_rule.fetch("hit_die_size_steps", 0).to_i.positive? %><strong>Current Hit Die:</strong> <%= character.trait_set&.hit_die || character.hit_die_for %>. <% end %><strong>At-table reminder (not automatically resolved):</strong> <%= ancestry_rule.fetch("manual_effect") %> (<%= ancestry_rule.fetch("source_ref") %>)</p>
+<% end %>

@@ -33,6 +33,30 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
     assert_select ".wound-death-rule-note", /You die when you have taken 6 Wounds/
   end
 
+  # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
+  test "the shared sheet preserves the ancestry's source-backed manual healing reminder" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Odd Constitution Shared Hero",
+      account: @player,
+      character_class: CharacterClass.find_by!(name: "Mage"),
+      ancestry: Ancestry.find_by!(name: "Oozeling/Construct"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    sign_in(@player)
+    post character_shares_url(character), params: { campaign_id: @campaign.id }
+    share = character.character_shares.order(:id).last
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select ".ancestry-rules-note", /Magical healing always restores the minimum amount/
+    assert_select ".ancestry-rules-note", /apply the minimum when a magical effect heals you/
+    assert_select ".ancestry-rules-note", /Core Rules 2\.0\.1, p\. 26/
+    assert_select ".tracker-form", 0
+  end
+
   test "the read-only shared sheet includes structured inventory without edit controls" do
     @character.inventory_items.create!(name: "2 potions", slots: 1)
     @character.update!(current_gold: 150)

@@ -1127,7 +1127,7 @@ class Character < ApplicationRecord
     end
 
     rolls = Array(die_rolls).map { |roll| Integer(roll, exception: false) }
-    hit_die_result = rest_rules.fetch("hit_die_result")
+    hit_die_result = field_rest_hit_die_result_for(mode)
     if hit_die_result == "rolled"
       unless rolls.length == count && rolls.all? { |roll| roll&.between?(1, die_sides) }
         raise ArgumentError, "Enter exactly #{count} roll#{'s' if count != 1}, each from 1 to #{die_sides}. #{source_ref}."
@@ -1209,7 +1209,16 @@ class Character < ApplicationRecord
   end
 
   def hit_die_for(level: self.level, subclass_name: self.subclass_name)
-    derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die)
+    hit_die = derived_feature_effects(level:, subclass_name:).fetch("hit_die", character_class&.hit_die)
+    advance_hit_die_for_ancestry(hit_die)
+  end
+
+  def field_rest_hit_die_result_for(mode)
+    rest_rules = Rules::NimbleCatalog.resting_rules.dig("field_rests", mode.to_s)
+    return unless rest_rules
+
+    ancestry_rule = Rules::NimbleCatalog.ancestry_derived_rule_for(ancestry&.name)
+    ancestry_rule.fetch("field_rest_hit_die_result", rest_rules.fetch("hit_die_result"))
   end
 
   def max_hit_dice_for(level: self.level, subclass_name: self.subclass_name, feature_choices: recorded_feature_choices)
@@ -2086,6 +2095,22 @@ class Character < ApplicationRecord
           Array(pool_selections)
         end
       end.compact_blank.map(&:to_s).uniq
+    end
+
+    def advance_hit_die_for_ancestry(hit_die)
+      rule = Rules::NimbleCatalog.ancestry_derived_rule_for(ancestry&.name)
+      steps = rule.fetch("hit_die_size_steps", 0).to_i
+      return hit_die if steps.zero? || hit_die.blank?
+
+      match = hit_die.to_s.match(/\A(\d+)d(\d+)\z/i)
+      return hit_die unless match
+
+      die_sizes = Rules::NimbleCatalog.ancestry_hit_die_sides.map(&:to_i)
+      die_size_index = die_sizes.index(match[2].to_i)
+      return hit_die unless die_size_index
+
+      advanced_index = (die_size_index + steps).clamp(0, die_sizes.length - 1)
+      "#{match[1]}d#{die_sizes.fetch(advanced_index)}"
     end
 
     def story_based_subclass_requires_approved_change
