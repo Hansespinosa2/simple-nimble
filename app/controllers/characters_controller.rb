@@ -160,7 +160,10 @@ class CharactersController < ApplicationController
   def begin_encounter
     initiative_roll = if params[:initiative_roll].is_a?(ActionController::Parameters)
       params[:initiative_roll].permit(
-        { dice_rolls: [], rerolls: [], feature_actions: { firebrand_enchant_weapon: [ :used, :target ] } }
+        { dice_rolls: [], rerolls: [], feature_actions: {
+          firebrand_enchant_weapon: [ :used, :target ],
+          shadowpath_hunters_mark: [ :used, :target ]
+        } }
       )
     else
       ActionController::Parameters.new
@@ -195,6 +198,9 @@ class CharactersController < ApplicationController
       notice = revision.summary
     when "my_blood_my_power"
       revision = @character.use_my_blood_my_power!(spell_name: attributes[:spell_name])
+      notice = revision.summary
+    when "shadowpath_first_attack_advantage"
+      revision = @character.use_shadowpath_first_attack_advantage!
       notice = revision.summary
     else
       raise ArgumentError, "Choose a supported game feature."

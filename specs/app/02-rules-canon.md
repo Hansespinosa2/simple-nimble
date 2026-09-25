@@ -188,7 +188,7 @@ Each class has one or more special resource pools that must be modeled for legal
 | Berserker | Fury Dice | Starts d4; scales to d6 (L6), d8 (L9), d10 (L13), d12 (L17); max = KEY; gained by Raging |
 | The Cheat | (No pool; ability-based) | Uses per-ability counters (1/turn, 1/day, 1/Safe Rest) |
 | Commander | Combat Dice; Coordinated Strike uses | Combat Dice: gain STR dice on Initiative from L4; starts d6 and scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades. Coordinated Strike: INT uses/Safe Rest, +1 at L9, L13, L17, and Champion of the Vanguard L7; Master Commander L5 and Vanguard L11 each refund 1 spent use on Initiative, expiring at encounter end. Heroes 2.0.1, pp. 19–23 |
-| Hunter | Thrill of the Hunt charges | Gained when quarry dies or hit conditions are met; Shadowpath gains 1 on Initiative at L15; encounter charges expire at encounter end. Heroes 2.0.1, pp. 26, 28 |
+| Hunter | Thrill of the Hunt charges; Shadowpath Ambusher advantage | TotH charges are gained on quarry triggers; Shadowpath gains 1 at Initiative at L15. Ambusher at L3 may use Hunter's Mark for free at Initiative and grants advantage on the first attack each encounter, tracked as a separate one-use counter. Encounter counters expire at encounter end. Heroes 2.0.1, pp. 26, 28 |
 | Mage | Mana | (INT×3)+LVL; recharges on Safe Rest; Elemental Surge grants +WIL temporary mana on Initiative from L5, plus 1d4 at L10 and 2d4 at L17; unused mana expires at encounter end. Control's L11 Steel Will may reroll each Elemental Surge die showing 1 once. Heroes 2.0.1, pp. 32, 35 |
 | Oathsworn | Judgment Dice (2d6 → d8 → d10 → d12 → d20) + Lay on Hands pool (5×LVL) | Judgment triggered by being attacked |
 | Shadowmancer | Pilfered Power uses (DEX/Safe Rest) | Patron penalty if exceeded; Pact of the Red Dragon regains up to one spent use on Initiative at L11, expiring at encounter end. Heroes 2.0.1, pp. 44, 47 |
@@ -254,6 +254,13 @@ that option and the named weapon or wielder; it writes that choice into the
 Initiative revision with the Heroes citation. The app records the free base
 cast only: applying the spell's effects, concentration, and any paid upcast
 remains a table ruling and is not simulated by the character sheet.
+
+Shadowpath's level-3 Ambusher offers the same Initiative-time record for its
+free Hunter's Mark, including the named quarry/quarries. Its first-attack
+advantage is a separate encounter counter that can be spent once through an
+explicit sheet action; the attack roll and Hunter's Mark effects remain
+table-resolved. At level 15, Ambusher and Apex Predator grants are both applied
+on Initiative, with the latter adding its separate Thrill of the Hunt charge.
 
 Beastmaster also records its source-defined setup at the story change: an animal
 name and Small/Medium/Large size, plus a reconfirmation of the first two Thrill

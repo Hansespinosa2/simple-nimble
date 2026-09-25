@@ -241,11 +241,31 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 2, vanguard_modifiers.fetch("coordinated_strike_uses")
     assert_equal 1, vanguard_modifiers.fetch("coordinated_strike_initiative_uses")
 
-    assert_empty @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 14)
-    apex_predator = @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 15).sole
+    assert_empty @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 2)
+    ambusher = @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 3).sole
+    assert_equal "Ambusher", ambusher.fetch("feature_name")
+    assert_equal "shadowpath_first_attack_advantage", ambusher.fetch("resource_key")
+    assert_equal "Heroes 2.0.1, p. 28", ambusher.fetch("source_ref")
+    assert_equal [ "Ambusher" ], @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 14).map { |grant| grant.fetch("feature_name") }
+    shadowpath_initiative = @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 15)
+    assert_equal [ "Ambusher", "Apex Predator" ], shadowpath_initiative.map { |grant| grant.fetch("feature_name") }
+    apex_predator = shadowpath_initiative.last
     assert_equal "Apex Predator", apex_predator.fetch("feature_name")
     assert_equal "thrill_of_the_hunt", apex_predator.fetch("resource_key")
     assert_equal "Heroes 2.0.1, p. 28", apex_predator.fetch("source_ref")
+
+    ambusher_feature = @catalog.story_subclass_initiative_features_for("Hunter", "Shadowpath").sole
+    assert_equal "Ambusher", ambusher_feature.fetch("name")
+    assert_equal "shadowpath_hunters_mark", ambusher_feature.dig("initiative_action", "key")
+    assert_equal "free_feature_use", ambusher_feature.dig("initiative_action", "kind")
+    assert_equal "Hunter's Mark", ambusher_feature.dig("initiative_action", "action_name")
+
+    ambusher_pool = @catalog.story_subclass_resource_pools_for("Hunter", "Shadowpath").sole
+    assert_equal "shadowpath_first_attack_advantage", ambusher_pool.fetch("key")
+    assert_equal "1", ambusher_pool.fetch("max_formula")
+    assert_equal 3, ambusher_pool.fetch("start_level")
+    assert_equal 0, ambusher_pool.fetch("initial_current")
+    assert_equal [ "encounter_end" ], ambusher_pool.fetch("reset_events")
 
     assert_empty @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 10)
     heart_of_fire = @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 11).sole

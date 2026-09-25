@@ -16,6 +16,7 @@ class CharacterRevision < ApplicationRecord
     "shadow_minion_update" => "Shadow Minion update",
     "shadow_exploit" => "Shadow Exploit",
     "my_blood_my_power" => "My Blood, My Power",
+    "shadowpath_first_attack_advantage" => "Ambusher first-attack advantage",
     "encounter_end" => "Encounter ended",
     "safe_rest" => "Safe Rest",
     "field_rest" => "Field Rest",

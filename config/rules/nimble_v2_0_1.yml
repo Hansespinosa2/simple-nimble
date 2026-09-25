@@ -1527,6 +1527,17 @@ story_subclass_spell_choice_pools:
         kind: utility_spell_any
 
 story_subclass_resource_pools:
+  Hunter:
+    Shadowpath:
+      - key: shadowpath_first_attack_advantage
+        name: Ambusher · first attack advantage
+        max_formula: "1"
+        start_level: 3
+        initial_current: 0
+        reset: Encounter ends
+        reset_events: [encounter_end]
+        source_ref: Heroes 2.0.1, p. 28
+        source_quote: "Gain advantage on the first attack you make each encounter."
   Commander:
     Spellblade:
       - key: spellblade_initiative_mana
@@ -1722,6 +1733,18 @@ story_subclass_initiative_features:
           target_label: Weapon or wielder
         source_ref: Heroes 2.0.1, p. 77
         source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
+  Hunter:
+    Shadowpath:
+      - name: Ambusher
+        effect: When you roll Initiative, you may use Hunter's Mark for free. Gain advantage on your first attack each encounter.
+        initiative_action:
+          key: shadowpath_hunters_mark
+          kind: free_feature_use
+          action_name: "Hunter's Mark"
+          target_label: Quarry or quarries
+          target_max_length: 160
+        source_ref: Heroes 2.0.1, p. 28
+        source_quote: "When you roll Initiative, you may use Hunter’s Mark for free. Gain advantage on the first attack you make each encounter."
 
 initiative_resource_grants:
   Commander:
@@ -1786,6 +1809,16 @@ initiative_resource_grants:
         amount_bonus_source_quote: "+1 additional burst of speed when you roll Initiative."
   Hunter:
     Shadowpath:
+      - feature_name: Ambusher
+        minimum_level: 3
+        resource_key: shadowpath_first_attack_advantage
+        amount: 1
+        summary: "Initiative rolled; readied Ambusher advantage for the first attack this encounter"
+        feature_label: "Shadowpath · Ambusher"
+        description: "Gain advantage on your first attack each encounter; record when you apply it."
+        action_label: "Record Initiative Roll · ready Ambusher advantage"
+        source_ref: Heroes 2.0.1, p. 28
+        source_quote: "Gain advantage on the first attack you make each encounter."
       - feature_name: Apex Predator
         resource_key: thrill_of_the_hunt
         amount: 1

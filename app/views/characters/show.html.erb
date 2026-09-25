@@ -215,19 +215,40 @@
                     <% end %>
                   <% end %>
                   <% initiative_action_entries.each do |action| %>
-                    <% if action.fetch("kind") == "free_spell_cast" %>
+                    <% if %w[free_spell_cast free_feature_use].include?(action.fetch("kind")) %>
                       <% used_id = "initiative-feature-#{action.fetch('key')}-used" %>
                       <% target_id = "initiative-feature-#{action.fetch('key')}-target" %>
+                      <% action_prompt = if action.fetch("kind") == "free_spell_cast"
+                        "Use #{action.fetch('feature_name')} to cast #{action.fetch('spell_name')} for free now"
+                      else
+                        "Use #{action.fetch('feature_name')}'s free #{action.fetch('action_name')} now"
+                      end %>
                       <div class="field">
-                        <div><%= check_box_tag "initiative_roll[feature_actions][#{action.fetch('key')}][used]", "1", false, id: used_id %> <%= label_tag used_id, "Use #{action.fetch('feature_name')} to cast #{action.fetch('spell_name')} for free now" %></div>
+                        <div><%= check_box_tag "initiative_roll[feature_actions][#{action.fetch('key')}][used]", "1", false, id: used_id %> <%= label_tag used_id, action_prompt %></div>
                         <%= label_tag target_id, action.fetch("target_label") %>
-                        <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: 80, placeholder: "e.g. Silver longsword" %>
-                        <span class="field-hint">The sheet records the free base cast only. Apply its listed effect and record any paid upcast at the table. <%= action.fetch("source_ref") %>.</span>
+                        <%= text_field_tag "initiative_roll[feature_actions][#{action.fetch('key')}][target]", nil, id: target_id, maxlength: action.fetch("target_max_length", 80), placeholder: action.fetch("kind") == "free_spell_cast" ? "e.g. Silver longsword" : "e.g. Ashen Stag" %>
+                        <% if action.fetch("kind") == "free_spell_cast" %>
+                          <span class="field-hint">The sheet records the free base cast only. Apply its listed effect and record any paid upcast at the table. <%= action.fetch("source_ref") %>.</span>
+                        <% else %>
+                          <span class="field-hint">The sheet records this free use only. Apply Hunter's Mark and any additional marking effects at the table. <%= action.fetch("source_ref") %>.</span>
+                        <% end %>
                       </div>
                     <% end %>
                   <% end %>
                   <%= button_tag initiative_label, type: "submit", class: "button button-secondary button-full" %>
                 <% end %>
+              <% end %>
+            </div>
+          <% end %>
+          <% ambusher_track = resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" } %>
+          <% if ambusher_track.present? && @character.encounter_started_at.present? %>
+            <div class="safe-rest-action">
+              <p class="eyebrow">Ambusher · first attack advantage</p>
+              <p>Choose this when making your first attack this encounter; the sheet records use but does not resolve the attack roll. (Heroes 2.0.1, p. 28)</p>
+              <% if ambusher_track.fetch("current").to_i.positive? %>
+                <%= button_to "Record first attack · spend Ambusher advantage", game_feature_character_path(@character), method: :patch, params: { game_feature: { action: "shadowpath_first_attack_advantage" } }, class: "button button-secondary button-full" %>
+              <% else %>
+                <span class="field-hint">Ambusher advantage already applied this encounter.</span>
               <% end %>
             </div>
           <% end %>

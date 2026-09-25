@@ -1430,10 +1430,25 @@ class CharacterTest < ActiveSupport::TestCase
     hunter.update_column(:subclass_name, "Shadowpath")
     hunter_stats = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
     hunter.trait_set.update!(resource_tracks: hunter.derived_resource_tracks_for(stat_values: hunter_stats, level: 15, subclass_name: "Shadowpath"))
-    hunter.begin_encounter!
+    assert_raises(ArgumentError) { hunter.use_shadowpath_first_attack_advantage! }
+    revision = hunter.begin_encounter!(
+      feature_actions: { "shadowpath_hunters_mark" => { "used" => "1", "target" => "Ashen Stag" } }
+    )
+    assert_includes revision.summary, "Ambusher used Hunter's Mark for free on Ashen Stag"
+    assert_includes revision.summary, "Heroes 2.0.1, p. 28"
+    assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
     assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    actions_before = hunter.trait_set.current_actions
+    first_attack = hunter.use_shadowpath_first_attack_advantage!
+    assert_includes first_attack.summary, "Applied Ambusher's advantage to the first attack this encounter"
+    assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+    assert_equal actions_before, hunter.trait_set.current_actions
+    assert_raises(ArgumentError) { hunter.use_shadowpath_first_attack_advantage! }
     hunter.end_encounter!
     assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    assert_equal 0, hunter.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+    hunter.begin_encounter!
+    assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
 
     assignments = { strength: 0, dexterity: 2, intelligence: 1, will: 1 }
     red_dragon = Character.create!(name: "Red Dragon Pact", level: 11, character_class: CharacterClass.find_by!(name: "Shadowmancer"), ancestry:, background:, stat_array: "balanced", stat_assignments: assignments)

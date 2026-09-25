@@ -903,6 +903,34 @@ class Character < ApplicationRecord
     end
   end
 
+  def use_shadowpath_first_attack_advantage!
+    with_lock do
+      grant = initiative_resource_grants.find do |entry|
+        entry.fetch("feature_name") == "Ambusher" && entry.fetch("resource_key") == "shadowpath_first_attack_advantage"
+      end
+      unless grant
+        raise ArgumentError, "Ambusher's first-attack advantage requires a level 3 Shadowpath Hunter. Heroes 2.0.1, p. 28."
+      end
+      raise ArgumentError, "Record Initiative before spending Ambusher's first-attack advantage." if encounter_started_at.blank?
+
+      tracks = Array(trait_set&.resource_tracks).map(&:to_h)
+      track = tracks.find { |resource| resource.fetch("key") == grant.fetch("resource_key") }
+      raise ArgumentError, "Ambusher's advantage tracker is unavailable. #{grant.fetch('source_ref')}." unless track
+      raise ArgumentError, "Ambusher's first-attack advantage has already been used this encounter." unless track.fetch("current").to_i.positive?
+
+      tracks = tracks.map do |resource|
+        resource.fetch("key") == grant.fetch("resource_key") ? resource.merge("current" => resource.fetch("current").to_i - 1) : resource
+      end
+      trait_set.update!(resource_tracks: tracks)
+      record_revision!(
+        event_type: "shadowpath_first_attack_advantage",
+        summary: "Applied Ambusher's advantage to the first attack this encounter (#{grant.fetch('source_ref')}); resolve the attack at the table",
+        from_level: level,
+        to_level: level
+      )
+    end
+  end
+
   def summon_shadow_minion!
     rule = Rules::NimbleCatalog.class_resource_pool_for("Shadowmancer", "shadow_minions")
     raise ArgumentError, "Shadow Minion summon rules are unavailable. Heroes 2.0.1, p. 43." unless rule
@@ -2253,19 +2281,27 @@ class Character < ApplicationRecord
 
         case action.fetch("kind")
         when "free_spell_cast"
-          target = attributes.fetch("target", "").to_s.strip
-          unless target.present? && target.length <= 80
-            raise ArgumentError, "Name the weapon or wielder for the free #{action.fetch('spell_name')} cast (80 characters maximum)."
-          end
+          target = initiative_feature_action_target(attributes, action)
 
           spell = Spell.find_by(name: action.fetch("spell_name"))
           raise ArgumentError, "#{action.fetch('feature_name')} spell data is unavailable. #{action.fetch('source_ref')}." unless spell
 
           "#{action.fetch('feature_name')} cast #{spell.name} at Tier #{spell.tier} for free on #{target} (#{action.fetch('source_ref')}; resolve spell effects and any upcast at the table)"
+        when "free_feature_use"
+          target = initiative_feature_action_target(attributes, action)
+          "#{action.fetch('feature_name')} used #{action.fetch('action_name')} for free on #{target} (#{action.fetch('source_ref')}; apply the feature effect at the table)"
         else
           raise ArgumentError, "#{action.fetch('feature_name')} Initiative action is not supported yet. #{action.fetch('source_ref')}."
         end
       end
+    end
+
+    def initiative_feature_action_target(attributes, action)
+      target = attributes.fetch("target", "").to_s.strip
+      maximum_length = action.fetch("target_max_length", 80).to_i
+      return target if target.present? && target.length <= maximum_length
+
+      raise ArgumentError, "Name the #{action.fetch('target_label').downcase} for #{action.fetch('feature_name')} (#{maximum_length} characters maximum)."
     end
 
     def current_stat_values

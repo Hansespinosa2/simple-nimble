@@ -517,6 +517,40 @@ class CharactersTest < ApplicationSystemTestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "a Shadowpath records its free mark and tracks Ambusher's first attack advantage" do
+    hunter = Character.create!(
+      name: "Ambusher System Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    hunter.update_columns(subclass_name: "Shadowpath", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    tracks = hunter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Shadowpath")
+    hunter.trait_set.update!(resource_tracks: tracks)
+    actions_before = hunter.trait_set.current_actions
+
+    visit character_url(hunter)
+
+    assert_text "When you roll Initiative, you may use Hunter's Mark for free"
+    check "Use Ambusher's free Hunter's Mark now"
+    fill_in "Quarry or quarries", with: "Ashen Stag"
+    click_on "Record Initiative Roll · ready Ambusher advantage"
+
+    assert_text "Ambusher used Hunter's Mark for free on Ashen Stag"
+    assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+    assert_equal actions_before, hunter.trait_set.current_actions
+
+    click_on "Record first attack · spend Ambusher advantage"
+
+    assert_text "Applied Ambusher's advantage to the first attack this encounter"
+    assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+    assert_equal 1, hunter.character_revisions.where(event_type: "shadowpath_first_attack_advantage").count
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet derives HP and Wound conditions and suggests other source-listed conditions" do
     character = Character.create!(
       name: "Condition Tracker Hero",

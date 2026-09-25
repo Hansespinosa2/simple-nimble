@@ -781,6 +781,59 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, spellblade.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-1 S-09:AC-3
+  test "Shadowpath records free Hunter's Mark and spends Ambusher advantage once per encounter" do
+    Rails.application.load_seed
+    hunter = Character.create!(
+      name: "Ambusher Tracker",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    hunter.update_columns(subclass_name: "Shadowpath", status: "playable")
+    stat_values = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    tracks = hunter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Shadowpath")
+    hunter.trait_set.update!(resource_tracks: tracks)
+
+    patch game_feature_character_url(hunter), params: { game_feature: { action: "shadowpath_first_attack_advantage" } }
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:alert], "Record Initiative before spending Ambusher's first-attack advantage"
+    assert_not hunter.character_revisions.exists?(event_type: "shadowpath_first_attack_advantage")
+
+    get character_url(hunter)
+    assert_response :success
+    assert_select "input[name='initiative_roll[feature_actions][shadowpath_hunters_mark][used]'][type='checkbox']"
+    assert_select "input[name='initiative_roll[feature_actions][shadowpath_hunters_mark][target]'][maxlength='160']"
+
+    patch begin_encounter_character_url(hunter), params: {
+      initiative_roll: { feature_actions: { shadowpath_hunters_mark: { used: "1" } } }
+    }
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:alert], "Name the quarry or quarries"
+    assert_nil hunter.reload.encounter_started_at
+
+    patch begin_encounter_character_url(hunter), params: {
+      initiative_roll: { feature_actions: { shadowpath_hunters_mark: { used: "1", target: "Ashen Stag" } } }
+    }
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:notice], "Ambusher used Hunter's Mark for free on Ashen Stag"
+    assert_includes flash[:notice], "Heroes 2.0.1, p. 28"
+    assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+
+    patch game_feature_character_url(hunter), params: { game_feature: { action: "shadowpath_first_attack_advantage" } }
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:notice], "Applied Ambusher's advantage to the first attack this encounter"
+    assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "shadowpath_first_attack_advantage" }.fetch("current")
+    assert_includes hunter.character_revisions.where(event_type: "shadowpath_first_attack_advantage").sole.summary, "Heroes 2.0.1, p. 28"
+
+    patch game_feature_character_url(hunter), params: { game_feature: { action: "shadowpath_first_attack_advantage" } }
+    assert_redirected_to character_url(hunter)
+    assert_includes flash[:alert], "already been used this encounter"
+    assert_equal 1, hunter.character_revisions.where(event_type: "shadowpath_first_attack_advantage").count
+  end
+
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "the Initiative action shows and applies both class and subclass grants" do
     Rails.application.load_seed
