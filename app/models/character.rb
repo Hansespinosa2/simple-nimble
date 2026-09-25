@@ -2187,23 +2187,41 @@ class Character < ApplicationRecord
     end
 
     def validate_starting_background_spell_choice(issues)
-      pool = starting_background_spell_choice_pool
-      selections = spell_choice_selections_for("Academy Dropout", 1)
+      background_spell_choices = Rules::NimbleCatalog.background_spell_choices
+      background_spell_choices.each do |choice_background, definition|
+        next if choice_background == background&.name
 
-      if pool.blank?
-        if selections.any?
-          issues << rule_issue(
-            "Academy Dropout's Utility Spell choice is not available for this background.",
-            "Core Rules 2.0.1, p. 28",
-            "Academy Dropout grants one Utility Spell only when it is the chosen background."
-          )
-        end
-        return
+        selections = spell_choice_selections_for(choice_background, 1)
+        next if selections.empty?
+
+        label = definition.fetch("choice_label", "spell")
+        issues << rule_issue(
+          "#{choice_background}'s #{label} choice is not available unless that background is selected.",
+          definition.fetch("source_ref"),
+          definition.fetch("source_quote")
+        )
       end
 
-      if selections.length != pool.fetch("count")
+      pool = starting_background_spell_choice_pool
+      return if pool.blank?
+
+      pool_name = pool.fetch("name")
+      label = pool.fetch("choice_label", "spell")
+      selections = spell_choice_selections_for(pool_name, 1)
+      count = pool.fetch("count").to_i
+
+      if selections.length != count
+        choice_count = "#{count} #{label} choice#{'s' unless count == 1}"
         issues << rule_issue(
-          "Academy Dropout requires one Utility Spell choice.",
+          "#{pool_name} requires #{choice_count}.",
+          pool.fetch("source_ref"),
+          pool.fetch("source_quote")
+        )
+      end
+
+      if pool.fetch("distinct", false) && selections.uniq.length != selections.length
+        issues << rule_issue(
+          "#{pool_name} choices must be different.",
           pool.fetch("source_ref"),
           pool.fetch("source_quote")
         )
@@ -2212,7 +2230,7 @@ class Character < ApplicationRecord
       invalid_selections = selections - Array(pool.fetch("options"))
       invalid_selections.each do |selection|
         issues << rule_issue(
-          "#{selection} is not a Utility Spell option for Academy Dropout.",
+          "#{selection} is not a #{label} option for #{pool_name}.",
           pool.fetch("source_ref"),
           pool.fetch("source_quote")
         )

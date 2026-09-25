@@ -908,6 +908,68 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal "Core Rules 2.0.1, p. 28", choice.fetch(:source_ref)
   end
 
+  # S-02:AC-1 S-02:AC-4 S-05:AC-1 S-05:AC-3 S-09:AC-3
+  test "background spell-choice requirements use configured names, counts, labels, and distinctness" do
+    Rails.application.load_seed
+    catalog = Rules::NimbleCatalog.data
+    original_choices = catalog.fetch("background_spell_choices")
+    background_name = "Wayward Apprentice"
+    catalog["background_spell_choices"] = original_choices.merge(
+      background_name => {
+        "source_ref" => "Test rules, p. 1",
+        "source_quote" => "Learn 2 different Utility Spells.",
+        "kind" => "utility_spell_any",
+        "choice_label" => "Utility Spell",
+        "count" => 2,
+        "distinct" => true
+      }
+    )
+
+    begin
+      background = Background.create!(name: background_name)
+      attributes = {
+        name: "Data-driven background spell hero",
+        character_class: CharacterClass.find_by!(name: "Mage"),
+        ancestry: Ancestry.find_by!(name: "Human"),
+        background:,
+        stat_array: "standard",
+        language_choices: [ "Draconic", "Primordial" ],
+        skill_set_attributes: { arcana: 7 }
+      }
+      character = Character.create!(**attributes)
+      pool = character.spell_choice_pools_for(1).find { |entry| entry.fetch("name") == background_name }
+      assert_equal 2, pool.fetch("count")
+      assert_equal "Utility Spell", pool.fetch("choice_label")
+
+      missing = character.creation_issues.find { |issue| issue.fetch(:source_ref) == "Test rules, p. 1" }
+      assert_equal "Wayward Apprentice requires 2 Utility Spell choices.", missing.fetch(:message)
+      assert_equal "Learn 2 different Utility Spells.", missing.fetch(:quote)
+
+      spell_names = pool.fetch("options").first(2)
+      character.update!(spell_choices: { background_name => { "1" => [ spell_names.first, spell_names.first ] } })
+      duplicate = character.creation_issues.find { |issue| issue.fetch(:message).include?("must be different") }
+      assert_equal "Wayward Apprentice choices must be different.", duplicate.fetch(:message)
+      assert_equal "Test rules, p. 1", duplicate.fetch(:source_ref)
+
+      character.update!(spell_choices: { background_name => { "1" => spell_names } })
+      assert_empty character.creation_issues, character.creation_issues.map { |issue| issue.fetch(:message) }.join(" | ")
+      character.finalize_creation!
+      assert_equal spell_names.sort, character.reload.spells.where(tier: -1).pluck(:name).sort
+
+      unselected_background = Character.create!(
+        **attributes.merge(
+          name: "Unselected background spell hero",
+          background: Background.find_by!(name: "Fearless"),
+          spell_choices: { background_name => { "1" => spell_names } }
+        )
+      )
+      wrong_background = unselected_background.creation_issues.find { |issue| issue.fetch(:source_ref) == "Test rules, p. 1" }
+      assert_equal "Wayward Apprentice's Utility Spell choice is not available unless that background is selected.", wrong_background.fetch(:message)
+    ensure
+      catalog["background_spell_choices"] = original_choices
+    end
+  end
+
   test "resource tracks follow class unlocks, maxima, and encounter starting states" do
     Rails.application.load_seed
     ancestry = Ancestry.find_by!(name: "Human")

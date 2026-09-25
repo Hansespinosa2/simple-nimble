@@ -356,6 +356,7 @@ class CharactersController < ApplicationController
           }
         end,
         backgrounds: @backgrounds.index_by(&:id).transform_values do |background|
+          spell_choice_rule = Rules::NimbleCatalog.background_spell_choice_for(background.name)
           {
             description: background.description,
             prerequisite_stat: background.prerequisite_stat,
@@ -366,7 +367,8 @@ class CharactersController < ApplicationController
             max_wounds_modifier: background.max_wounds_modifier,
             skill_modifiers: background.skill_modifiers,
             language_grants: background.language_names,
-            starting_spell_choice: Rules::NimbleCatalog.background_spell_choice_for(background.name).present?
+            starting_spell_choice: spell_choice_rule.present?,
+            starting_spell_choice_rule: spell_choice_rule
           }
         end
       }

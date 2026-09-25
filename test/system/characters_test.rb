@@ -346,7 +346,42 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='backgroundSpellChoiceField']", visible: true
     select "Wind · Wind Whisper", from: "Academy Dropout · Utility Spell"
 
-    assert_equal "Wind Whisper", find("select[name='character[spell_choices][Academy Dropout][1]']").value
+    assert_equal "Wind Whisper", find("select[name='character[spell_choices][Academy Dropout][1][]']").value
+  end
+
+  # S-02:AC-1 S-02:AC-4 S-05:AC-1 S-05:AC-3 S-09:AC-3
+  test "builder renders the configured number of distinct background spell picks" do
+    catalog = Rules::NimbleCatalog.data
+    original_choices = catalog.fetch("background_spell_choices")
+    background_name = "Wayward Apprentice"
+    background = Background.create!(name: background_name)
+    catalog["background_spell_choices"] = original_choices.merge(
+      background_name => {
+        "source_ref" => "Test rules, p. 1",
+        "source_quote" => "Learn 2 different Utility Spells.",
+        "kind" => "utility_spell_any",
+        "choice_label" => "Utility Spell",
+        "count" => 2,
+        "distinct" => true
+      }
+    )
+
+    begin
+      visit new_character_url
+      select "Mage", from: "Class"
+      select "Human", from: "Ancestry"
+      select background_name, from: "Background"
+      select "Balanced", from: "Stat array"
+      assert_selector "[data-character-builder-target='backgroundSpellChoiceField']", visible: true
+
+      select "Wind · Wind Whisper", from: "#{background_name} · Utility Spell 1"
+      select "Fire · Firebrand", from: "#{background_name} · Utility Spell 2"
+      assert_selector "select[name='character[spell_choices][#{background_name}][1][]']", count: 2
+      choices = all("select[name='character[spell_choices][#{background_name}][1][]']").map(&:value)
+      assert_equal [ "Wind Whisper", "Firebrand" ], choices
+    ensure
+      catalog["background_spell_choices"] = original_choices
+    end
   end
 
   test "the sheet tracks live game state and records the update" do

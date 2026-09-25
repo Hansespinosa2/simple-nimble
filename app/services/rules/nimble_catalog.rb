@@ -301,7 +301,11 @@ module Rules
       end
 
       def background_spell_choice_for(background_name)
-        data.fetch("background_spell_choices", {}).fetch(background_name.to_s, nil)
+        background_spell_choices.fetch(background_name.to_s, nil)
+      end
+
+      def background_spell_choices
+        data.fetch("background_spell_choices", {})
       end
 
       def ancestry_resource_pools_for(ancestry_name)

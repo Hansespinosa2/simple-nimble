@@ -1846,7 +1846,9 @@ background_spell_choices:
     source_ref: Core Rules 2.0.1, p. 28
     source_quote: "Learn any 1 Utility Spell."
     kind: utility_spell_any
+    choice_label: Utility Spell
     count: 1
+    distinct: true
 
 ancestry_resource_pools:
   Halfling:

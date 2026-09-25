@@ -107,13 +107,34 @@
             <% school_choice_rule = character.character_class&.spell_school_choice_rule %>
             <span class="field-hint" data-character-builder-target="spellSchoolChoiceHint"><%= "#{school_choice_rule.fetch('source_quote')} (#{school_choice_rule.fetch('source_ref')})" if school_choice_rule.present? %></span>
           </div>
-          <% academy_choice = Rules::NimbleCatalog.background_spell_choice_for("Academy Dropout") %>
-          <% utility_spell_options = Spell.where(tier: -1).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
-          <div class="field field-wide" data-character-builder-target="backgroundSpellChoiceField" <%= "hidden" unless character.background&.name == "Academy Dropout" %>>
-            <%= label_tag "character[spell_choices][Academy Dropout][1]", "Academy Dropout · Utility Spell" %>
-            <%= select_tag "character[spell_choices][Academy Dropout][1]", options_for_select([["Choose a Utility Spell", ""]] + utility_spell_options, character.spell_choice_selections_for("Academy Dropout", 1).first), disabled: read_only, data: { character_builder_target: "backgroundSpellChoice" } %>
-            <span class="field-hint"><%= academy_choice.fetch("source_ref") %> · “<%= academy_choice.fetch("source_quote") %>”</span>
-          </div>
+          <% Rules::NimbleCatalog.background_spell_choices.each do |background_name, choice_rule| %>
+            <% background_record = @backgrounds.find { |candidate| candidate.name == background_name } %>
+            <% next unless background_record %>
+            <% choice_label = choice_rule.fetch("choice_label", "Spell") %>
+            <% choice_count = choice_rule.fetch("count", 1).to_i %>
+            <% choice_options = case choice_rule.fetch("kind") %>
+              <% when "utility_spell_any" %>
+                <% Spell.where(tier: -1).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+              <% when "utility_spell" %>
+                <% Spell.where(tier: -1, school: Array(choice_rule.fetch("allowed_schools", []))).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+              <% when "spell_up_to_tier" %>
+                <% Spell.where(tier: 0..choice_rule.fetch("max_tier").to_i).order(:school, :name).map { |spell| [ "#{spell.school} · #{spell.name}", spell.name ] } %>
+              <% when "utility_school" %>
+                <% Array(choice_rule.fetch("allowed_schools", [])).map { |school| [ school, school ] } %>
+              <% else %>
+                <% Array(choice_rule.fetch("options", [])).map { |option| [ option, option ] } %>
+              <% end %>
+            <div class="field field-wide" data-character-builder-target="backgroundSpellChoiceField" data-background-id="<%= background_record.id %>" <%= "hidden" unless character.background&.name == background_name %>>
+              <% choice_count.times do |choice_index| %>
+                <% field_name = "character[spell_choices][#{background_name}][1][]" %>
+                <% field_id = "character_spell_choices_#{background_record.id}_1_#{choice_index}" %>
+                <% field_label = "#{background_name} · #{choice_label}#{" #{choice_index + 1}" if choice_count > 1}" %>
+                <%= label_tag field_id, field_label %>
+                <%= select_tag field_name, options_for_select([["Choose a #{choice_label}", ""]] + choice_options, character.spell_choice_selections_for(background_name, 1)[choice_index]), id: field_id, disabled: read_only, data: { character_builder_target: "backgroundSpellChoice" } %>
+              <% end %>
+              <span class="field-hint"><%= choice_rule.fetch("source_ref") %> · “<%= choice_rule.fetch("source_quote") %>”</span>
+            </div>
+          <% end %>
         </div>
         <div class="rules-callout" data-character-builder-target="rulesCallout">
           <span class="callout-icon">✦</span>

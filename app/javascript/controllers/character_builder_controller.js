@@ -59,12 +59,14 @@ export default class extends Controller {
   updateBackgroundSpellChoice(background) {
     if (!this.hasBackgroundSpellChoiceFieldTarget) return
 
-    const enabled = background?.starting_spell_choice || false
-    this.backgroundSpellChoiceFieldTarget.hidden = !enabled
-    if (this.hasBackgroundSpellChoiceTarget) {
-      if (!enabled) this.backgroundSpellChoiceTarget.value = ""
-      this.backgroundSpellChoiceTarget.disabled = this.backgroundSpellChoiceInitialDisabled
-    }
+    this.backgroundSpellChoiceFieldTargets.forEach((field) => {
+      const enabled = background?.starting_spell_choice && field.dataset.backgroundId === this.backgroundTarget.value
+      field.hidden = !enabled
+      field.querySelectorAll("select[data-character-builder-target='backgroundSpellChoice']").forEach((select) => {
+        if (!enabled) select.value = ""
+        select.disabled = this.backgroundSpellChoiceInitialDisabled
+      })
+    })
   }
 
   updateStartingEquipment(characterClass) {
@@ -214,7 +216,10 @@ export default class extends Controller {
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
     if (background?.prerequisite_stat) backgroundHint += ` Requires ${this.abbreviate(background.prerequisite_stat)} ≤ ${background.prerequisite_max}.`
-    if (background?.starting_spell_choice) backgroundHint += " Grants 1 Utility Spell."
+    if (background?.starting_spell_choice_rule) {
+      const rule = background.starting_spell_choice_rule
+      backgroundHint += ` ${rule.source_quote} (${rule.source_ref})`
+    }
     this.setTargetText("backgroundHint", backgroundHint)
 
     if (this.hasRulesCalloutTarget) {

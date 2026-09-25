@@ -39,10 +39,12 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[stat_assignments][will]']"
     assert_select "[data-character-builder-target='savesPreview']"
     assert_select "[data-character-builder-target='backgroundSpellChoiceField'][hidden]"
-    assert_select "select[name='character[spell_choices][Academy Dropout][1]'] option[value='Firebrand']"
+    assert_select "select[name='character[spell_choices][Academy Dropout][1][]'] option[value='Firebrand']"
     rules_payload = JSON.parse(Nokogiri::HTML(response.body).at_css("form.builder-form")["data-character-builder-rules-value"])
     academy_background_id = Background.find_by!(name: "Academy Dropout").id.to_s
     assert_equal true, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice")
+    assert_equal "Utility Spell", rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice_rule", "choice_label")
+    assert_equal 1, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice_rule", "count")
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-09:AC-3
@@ -237,6 +239,43 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Wind Whisper" ], created.recorded_spell_choices.fetch("Academy Dropout")
   end
 
+  # S-02:AC-1 S-02:AC-4 S-05:AC-1 S-05:AC-3 S-09:AC-3
+  test "creation accepts and grants multiple catalog-defined background spell choices" do
+    catalog = Rules::NimbleCatalog.data
+    original_choices = catalog.fetch("background_spell_choices")
+    background_name = "Wayward Apprentice"
+    background = Background.create!(name: background_name)
+    catalog["background_spell_choices"] = original_choices.merge(
+      background_name => {
+        "source_ref" => "Test rules, p. 1",
+        "source_quote" => "Learn 2 different Utility Spells.",
+        "kind" => "utility_spell_any",
+        "choice_label" => "Utility Spell",
+        "count" => 2,
+        "distinct" => true
+      }
+    )
+
+    begin
+      post characters_url, params: {
+        character: canonical_character_attributes.merge(
+          name: "Two-Spell Background Hero",
+          background_id: background.id,
+          spell_choices: { background_name => { "1" => [ "Wind Whisper", "Firebrand" ] } }
+        ),
+        finalize: "1"
+      }
+
+      assert_redirected_to character_url(Character.order(:id).last)
+      created = Character.order(:id).last
+      assert created.playable?
+      assert_equal [ "Firebrand", "Wind Whisper" ], created.recorded_spell_choices.fetch(background_name).sort
+      assert_equal [ "Firebrand", "Wind Whisper" ], created.spells.where(tier: -1).pluck(:name).sort
+    ensure
+      catalog["background_spell_choices"] = original_choices
+    end
+  end
+
   test "should explain the Academy Dropout Utility Spell requirement when missing" do
     post characters_url, params: {
       character: canonical_character_attributes.merge(
@@ -247,7 +286,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    assert_includes response.body, "Academy Dropout requires one Utility Spell choice."
+    assert_includes response.body, "Academy Dropout requires 1 Utility Spell choice."
     assert_includes response.body, "Core Rules 2.0.1, p. 28"
   end
 

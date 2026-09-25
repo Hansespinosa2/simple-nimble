@@ -481,7 +481,9 @@ class NimbleCatalogTest < ActiveSupport::TestCase
 
     assert_equal "Core Rules 2.0.1, p. 28", pool.fetch("source_ref")
     assert_equal "utility_spell_any", pool.fetch("kind")
+    assert_equal "Utility Spell", pool.fetch("choice_label")
     assert_equal 1, pool.fetch("count")
+    assert pool.fetch("distinct")
   end
 
   test "limited-use ancestry abilities have explicit uses, resets, and source text" do
