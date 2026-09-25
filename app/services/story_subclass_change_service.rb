@@ -79,7 +79,7 @@ class StorySubclassChangeService
         approved_by:
       ) do
         character.subclass_name = to_subclass
-        character.bonescythe_summoned = false unless to_subclass == "Reaver"
+        character.bonescythe_summoned = false unless character.story_subclass_weapon_entry.present?
         character.spells = character.spells.where.not(name: replaced_spell_names) if replaced_spell_names.present?
         character.spell_choices = spell_choice_ledger
         character.feature_choices = feature_choice_ledger if approved_feature_choices.present?

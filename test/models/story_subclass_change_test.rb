@@ -478,6 +478,41 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_not shadowmancer.bonescythe_summoned?
   end
 
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-09:AC-3
+  test "story subclass changes preserve a summoned Bonescythe when its configured subclass name changes" do
+    shadowmancer = create_shadowmancer
+    share = shadowmancer.character_shares.create!(campaign: @campaign, created_by_account: @owner, permission: "read")
+    catalog = Rules::NimbleCatalog.data
+    original_catalog = catalog.deep_dup
+
+    StorySubclassChangeService.call(
+      character: shadowmancer,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Pact of the Red Dragon",
+      to_subclass: "Reaver",
+      story_note: "The patron abandons the Shadowmancer, leaving a weapon made of bone."
+    )
+    shadowmancer.summon_bonescythe!
+    assert shadowmancer.reload.bonescythe_summoned?
+
+    catalog.replace(rename_rule_value(catalog, "Reaver", "The Trial Path"))
+    change = StorySubclassChangeService.call(
+      character: shadowmancer,
+      share:,
+      approved_by: @gm,
+      current_subclass: "Reaver",
+      to_subclass: "The Trial Path",
+      story_note: "The same story-bound path is known by a different name in this campaign."
+    )
+
+    assert_equal "The Trial Path", change.to_subclass
+    assert shadowmancer.reload.bonescythe_summoned?
+    assert_equal "Bonescythe", shadowmancer.story_subclass_weapon_entry.fetch(:name)
+  ensure
+    catalog.replace(original_catalog) if catalog && original_catalog
+  end
+
   test "story subclass action gating follows catalog ownership, unlock level, and citation" do
     shadowmancer = create_shadowmancer
     catalog = Rules::NimbleCatalog.data
@@ -882,5 +917,20 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
       )
       character.skill_set.update!(finesse: 9)
       character
+    end
+
+    def rename_rule_value(value, from, to)
+      case value
+      when Hash
+        value.each_with_object({}) do |(key, nested), renamed|
+          renamed[key == from ? to : key] = rename_rule_value(nested, from, to)
+        end
+      when Array
+        value.map { |nested| rename_rule_value(nested, from, to) }
+      when String
+        value == from ? to : value
+      else
+        value
+      end
     end
 end
