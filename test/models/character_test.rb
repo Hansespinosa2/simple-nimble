@@ -1178,6 +1178,88 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "one Initiative event applies every eligible class and subclass resource grant" do
+    Rails.application.load_seed
+    commander = Character.create!(
+      name: "Spellblade Commander",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced"
+    )
+    commander.update_column(:subclass_name, "Spellblade")
+    stat_values = Character::STAT_NAMES.index_with { |stat| commander.stat_value(stat) }
+    tracks = commander.derived_resource_tracks_for(stat_values:, level: 4, subclass_name: "Spellblade")
+    commander.trait_set.update!(resource_tracks: tracks)
+
+    assert_equal [ "Fit for Any Battlefield", "Arcane Command" ], commander.initiative_resource_grants.map { |grant| grant.fetch("feature_name") }
+    revision = commander.begin_encounter!
+    refreshed_tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+
+    assert_equal commander.stat_value(:strength), refreshed_tracks.fetch("combat_dice").fetch("current")
+    assert_equal commander.stat_value(:intelligence), refreshed_tracks.fetch("spellblade_initiative_mana").fetch("current")
+    assert_includes revision.summary, "gained #{commander.stat_value(:strength)} Combat Dice"
+    assert_includes revision.summary, "gained #{commander.stat_value(:intelligence)} Arcane Command mana"
+
+    commander.end_encounter!
+    ended_tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 0, ended_tracks.fetch("combat_dice").fetch("current")
+    assert_equal 0, ended_tracks.fetch("spellblade_initiative_mana").fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "subclass Initiative charges respect spent-use limits and expire at encounter end" do
+    Rails.application.load_seed
+    ancestry = Ancestry.find_by!(name: "Human")
+    background = Background.find_by!(name: "Fearless")
+
+    hunter = Character.create!(name: "Apex Tracker", level: 15, character_class: CharacterClass.find_by!(name: "Hunter"), ancestry:, background:, stat_array: "balanced")
+    hunter.update_column(:subclass_name, "Shadowpath")
+    hunter_stats = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    hunter.trait_set.update!(resource_tracks: hunter.derived_resource_tracks_for(stat_values: hunter_stats, level: 15, subclass_name: "Shadowpath"))
+    hunter.begin_encounter!
+    assert_equal 1, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+    hunter.end_encounter!
+    assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+
+    assignments = { strength: 0, dexterity: 2, intelligence: 1, will: 1 }
+    red_dragon = Character.create!(name: "Red Dragon Pact", level: 11, character_class: CharacterClass.find_by!(name: "Shadowmancer"), ancestry:, background:, stat_array: "balanced", stat_assignments: assignments)
+    red_dragon.update_column(:subclass_name, "Pact of the Red Dragon")
+    red_dragon_stats = Character::STAT_NAMES.index_with { |stat| red_dragon.stat_value(stat) }
+    red_dragon_tracks = red_dragon.derived_resource_tracks_for(stat_values: red_dragon_stats, level: 11, subclass_name: "Pact of the Red Dragon")
+    red_dragon_tracks.map! do |track|
+      track.fetch("key") == "pilfered_power" ? track.merge("current" => track.fetch("max").to_i - 1) : track
+    end
+    red_dragon.trait_set.update!(resource_tracks: red_dragon_tracks)
+    red_dragon.begin_encounter!
+    red_tracks = red_dragon.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 1, red_tracks.fetch("red_dragon_temporary_pilfered_power").fetch("current")
+    assert_equal red_tracks.fetch("pilfered_power").fetch("max").to_i - 1, red_tracks.fetch("pilfered_power").fetch("current"), "the temporary refund does not rewrite the Safe Rest pool"
+    red_dragon.end_encounter!
+    assert_equal 0, red_dragon.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "red_dragon_temporary_pilfered_power" }.fetch("current")
+
+    songweaver = Character.create!(name: "Quick Wit Songweaver", level: 3, character_class: CharacterClass.find_by!(name: "Songweaver"), ancestry:, background:, stat_array: "balanced", stat_assignments: assignments)
+    songweaver.update_column(:subclass_name, "Herald of Snark")
+    songweaver_stats = Character::STAT_NAMES.index_with { |stat| songweaver.stat_value(stat) }
+    songweaver_tracks = songweaver.derived_resource_tracks_for(stat_values: songweaver_stats, level: 3, subclass_name: "Herald of Snark")
+    songweaver.trait_set.update!(resource_tracks: songweaver_tracks)
+    assert_equal 0, songweaver.initiative_resource_amount, "Quick Wit cannot regain Inspiration that has not been spent"
+
+    songweaver_tracks.map! do |track|
+      track.fetch("key") == "inspiration" ? track.merge("current" => track.fetch("max").to_i - 1) : track
+    end
+    songweaver.trait_set.update!(resource_tracks: songweaver_tracks)
+    assert_equal 1, songweaver.initiative_resource_amount, "Quick Wit regains only a previously spent use"
+    songweaver.begin_encounter!
+    song_tracks = songweaver.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 1, song_tracks.fetch("quick_wit_inspiration").fetch("current")
+    assert_equal song_tracks.fetch("inspiration").fetch("max").to_i - 1, song_tracks.fetch("inspiration").fetch("current")
+    songweaver.end_encounter!
+    assert_equal 0, songweaver.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "quick_wit_inspiration" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Reaver's level-15 initiative feature is once per encounter and respects its minion limit" do
     Rails.application.load_seed
     shadowmancer = Character.create!(

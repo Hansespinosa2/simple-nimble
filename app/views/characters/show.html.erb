@@ -156,16 +156,24 @@
           <%= tracker_form.submit "Save game state", class: "button button-primary button-full" %>
         <% end %>
         <% if resource_tracks.any? { |track| Array(track["reset_events"]).include?("encounter_end") } %>
-          <% initiative_grant = @character.initiative_resource_grant %>
-          <% initiative_track = resource_tracks.find { |track| track.fetch("key") == initiative_grant&.fetch("resource_key") } %>
-          <% if initiative_grant.present? && initiative_track.present? %>
+          <% initiative_grants = @character.initiative_resource_grants %>
+          <% initiative_tracks = initiative_grants.filter_map { |grant| resource_tracks.find { |track| track.fetch("key") == grant.fetch("resource_key") } } %>
+          <% if initiative_grants.present? && initiative_tracks.present? %>
             <div class="safe-rest-action">
-              <p class="eyebrow"><%= initiative_grant.fetch("feature_label") %></p>
-              <p><%= initiative_grant.fetch("description") %> (<%= initiative_grant.fetch("source_ref") %>)</p>
+              <% initiative_grants.each do |grant| %>
+                <p class="eyebrow"><%= grant.fetch("feature_label") %></p>
+                <p><%= grant.fetch("description") %> (<%= grant.fetch("source_ref") %>)</p>
+              <% end %>
               <% if @character.encounter_started_at.present? %>
                 <span class="field-hint">Initiative recorded at <%= l(@character.encounter_started_at, format: :short) %>.</span>
               <% else %>
-                <%= button_to(initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount.to_s), begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
+                <% initiative_label = if initiative_grants.one?
+                  initiative_grant = initiative_grants.first
+                  initiative_grant.fetch("action_label").gsub("%{amount}", @character.initiative_resource_amount(initiative_grant, resource_tracks: resource_tracks).to_s)
+                else
+                  "Record Initiative Roll · apply listed features"
+                end %>
+                <%= button_to(initiative_label, begin_encounter_character_path(@character), method: :patch, class: "button button-secondary button-full") %>
               <% end %>
             </div>
           <% end %>

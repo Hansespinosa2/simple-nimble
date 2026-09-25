@@ -767,6 +767,39 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, spellblade.trait_set.resource_tracks.find { |track| track.fetch("key") == "spellblade_initiative_mana" }.fetch("current")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "the Initiative action shows and applies both class and subclass grants" do
+    Rails.application.load_seed
+    commander = Character.create!(
+      name: "Combined Initiative",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: @background,
+      stat_array: "balanced"
+    )
+    commander.update_column(:subclass_name, "Spellblade")
+    stat_values = Character::STAT_NAMES.index_with { |stat| commander.stat_value(stat) }
+    tracks = commander.derived_resource_tracks_for(stat_values:, level: 4, subclass_name: "Spellblade")
+    commander.trait_set.update!(resource_tracks: tracks)
+
+    get character_url(commander)
+
+    assert_response :success
+    assert_select ".safe-rest-action", /Fit for Any Battlefield/
+    assert_select ".safe-rest-action", /Arcane Command/
+    assert_select "form[action='#{begin_encounter_character_path(commander)}'] button[type='submit']", text: "Record Initiative Roll · apply listed features"
+
+    patch begin_encounter_character_url(commander)
+
+    assert_redirected_to character_url(commander)
+    assert_includes flash[:notice], "gained #{commander.stat_value(:strength)} Combat Dice"
+    assert_includes flash[:notice], "gained #{commander.stat_value(:intelligence)} Arcane Command mana"
+    tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal commander.stat_value(:strength), tracks.fetch("combat_dice").fetch("current")
+    assert_equal commander.stat_value(:intelligence), tracks.fetch("spellblade_initiative_mana").fetch("current")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3
   test "Reaver sheet renders and tracks Bonescythe summon and shatter actions" do
     Rails.application.load_seed

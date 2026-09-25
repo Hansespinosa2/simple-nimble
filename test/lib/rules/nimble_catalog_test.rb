@@ -213,6 +213,42 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 68", unyielding.fetch("source_ref")
   end
 
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "class and subclass Initiative resource grants all resolve at their source levels" do
+    commander = @catalog.initiative_resource_grants_for("Commander", "Spellblade", 4)
+    assert_equal [ "Fit for Any Battlefield", "Arcane Command" ], commander.map { |grant| grant.fetch("feature_name") }
+    assert_equal [ "combat_dice", "spellblade_initiative_mana" ], commander.map { |grant| grant.fetch("resource_key") }
+    assert_equal "strength", commander.first.fetch("amount_stat")
+    assert_equal "Heroes 2.0.1, p. 19", commander.first.fetch("source_ref")
+    assert_equal "Heroes 2.0.1, p. 76", commander.last.fetch("source_ref")
+
+    assert_empty @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 14)
+    apex_predator = @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 15).sole
+    assert_equal "Apex Predator", apex_predator.fetch("feature_name")
+    assert_equal "thrill_of_the_hunt", apex_predator.fetch("resource_key")
+    assert_equal "Heroes 2.0.1, p. 28", apex_predator.fetch("source_ref")
+
+    assert_empty @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 10)
+    heart_of_fire = @catalog.initiative_resource_grants_for("Shadowmancer", "Pact of the Red Dragon", 11).sole
+    assert_equal "Heart of Burning Fire", heart_of_fire.fetch("feature_name")
+    assert_equal "red_dragon_temporary_pilfered_power", heart_of_fire.fetch("resource_key")
+    assert_equal "pilfered_power", heart_of_fire.fetch("amount_from_spent_resource")
+    temporary_power = @catalog.class_resource_pool_for("Shadowmancer", "red_dragon_temporary_pilfered_power")
+    assert_equal "Pact of the Red Dragon", temporary_power.fetch("subclass_name")
+    assert_equal [ "encounter_end" ], temporary_power.fetch("reset_events")
+    assert_equal "Heroes 2.0.1, p. 47", temporary_power.fetch("source_ref")
+
+    assert_empty @catalog.initiative_resource_grants_for("Songweaver", "Herald of Snark", 2)
+    quick_wit = @catalog.initiative_resource_grants_for("Songweaver", "Herald of Snark", 3).sole
+    assert_equal "Quick Wit", quick_wit.fetch("feature_name")
+    assert_equal 2, quick_wit.fetch("amount")
+    assert_equal "inspiration", quick_wit.fetch("amount_from_spent_resource")
+    quick_wit_track = @catalog.class_for("Songweaver").dig("resource", "pools").find { |pool| pool.fetch("key") == "quick_wit_inspiration" }
+    assert_equal 3, quick_wit_track.fetch("start_level")
+    assert_equal [ "encounter_end" ], quick_wit_track.fetch("reset_events")
+    assert_equal "Heroes 2.0.1, p. 56", quick_wit_track.fetch("source_ref")
+  end
+
   # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "every published class follows its source-defined stat schedule through the catalog maximum" do
     max_level = @catalog.derived_values.fetch("max_level").to_i

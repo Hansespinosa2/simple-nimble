@@ -453,14 +453,17 @@ class Character < ApplicationRecord
   end
 
   def initiative_resource_grant
-    Rules::NimbleCatalog.initiative_resource_grant_for(character_class&.name, subclass_name, level)
+    initiative_resource_grants.first
   end
 
-  def initiative_resource_amount
-    grant = initiative_resource_grant
+  def initiative_resource_grants
+    Rules::NimbleCatalog.initiative_resource_grants_for(character_class&.name, subclass_name, level)
+  end
+
+  def initiative_resource_amount(grant = initiative_resource_grant, resource_tracks: Array(trait_set&.resource_tracks))
     return 0 if grant.blank?
     amount = if grant.fetch("amount", nil).to_s == "maximum"
-      track = Array(trait_set&.resource_tracks).map(&:to_h).find do |resource|
+      track = resource_tracks.map(&:to_h).find do |resource|
         resource.fetch("key") == grant.fetch("resource_key")
       end
       return 0 if track.blank?
@@ -472,6 +475,16 @@ class Character < ApplicationRecord
       end
     else
       grant.fetch("amount").to_i
+    end
+
+    if grant["amount_from_spent_resource"].present?
+      spent_track = resource_tracks.map(&:to_h).find do |resource|
+        resource.fetch("key") == grant.fetch("amount_from_spent_resource")
+      end
+      return 0 if spent_track.blank? || spent_track["max"].blank?
+
+      spent_uses = [ spent_track.fetch("max").to_i - spent_track.fetch("current").to_i, 0 ].max
+      amount = [ amount, spent_uses ].min
     end
 
     amount
@@ -768,21 +781,24 @@ class Character < ApplicationRecord
     with_lock do
       raise ArgumentError, "This encounter has already started. End it before recording another initiative roll." if encounter_started_at.present?
       tracks = Array(trait_set&.resource_tracks)
-      grant = initiative_resource_grant
-      raise ArgumentError, "This character has no initiative-triggered feature to record." if grant.blank?
+      grants = initiative_resource_grants
+      raise ArgumentError, "This character has no initiative-triggered feature to record." if grants.empty?
 
-      track_key = grant.fetch("resource_key")
-      track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
-      raise ArgumentError, "#{grant.fetch('feature_label')} resource is unavailable on this sheet. #{grant.fetch('source_ref')}." unless track
+      summaries = grants.map do |grant|
+        track_key = grant.fetch("resource_key")
+        track = tracks.find { |resource| resource.to_h.fetch("key") == track_key }
+        raise ArgumentError, "#{grant.fetch('feature_label')} resource is unavailable on this sheet. #{grant.fetch('source_ref')}." unless track
 
-      track = track.to_h
-      requested_amount = initiative_resource_amount
-      available_capacity = track["max"].present? ? [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max : nil
-      gained_amount = available_capacity ? [ requested_amount, available_capacity ].min : requested_amount
-      tracks = tracks.map do |resource|
-        resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => track.fetch("current").to_i + gained_amount) : resource
+        track = track.to_h
+        requested_amount = initiative_resource_amount(grant, resource_tracks: tracks)
+        available_capacity = track["max"].present? ? [ track.fetch("max").to_i - track.fetch("current").to_i, 0 ].max : nil
+        gained_amount = available_capacity ? [ requested_amount, available_capacity ].min : requested_amount
+        tracks = tracks.map do |resource|
+          resource.to_h.fetch("key") == track_key ? resource.to_h.merge("current" => track.fetch("current").to_i + gained_amount) : resource
+        end
+        grant.fetch("summary").gsub("%{amount}", gained_amount.to_s)
       end
-      summary = grant.fetch("summary").gsub("%{amount}", gained_amount.to_s)
+      summary = summaries.join("; ")
 
       trait_set.update!(resource_tracks: tracks)
       update_columns(encounter_started_at: Time.current, updated_at: Time.current)
@@ -1189,7 +1205,9 @@ class Character < ApplicationRecord
   end
 
   def derived_resource_tracks_for(stat_values:, level: self.level, feature_choices: recorded_feature_choices, subclass_name: self.subclass_name)
-    class_pools = Array(character_class&.resource_rules.to_h["pools"])
+    class_pools = Array(character_class&.resource_rules.to_h["pools"]).reject do |pool|
+      pool.to_h["subclass_name"].present? && pool.to_h["subclass_name"] != subclass_name
+    end
     replaced_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(character_class&.name, subclass_name)
     class_pools = class_pools.reject { |pool| replaced_pool_keys.include?(pool.to_h["key"]) }
     ancestry_pools = Rules::NimbleCatalog.ancestry_resource_pools_for(ancestry&.name)
@@ -1283,7 +1301,10 @@ class Character < ApplicationRecord
     replaced_pool_keys = Rules::NimbleCatalog.story_subclass_resource_pool_replacements_for(character_class&.name, subclass_name)
     resource_name = rules["name"]
     if replaced_pool_keys.present?
-      active_class_pools = Array(rules["pools"]).reject { |pool| replaced_pool_keys.include?(pool.to_h["key"]) }
+      active_class_pools = Array(rules["pools"]).reject do |pool|
+        replaced_pool_keys.include?(pool.to_h["key"]) ||
+          (pool.to_h["subclass_name"].present? && pool.to_h["subclass_name"] != subclass_name)
+      end
       resource_name = active_class_pools.filter_map { |pool| pool.to_h["name"] }.join(" and ").presence
       formula = active_class_pools.filter_map { |pool| pool.to_h["max_formula"] }.join("; ").presence
     end

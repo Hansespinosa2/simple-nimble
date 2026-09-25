@@ -363,6 +363,8 @@ classes:
           initial_current: 0
           reset: Encounter ends
           reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 19
+          source_quote: "When you roll Initiative, gain STR Combat Dice, each a d6."
     subclasses: [Champion of the Bulwark, Champion of the Vanguard]
     story_based_subclasses:
       - name: Spellblade
@@ -510,6 +512,15 @@ classes:
           reset_events: [safe_rest]
           source_ref: Heroes 2.0.1, p. 44
           source_quote: "You can do this DEX times before your patron takes notice."
+        - key: red_dragon_temporary_pilfered_power
+          name: Heart of Burning Fire · temporary Pilfered Power
+          subclass_name: Pact of the Red Dragon
+          start_level: 11
+          initial_current: 0
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 47
+          source_quote: "Regain 1 use of Pilfered Power each time you roll Initiative. This expires at the end of combat if unused."
         - key: shadow_minions
           name: Shadow Minions
           max_formula: "MIN(INT, LVL)"
@@ -597,6 +608,14 @@ classes:
           max_formula: "2 * WIL"
           reset: Safe Rest
           reset_events: [safe_rest]
+        - key: quick_wit_inspiration
+          name: Quick Wit · temporary Inspiration
+          start_level: 3
+          initial_current: 0
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 56
+          source_quote: "When you roll Initiative, you may regain 2 spent uses of your Songweaver's Inspiration (these expire at the end of combat if left unused)."
     subclasses: [Herald of Snark, Herald of Courage]
 
   Stormshifter:
@@ -1621,6 +1640,28 @@ story_subclass_initiative_features:
         source_quote: "When you roll Initiative you may cast Enchant Weapon for free (can be upcast as normal by spending additional mana)."
 
 initiative_resource_grants:
+  Commander:
+    all:
+      - feature_name: Fit for Any Battlefield
+        minimum_level: 4
+        resource_key: combat_dice
+        amount_stat: strength
+        summary: "Initiative rolled; gained %{amount} Combat Dice"
+        feature_label: "Commander · Fit for Any Battlefield"
+        description: "When you roll Initiative, gain STR Combat Dice for this encounter."
+        action_label: "Record Initiative Roll · gain %{amount} Combat Dice"
+        source_ref: Heroes 2.0.1, p. 19
+        source_quote: "When you roll Initiative, gain STR Combat Dice, each a d6."
+    Spellblade:
+      - feature_name: Arcane Command
+        resource_key: spellblade_initiative_mana
+        amount: maximum
+        summary: "Initiative rolled; gained %{amount} Arcane Command mana"
+        feature_label: "Spellblade · Arcane Command"
+        description: "Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends."
+        action_label: "Record Initiative Roll · gain %{amount} mana"
+        source_ref: Heroes 2.0.1, p. 76
+        source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
   Zephyr:
     all:
       - feature_name: Burst of Speed
@@ -1636,18 +1677,29 @@ initiative_resource_grants:
         source_quote: "When you roll Initiative, gain DEX Bursts of Speed to use during that encounter."
         amount_bonus_source_ref: Heroes 2.0.1, p. 69
         amount_bonus_source_quote: "+1 additional burst of speed when you roll Initiative."
-  Commander:
-    Spellblade:
-      - feature_name: Arcane Command
-        resource_key: spellblade_initiative_mana
-        amount: maximum
-        summary: "Initiative rolled; gained %{amount} Arcane Command mana"
-        feature_label: "Spellblade · Initiative"
-        description: "Roll initiative at the table, then record it here to gain INT temporary mana once for this encounter. Unspent mana is lost when the encounter ends."
-        action_label: "Record Initiative Roll · gain %{amount} mana"
-        source_ref: Heroes 2.0.1, p. 76
-        source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+  Hunter:
+    Shadowpath:
+      - feature_name: Apex Predator
+        resource_key: thrill_of_the_hunt
+        amount: 1
+        summary: "Initiative rolled; gained %{amount} Thrill of the Hunt charge"
+        feature_label: "Shadowpath · Apex Predator"
+        description: "Gain 1 Thrill of the Hunt charge when you roll Initiative; it expires at the end of the encounter."
+        action_label: "Record Initiative Roll · gain %{amount} Thrill charge"
+        source_ref: Heroes 2.0.1, p. 28
+        source_quote: "Gain 1 Thrill of the Hunt charge when you roll Initiative."
   Shadowmancer:
+    Pact of the Red Dragon:
+      - feature_name: Heart of Burning Fire
+        resource_key: red_dragon_temporary_pilfered_power
+        amount: 1
+        amount_from_spent_resource: pilfered_power
+        summary: "Initiative rolled; gained %{amount} temporary Pilfered Power use"
+        feature_label: "Red Dragon · Heart of Burning Fire"
+        description: "Regain 1 use of Pilfered Power when you roll Initiative; it expires at the end of combat if unused."
+        action_label: "Record Initiative Roll · gain %{amount} temporary Pilfered Power use"
+        source_ref: Heroes 2.0.1, p. 47
+        source_quote: "Regain 1 use of Pilfered Power each time you roll Initiative. This expires at the end of combat if unused."
     Reaver:
       - feature_name: "I'm the Patron Now!"
         resource_key: shadow_minions
@@ -1658,7 +1710,19 @@ initiative_resource_grants:
         action_label: "Record Initiative Roll · summon up to %{amount} minions"
         source_ref: Heroes 2.0.1, p. 78
         source_quote: "Summon 2 shadow minions for free when you roll Initiative."
-
+  Songweaver:
+    all:
+      - feature_name: Quick Wit
+        minimum_level: 3
+        resource_key: quick_wit_inspiration
+        amount: 2
+        amount_from_spent_resource: inspiration
+        summary: "Initiative rolled; regained %{amount} temporary Inspiration uses"
+        feature_label: "Songweaver · Quick Wit"
+        description: "Regain 2 spent uses of Inspiration when you roll Initiative; unused uses expire at the end of combat."
+        action_label: "Record Initiative Roll · regain %{amount} Inspiration uses"
+        source_ref: Heroes 2.0.1, p. 56
+        source_quote: "When you roll Initiative, you may regain 2 spent uses of your Songweaver's Inspiration (these expire at the end of combat if left unused)."
 resource_event_grants:
   wound_gained:
     Zephyr:

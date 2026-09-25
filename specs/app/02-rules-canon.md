@@ -187,13 +187,13 @@ Each class has one or more special resource pools that must be modeled for legal
 |---|---|---|
 | Berserker | Fury Dice | Starts d4; scales to d6 (L6), d8 (L9), d10 (L13), d12 (L17); max = KEY; gained by Raging |
 | The Cheat | (No pool; ability-based) | Uses per-ability counters (1/turn, 1/day, 1/Safe Rest) |
-| Commander | Combat Dice | Starts d6 (L4); scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades |
-| Hunter | Thrill of the Hunt charges | Gained when quarry dies or hit conditions met; lost at encounter end |
+| Commander | Combat Dice | Gain STR dice on Initiative from L4; starts d6 and scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades. Heroes 2.0.1, pp. 19–23 |
+| Hunter | Thrill of the Hunt charges | Gained when quarry dies or hit conditions are met; Shadowpath gains 1 on Initiative at L15; encounter charges expire at encounter end. Heroes 2.0.1, pp. 26, 28 |
 | Mage | Mana | (INT×3)+LVL; recharges on Safe Rest; +WIL on Initiative (L5 Elemental Surge) |
 | Oathsworn | Judgment Dice (2d6 → d8 → d10 → d12 → d20) + Lay on Hands pool (5×LVL) | Judgment triggered by being attacked |
-| Shadowmancer | Pilfered Power uses (DEX/Safe Rest) | Patron penalty if exceeded |
+| Shadowmancer | Pilfered Power uses (DEX/Safe Rest) | Patron penalty if exceeded; Pact of the Red Dragon regains up to one spent use on Initiative at L11, expiring at encounter end. Heroes 2.0.1, pp. 44, 47 |
 | Shepherd | Mana | (WIL×3)+LVL; recharges on Safe Rest |
-| Songweaver | Mana | formula in Heroes book; recharges on Safe Rest |
+| Songweaver | Mana + Inspiration | Mana: (INT×3)+LVL/Safe Rest; Inspiration: 2×WIL/Safe Rest; Quick Wit regains up to 2 spent uses on Initiative at L3, expiring at encounter end. Heroes 2.0.1, p. 56 |
 | Stormshifter | Mana + Beastshift charges | Mana: (WIL×3)+LVL; Beastshift: DEX charges/Safe Rest |
 | Zephyr | Bursts of Speed | At level 2, gain DEX Bursts when rolling Initiative (plus 1 at level 20); at level 3+, gain 1 whenever you gain a Wound. No maximum is stated for the encounter pool. The level-4 Unyielding Resolve ignores the first Wound each encounter, but Wound-triggered abilities still trigger. Heroes 2.0.1, pp. 67–69 |
 
