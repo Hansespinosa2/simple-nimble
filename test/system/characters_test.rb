@@ -1,7 +1,7 @@
 require "application_system_test_case"
 
 class CharactersTest < ApplicationSystemTestCase
-  # S-01:AC-1 S-01:AC-3 S-01:AC-4 S-05:AC-1 S-05:AC-2 S-05:AC-4 S-05:AC-5 S-09:AC-1 S-09:AC-3
+  # S-01:AC-1 S-01:AC-3 S-01:AC-4 S-03:AC-1 S-05:AC-1 S-05:AC-2 S-05:AC-4 S-05:AC-5 S-09:AC-1 S-09:AC-3
   setup do
     Rails.application.load_seed unless CharacterClass.exists?(name: "Berserker")
     @account = create_account(display_name: "System Player", email: "system-#{SecureRandom.hex(4)}@example.com")
@@ -9,6 +9,7 @@ class CharactersTest < ApplicationSystemTestCase
     fill_in "email", with: @account.email
     fill_in "password", with: TEST_PASSWORD
     click_button "Sign in"
+    assert_selector ".nav-account-label", text: @account.display_name
     @character_class = CharacterClass.find_by!(name: "Berserker")
     @ancestry = Ancestry.find_by!(name: "Human")
     @background = Background.find_by!(name: "Fearless")
