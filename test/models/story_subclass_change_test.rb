@@ -477,6 +477,29 @@ class StorySubclassChangeTest < ActiveSupport::TestCase
     assert_not shadowmancer.bonescythe_summoned?
   end
 
+  test "story subclass action gating follows catalog ownership, unlock level, and citation" do
+    shadowmancer = create_shadowmancer
+    catalog = Rules::NimbleCatalog.data
+    original_feature_notes = catalog.fetch("story_subclass_feature_notes")
+    changed_feature_notes = original_feature_notes.deep_dup
+    shadowmancer_notes = changed_feature_notes.fetch("Shadowmancer")
+    reaver_notes = shadowmancer_notes.delete("Reaver")
+    shadow_exploit = reaver_notes.find { |feature| feature.fetch("name") == "Shadow Exploit" }
+    shadow_exploit["unlock_level"] = 4
+    shadow_exploit["source_ref"] = "Fixture Heroes Rules, p. 1"
+    shadowmancer_notes["The Trial Path"] = reaver_notes
+    catalog["story_subclass_feature_notes"] = changed_feature_notes
+    shadowmancer.update_column(:subclass_name, "The Trial Path")
+
+    error = assert_raises(ArgumentError) do
+      shadowmancer.use_shadow_exploit!(spell_name: "")
+    end
+
+    assert_equal "Shadow Exploit requires a level 4 Shadowmancer The Trial Path. Fixture Heroes Rules, p. 1.", error.message
+  ensure
+    catalog["story_subclass_feature_notes"] = original_feature_notes if catalog && original_feature_notes
+  end
+
   # S-02:AC-1 S-02:AC-2 S-07:AC-2 S-09:AC-3
   test "Reaver combat costs and minion gains follow the source catalog" do
     reaver = create_shadowmancer

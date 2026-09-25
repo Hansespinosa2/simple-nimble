@@ -971,6 +971,11 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Martyr Spawn").fetch("shadow_minions_spent")
     assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "Reap").fetch("shadow_minions_gained")
     assert_equal 1, @catalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", "My Blood, My Power").fetch("wounds_to_take")
+    definition = @catalog.story_subclass_feature_definition_for("My Blood, My Power")
+    assert_equal "Shadowmancer", definition.fetch("class_name")
+    assert_equal "Reaver", definition.fetch("subclass_name")
+    assert_equal 11, definition.fetch("unlock_level")
+    assert_equal "Heroes 2.0.1, p. 78", definition.fetch("source_ref")
   end
 
   # S-02:AC-1 S-02:AC-2 S-08:AC-4 S-09:AC-3

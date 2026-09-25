@@ -958,15 +958,19 @@ class Character < ApplicationRecord
   end
 
   def martyr_spawn!
-    feature = require_reaver!("Martyr Spawn")
+    feature = require_story_subclass_feature!("Martyr Spawn")
     amount = feature.fetch("shadow_minions_spent").to_i
     minions = "#{amount} Shadow Minion#{'s' unless amount == 1}"
-    apply_shadow_minion_change!(-amount, summary: "Martyr Spawn sacrificed #{minions} to negate Defend damage", required_reaver_ability: "Martyr Spawn")
+    apply_shadow_minion_change!(
+      -amount,
+      summary: "Martyr Spawn sacrificed #{minions} to negate Defend damage",
+      required_story_subclass_feature: "Martyr Spawn"
+    )
   end
 
   def use_shadow_exploit!(spell_name:)
     with_lock do
-      require_reaver!("Shadow Exploit")
+      require_story_subclass_feature!("Shadow Exploit")
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
         raise ArgumentError, "Choose a known tiered spell you can cast. Heroes 2.0.1, p. 78."
@@ -1008,7 +1012,7 @@ class Character < ApplicationRecord
 
   def use_my_blood_my_power!(spell_name:)
     with_lock do
-      feature = require_reaver!("My Blood, My Power")
+      feature = require_story_subclass_feature!("My Blood, My Power")
       wounds_to_take = feature.fetch("wounds_to_take").to_i
       spell = sheet_spells.find_by(name: spell_name.to_s)
       unless spell&.tier.to_i.positive? && spell.available_to?(self)
@@ -1031,7 +1035,7 @@ class Character < ApplicationRecord
 
   def summon_bonescythe!
     with_lock do
-      require_reaver!("Hollow One")
+      require_story_subclass_feature!("Hollow One")
       raise ArgumentError, "The Bonescythe is already summoned." if bonescythe_summoned?
       weapon = story_subclass_weapon_entry
       action_cost = weapon.fetch(:action_cost).to_i
@@ -1045,7 +1049,7 @@ class Character < ApplicationRecord
 
   def mark_bonescythe_hit!(outcome: "hit")
     with_lock do
-      require_reaver!("Hollow One")
+      require_story_subclass_feature!("Hollow One")
       raise ArgumentError, "Summon the Bonescythe before recording a hit." unless bonescythe_summoned?
 
       hit_outcome = outcome.to_s
@@ -1850,18 +1854,25 @@ class Character < ApplicationRecord
       end
     end
 
-    def require_reaver!(ability)
-      feature = Rules::NimbleCatalog.story_subclass_feature_note_for("Shadowmancer", "Reaver", ability)
-      return feature if character_class&.name == "Shadowmancer" && subclass_name == "Reaver" && story_subclass_feature_unlocked?(ability)
+    def require_story_subclass_feature!(feature_name)
+      feature = Rules::NimbleCatalog.story_subclass_feature_note_for(character_class&.name, subclass_name, feature_name)
+      return feature if feature.present? && story_subclass_feature_unlocked?(feature_name)
 
-      minimum_level = feature&.fetch("unlock_level", 1).to_i
-      raise ArgumentError, "#{ability} requires a level #{minimum_level} Shadowmancer Reaver. Heroes 2.0.1, p. 78."
+      definition = Rules::NimbleCatalog.story_subclass_feature_definition_for(feature_name)
+      unless definition
+        raise ArgumentError, "#{feature_name} is not defined as a story-based subclass feature in Nimble #{Rules::NimbleCatalog.version}."
+      end
+
+      minimum_level = definition.fetch("unlock_level", 1).to_i
+      owner = [ definition.fetch("class_name"), definition.fetch("subclass_name") ].join(" ")
+      source_ref = definition.fetch("source_ref")
+      raise ArgumentError, "#{feature_name} requires a level #{minimum_level} #{owner}. #{source_ref}."
     end
 
-    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_reaver_ability: nil)
+    def apply_shadow_minion_change!(amount, summary:, action_cost: 0, required_story_subclass_feature: nil)
       with_lock do
-        if required_reaver_ability.present?
-          require_reaver!(required_reaver_ability)
+        if required_story_subclass_feature.present?
+          require_story_subclass_feature!(required_story_subclass_feature)
         elsif character_class&.name != "Shadowmancer"
           raise ArgumentError, "Only a Shadowmancer can summon Shadow Minions. Heroes 2.0.1, p. 43."
         end

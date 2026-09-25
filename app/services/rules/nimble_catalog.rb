@@ -372,6 +372,16 @@ module Rules
         end
       end
 
+      def story_subclass_feature_definition_for(feature_name)
+        data.fetch("story_subclass_feature_notes", {}).each do |class_name, subclasses|
+          subclasses.each do |subclass_name, notes|
+            feature = Array(notes).find { |note| note.fetch("name") == feature_name.to_s }
+            return feature.merge("class_name" => class_name, "subclass_name" => subclass_name) if feature
+          end
+        end
+        nil
+      end
+
       def story_subclass_initiative_features_for(class_name, subclass_name)
         data.fetch("story_subclass_initiative_features", {})
           .fetch(class_name.to_s, {})
