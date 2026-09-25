@@ -308,6 +308,14 @@ module Rules
         data.fetch("background_spell_choices", {})
       end
 
+      def background_feature_note_for(background_name)
+        background_feature_notes.fetch(background_name.to_s, nil)
+      end
+
+      def background_feature_notes
+        data.fetch("background_feature_notes", {})
+      end
+
       def ancestry_resource_pools_for(ancestry_name)
         data.fetch("ancestry_resource_pools", {}).fetch(ancestry_name.to_s, [])
       end

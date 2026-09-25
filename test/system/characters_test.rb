@@ -105,7 +105,7 @@ class CharactersTest < ApplicationSystemTestCase
     select "Back Out of Retirement", from: "Background"
     select "Balanced", from: "Stat array"
 
-    assert_selector "[data-character-builder-target='backgroundHint']", text: /take 1 Wound to treat an ability or spell as one level higher; age reduces your maximum Wounds by 1\. \(Core Rules 2\.0\.1, p\. 28\)/
+    assert_selector "[data-character-builder-target='backgroundHint']", text: /At-table reminder \(not automatically resolved\): Take 1 Wound to use an ability or cast a spell as one level higher\. The sheet already applies Old Bones' −1 maximum Wounds\. \(Core Rules 2\.0\.1, p\. 28\)/
     assert_selector "[data-character-builder-target='woundsPreview']", text: "5"
   end
 

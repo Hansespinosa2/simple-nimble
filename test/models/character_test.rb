@@ -609,11 +609,12 @@ class CharacterTest < ActiveSupport::TestCase
       background: background,
       stat_array: "balanced"
     )
+    feature_note = Rules::NimbleCatalog.background_feature_note_for(background.name)
 
     assert_equal(-1, background.max_wounds_modifier)
     assert_equal Character::DEFAULT_MAX_WOUNDS - 1, character.trait_set.max_wounds
-    assert_includes background.description, "maximum Wounds by 1"
-    assert_includes background.description, "Core Rules 2.0.1, p. 28"
+    assert_includes feature_note.fetch("manual_effect"), "already applies Old Bones' −1 maximum Wounds"
+    assert_equal "Core Rules 2.0.1, p. 28", feature_note.fetch("source_ref")
   end
 
   test "per-skill ancestry bonuses are part of the governing skill baseline" do

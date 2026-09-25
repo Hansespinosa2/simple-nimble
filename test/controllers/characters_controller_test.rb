@@ -44,9 +44,29 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='character[spell_choices][Academy Dropout][1][]'] option[value='Firebrand']"
     rules_payload = JSON.parse(Nokogiri::HTML(response.body).at_css("form.builder-form")["data-character-builder-rules-value"])
     academy_background_id = Background.find_by!(name: "Academy Dropout").id.to_s
+    retirement_background_id = Background.find_by!(name: "Back Out of Retirement").id.to_s
     assert_equal true, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice")
     assert_equal "Utility Spell", rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice_rule", "choice_label")
     assert_equal 1, rules_payload.dig("backgrounds", academy_background_id, "starting_spell_choice_rule", "count")
+    assert_includes rules_payload.dig("backgrounds", retirement_background_id, "feature_note", "manual_effect"), "Take 1 Wound"
+    assert_equal "Core Rules 2.0.1, p. 28", rules_payload.dig("backgrounds", retirement_background_id, "feature_note", "source_ref")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "the character sheet shows source-backed guidance for non-automated background effects" do
+    retiree = Character.create!(
+      name: "Retirement Rules Hero",
+      character_class: @character_class,
+      ancestry: @ancestry,
+      background: Background.find_by!(name: "Back Out of Retirement"),
+      stat_array: "balanced"
+    )
+
+    get character_url(retiree)
+
+    assert_response :success
+    assert_select ".background-rules-note", /not automatically resolved/
+    assert_select ".background-rules-note", /Take 1 Wound.*Core Rules 2\.0\.1, p\. 28/
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-09:AC-3

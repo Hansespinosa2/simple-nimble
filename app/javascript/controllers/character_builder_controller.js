@@ -248,6 +248,10 @@ export default class extends Controller {
 
     let backgroundHint = background?.description || "Backgrounds can have creation prerequisites."
     if (background?.prerequisite_stat) backgroundHint += ` Requires ${this.abbreviate(background.prerequisite_stat)} ≤ ${background.prerequisite_max}.`
+    if (background?.feature_note) {
+      const note = background.feature_note
+      backgroundHint += ` At-table reminder (not automatically resolved): ${note.manual_effect} (${note.source_ref}).`
+    }
     if (background?.starting_spell_choice_rule) {
       const rule = background.starting_spell_choice_rule
       backgroundHint += ` ${rule.source_quote} (${rule.source_ref})`

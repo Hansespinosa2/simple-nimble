@@ -4,6 +4,7 @@
 <% field_rest_rules = resting_rules.fetch("field_rests") %>
 <% catch_breath_rules = field_rest_rules.fetch("catch_breath") %>
 <% make_camp_rules = field_rest_rules.fetch("make_camp") %>
+<% background_feature_note = Rules::NimbleCatalog.background_feature_note_for(@character.background&.name) %>
 
 <div class="page-shell sheet-shell">
   <% if notice.present? %><div class="alert-card alert-card-success"><span class="alert-icon">✓</span><span><%= notice %></span></div><% end %>
@@ -99,7 +100,14 @@
         <div class="origin-grid">
           <div class="origin-card"><span class="origin-label">Class</span><strong><%= [ @character.character_class&.name || @character.nimble_class || "Not chosen", @character.subclass_name ].compact.join(" · ") %></strong><p><%= @character.character_class ? "#{@character.character_class.key_stats.map { |stat| stat_display_name(stat) }.join(' + ')} Key Stats · #{@character.character_class.hit_die} · Saves #{stat_display_name(@character.character_class.save_bonus_stat)}+ / #{stat_display_name(@character.character_class.save_penalty_stat)}−" : "Choose a rules class to unlock derived values." %></p></div>
           <div class="origin-card"><span class="origin-label">Ancestry</span><strong><%= @character.ancestry&.name || @character.race || "Not chosen" %></strong><p><%= @character.ancestry&.trait_summary || "Ancestry traits will appear here." %></p></div>
-          <div class="origin-card"><span class="origin-label">Background</span><strong><%= @character.background&.name || @character.legacy_background_text || "Not chosen" %></strong><p><%= @character.background&.description || "Background story notes are kept with the sheet." %></p></div>
+          <div class="origin-card">
+            <span class="origin-label">Background</span>
+            <strong><%= @character.background&.name || @character.legacy_background_text || "Not chosen" %></strong>
+            <p><%= @character.background&.description || "Background story notes are kept with the sheet." %></p>
+            <% if background_feature_note.present? %>
+              <p class="field-hint background-rules-note"><strong>At-table reminder (not automatically resolved):</strong> <%= background_feature_note.fetch("manual_effect") %> (<%= background_feature_note.fetch("source_ref") %>)</p>
+            <% end %>
+          </div>
           <div class="origin-card"><span class="origin-label">Proficiencies</span><strong><%= @character.character_class&.armor_proficiencies&.join(", ").presence || "None" %></strong><p>Armor · <%= @character.character_class&.weapon_proficiencies&.join(", ").presence || "No weapon category" %></p></div>
           <div class="origin-card"><span class="origin-label">Languages</span><strong><%= @character.languages.presence || "Common" %></strong><p>Common plus INT and ancestry grants.</p></div>
         </div>

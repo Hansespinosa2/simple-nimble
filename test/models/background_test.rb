@@ -45,4 +45,19 @@ class BackgroundTest < ActiveSupport::TestCase
     assert_equal 1, background.skill_bonus_for("naturecraft")
     assert_equal [ "Goblin" ], background.language_names
   end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "source-backed background guidance covers the complete seeded catalog" do
+    Rails.application.load_seed
+    feature_notes = Rules::NimbleCatalog.background_feature_notes
+    choice_rules = Rules::NimbleCatalog.background_spell_choices
+    covered_backgrounds = (feature_notes.keys + choice_rules.keys).uniq.sort
+
+    assert_equal 24, covered_backgrounds.length
+    assert_empty covered_backgrounds - Background.pluck(:name)
+    feature_notes.each do |name, note|
+      assert_predicate note.fetch("manual_effect"), :present?, "#{name} must explain its non-automated rule effect"
+      assert_match(/\ACore Rules 2\.0\.1, p\. 2[89]\z/, note.fetch("source_ref"), "#{name} must cite its source page")
+    end
+  end
 end

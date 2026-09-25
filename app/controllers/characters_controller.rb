@@ -429,8 +429,10 @@ class CharactersController < ApplicationController
         end,
         backgrounds: @backgrounds.index_by(&:id).transform_values do |background|
           spell_choice_rule = Rules::NimbleCatalog.background_spell_choice_for(background.name)
+          feature_note = Rules::NimbleCatalog.background_feature_note_for(background.name)
           {
             description: background.description,
+            feature_note: feature_note,
             prerequisite_stat: background.prerequisite_stat,
             prerequisite_max: background.prerequisite_max,
             initiative_modifier: background.initiative_modifier,

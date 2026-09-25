@@ -2180,6 +2180,77 @@ background_spell_choices:
     count: 1
     distinct: true
 
+background_feature_notes:
+  "Back Out of Retirement":
+    manual_effect: "Take 1 Wound to use an ability or cast a spell as one level higher. The sheet already applies Old Bones' −1 maximum Wounds."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Devoted Protector":
+    manual_effect: "Choose a party ally. While they are nearby, your maximum Wounds increase by 3; whenever they take a Wound, you do too. The sheet does not track the ally or proximity condition."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Made a BAD Choice":
+    manual_effect: "At creation, agree with your GM on 500 or 1,000 extra gp, or an allowed uncommon/rare magic item; also take an equally powerful curse or an enemy who wants the item back. The GM may allow a different background. The sheet does not grant the boon or track the drawback."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Haunted Past":
+    manual_effect: "You have advantage when resisting fear; apply it to the GM-requested roll. The sheet does not roll it for you."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Ear to the Ground":
+    manual_effect: "You have advantage to learn or obtain gossip about events that will happen soon or happened less than a year ago."
+    source_ref: Core Rules 2.0.1, p. 28
+  "What? I've Been Around":
+    manual_effect: "Once per location (or at GM discretion), declare a useful contact and roll d20: 1–5, they want you dead; 6–12, you owe them; 13–19, they can be persuaded; 20, they are your biggest fan or madly in love with you. The sheet does not roll or track location uses."
+    source_ref: Core Rules 2.0.1, p. 28
+  Acrobat:
+    manual_effect: "You take half damage from falling and forced movement; a larger ally can throw you a very great distance."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Wild One":
+    manual_effect: "While Field Resting in the wild, roll Hit Dice with advantage; wild creatures are less frightened of you and more willing to help. The sheet already applies +1 Naturecraft."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Fey Touched":
+    manual_effect: "You take half damage from magical effects and double damage from metal weapons, before Armor is applied."
+    source_ref: Core Rules 2.0.1, p. 28
+  Survivalist:
+    manual_effect: "You never run out of your own rations and have advantage against poison saves. The sheet already applies +1 maximum Hit Die."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Home at Sea":
+    manual_effect: "When resting on a ship or near water, recover twice as many Wounds and HP. You can fill in for a first mate or captain, and have advantage on water-related skill checks. The sheet does not detect the resting location or multiply recovery."
+    source_ref: Core Rules 2.0.1, p. 28
+  "At Home Underground":
+    manual_effect: "You dig twice as fast; a safe underground rest counts as Lavish lodging. Rain requires an INT save or interferes with your rest. The sheet does not determine terrain or lodging quality."
+    source_ref: Core Rules 2.0.1, p. 28
+  "Raised by Goblins":
+    manual_effect: "You speak Goblin natively (the sheet applies its INT-based origin-language rule), automatically notice and avoid crude traps, and have advantage to notice and disarm more sophisticated traps."
+    source_ref: Core Rules 2.0.1, p. 28
+  "History Buff":
+    manual_effect: "You have advantage on Lore checks about items, facts, or events from more than 100 years ago."
+    source_ref: Core Rules 2.0.1, p. 28
+  "(Former) Con Artist":
+    manual_effect: "You can forge most documents or mimic voices flawlessly; you have a criminal contact in most major cities, but your reputation can precede you until you prove trustworthy."
+    source_ref: Core Rules 2.0.1, p. 29
+  "(Secretly) Undead":
+    manual_effect: "You are immune to disease and do not need to eat, drink, or breathe. Children, animals, and Celestials are uneasy in your presence; many are horrified when they learn what you are."
+    source_ref: Core Rules 2.0.1, p. 29
+  "Taste for the Finer Things":
+    manual_effect: "You know current upper-class customs and dress and may know their secrets; you have advantage on Influence checks with the upper class."
+    source_ref: Core Rules 2.0.1, p. 29
+  Fearless:
+    manual_effect: "You are immune to Frightened. The sheet already applies +1 Initiative and −1 Armor."
+    source_ref: Core Rules 2.0.1, p. 29
+  "So Dumb I'm Smart Sometimes":
+    manual_effect: "Once per day, reroll an INT-related skill check; once per Safe Rest, reroll a failed INT save with advantage. The sheet checks the creation prerequisite (INT ≤ 0) but does not track uses."
+    source_ref: Core Rules 2.0.1, p. 29
+  "Wily Underdog":
+    manual_effect: "Once per day, after failing a STR-related roll, reroll it using another stat instead. The sheet checks the creation prerequisite (STR ≤ 0) but does not track uses."
+    source_ref: Core Rules 2.0.1, p. 29
+  Bumblewise:
+    manual_effect: "A result of 1 or less on any WIL-related roll counts as a natural 20. The sheet checks the creation prerequisite (WIL ≤ 0) but does not reinterpret rolls."
+    source_ref: Core Rules 2.0.1, p. 29
+  "Accidental Acrobat":
+    manual_effect: "When you fail a DEX-related roll, you may reroll; if you fail again, the consequences are bad. The sheet checks the creation prerequisite (DEX ≤ 0) but does not resolve rolls."
+    source_ref: Core Rules 2.0.1, p. 29
+  "Tradesman/Artisan":
+    manual_effect: "Choose a profession. Related checks have advantage, and you retain special knowledge about that work. The sheet does not record your profession or apply advantage automatically."
+    source_ref: Core Rules 2.0.1, p. 29
+
 ancestry_resource_pools:
   Halfling:
     - key: ancestry_halfling_elusive

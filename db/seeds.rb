@@ -355,7 +355,7 @@ end
   },
   {
     name: "Back Out of Retirement",
-    description: "You returned to danger after retirement. You may take 1 Wound to treat an ability or spell as one level higher; age reduces your maximum Wounds by 1. (Core Rules 2.0.1, p. 28)",
+    description: "You were supposed to be done with danger, but experience pulled you back into the fray.",
     modifiers: { max_wounds_modifier: -1 }
   },
   {
