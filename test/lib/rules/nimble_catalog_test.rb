@@ -222,6 +222,25 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Heroes 2.0.1, p. 19", commander.first.fetch("source_ref")
     assert_equal "Heroes 2.0.1, p. 76", commander.last.fetch("source_ref")
 
+    master_commander = @catalog.initiative_resource_grants_for("Commander", "", 5).last
+    assert_equal "Master Commander", master_commander.fetch("feature_name")
+    assert_equal "coordinated_strike_initiative_uses", master_commander.fetch("resource_key")
+    assert_equal "coordinated_strike_uses", master_commander.fetch("amount_from_spent_resource")
+    assert_equal "Heroes 2.0.1, p. 20", master_commander.fetch("source_ref")
+    vanguard_initiative = @catalog.initiative_resource_grants_for("Commander", "Champion of the Vanguard", 11)
+    assert_equal [ "Fit for Any Battlefield", "Master Commander", "Survey the Battlefield" ], vanguard_initiative.map { |grant| grant.fetch("feature_name") }
+    assert_equal "Heroes 2.0.1, p. 23", vanguard_initiative.last.fetch("source_ref")
+    strike_pool = @catalog.class_resource_pool_for("Commander", "coordinated_strike_uses")
+    assert_equal "INT", strike_pool.fetch("max_formula")
+    assert_equal 1, strike_pool.fetch("start_level")
+    assert_equal [ "safe_rest" ], strike_pool.fetch("reset_events")
+    assert_equal({ "coordinated_strike_uses" => 3 }, @catalog.derived_effects_for("Commander", "", 17).fetch("resource_max_modifiers"))
+    assert_equal 1, @catalog.derived_effects_for("Commander", "Champion of the Vanguard", 7).fetch("resource_max_modifiers").fetch("coordinated_strike_uses")
+    vanguard_modifiers = @catalog.derived_effects_for("Commander", "Champion of the Vanguard", 11).fetch("resource_max_modifiers")
+    assert_equal 1, vanguard_modifiers.fetch("combat_dice")
+    assert_equal 2, vanguard_modifiers.fetch("coordinated_strike_uses")
+    assert_equal 1, vanguard_modifiers.fetch("coordinated_strike_initiative_uses")
+
     assert_empty @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 14)
     apex_predator = @catalog.initiative_resource_grants_for("Hunter", "Shadowpath", 15).sole
     assert_equal "Apex Predator", apex_predator.fetch("feature_name")
@@ -490,7 +509,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal "Explorer of the Wilds. +2 speed; gain a climbing speed.", hunter_speed.fetch("speed_modifier_source_quote")
 
     commander_dice = @catalog.derived_effects_for("Commander", "Champion of the Vanguard", 11)
-    assert_equal({ "combat_dice" => 1 }, commander_dice.fetch("resource_max_modifiers"))
+    assert_equal({ "coordinated_strike_uses" => 2, "combat_dice" => 1, "coordinated_strike_initiative_uses" => 1 }, commander_dice.fetch("resource_max_modifiers"))
     assert_equal "Heroes 2.0.1, p. 23", commander_dice.fetch("resource_max_modifiers_source_ref")
     assert_equal "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice.", commander_dice.fetch("resource_max_modifiers_source_quote")
 

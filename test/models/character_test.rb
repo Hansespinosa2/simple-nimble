@@ -1209,6 +1209,55 @@ class CharacterTest < ActiveSupport::TestCase
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Commander tracks Coordinated Strike uses and does not refund one spent use twice" do
+    Rails.application.load_seed
+    commander = Character.create!(
+      name: "Vanguard Commander",
+      level: 11,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      stat_assignments: { strength: 2, dexterity: 1, intelligence: 1, will: 0 }
+    )
+    commander.update_columns(status: "playable", subclass_name: "Champion of the Vanguard")
+    stat_values = Character::STAT_NAMES.index_with { |stat| commander.stat_value(stat) }
+    tracks = commander.derived_resource_tracks_for(stat_values:, level: 11, subclass_name: "Champion of the Vanguard")
+    strike_uses = tracks.find { |track| track.fetch("key") == "coordinated_strike_uses" }
+    initiative_refunds = tracks.find { |track| track.fetch("key") == "coordinated_strike_initiative_uses" }
+
+    assert_equal commander.stat_value(:intelligence) + 2, strike_uses.fetch("max"), "level 9 and Vanguard level 7 each add a Safe Rest use"
+    assert_equal 2, initiative_refunds.fetch("max"), "Master Commander and Survey each grant one Initiative refund"
+    assert_equal [ "Fit for Any Battlefield", "Master Commander", "Survey the Battlefield" ], commander.initiative_resource_grants.map { |grant| grant.fetch("feature_name") }
+
+    tracks = tracks.map do |track|
+      track.fetch("key") == "coordinated_strike_uses" ? track.merge("current" => strike_uses.fetch("max") - 1) : track
+    end
+    commander.trait_set.update!(resource_tracks: tracks)
+    revision = commander.begin_encounter!
+    refreshed_tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 1, refreshed_tracks.fetch("coordinated_strike_initiative_uses").fetch("current"), "both features cannot refund the same spent use"
+    assert_equal strike_uses.fetch("max") - 1, refreshed_tracks.fetch("coordinated_strike_uses").fetch("current"), "a temporary refund does not restore the Safe Rest pool"
+    assert_includes revision.summary, "regained 1 temporary Coordinated Strike use"
+    assert_includes revision.summary, "regained 0 temporary Coordinated Strike use from Survey"
+
+    commander.end_encounter!
+    tracks = commander.reload.trait_set.resource_tracks.map do |track|
+      track.fetch("key") == "coordinated_strike_uses" ? track.merge("current" => strike_uses.fetch("max") - 2) : track
+    end
+    commander.trait_set.update!(resource_tracks: tracks)
+    revision = commander.begin_encounter!
+    assert_equal 2, commander.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "coordinated_strike_initiative_uses" }.fetch("current")
+    assert_equal 2, revision.summary.scan("regained 1 temporary Coordinated Strike use").length
+
+    commander.end_encounter!
+    commander.take_safe_rest!
+    refreshed_tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal strike_uses.fetch("max"), refreshed_tracks.fetch("coordinated_strike_uses").fetch("current")
+    assert_equal 0, refreshed_tracks.fetch("coordinated_strike_initiative_uses").fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Mage Elemental Surge uses entered dice and permits only Steel Will rerolls of ones" do
     Rails.application.load_seed
     mage = Character.create!(

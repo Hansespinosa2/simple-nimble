@@ -365,6 +365,24 @@ classes:
           reset_events: [encounter_end]
           source_ref: Heroes 2.0.1, p. 19
           source_quote: "When you roll Initiative, gain STR Combat Dice, each a d6."
+        - key: coordinated_strike_uses
+          name: Coordinated Strike uses
+          max_formula: INT
+          minimum_max: 0
+          start_level: 1
+          reset: Safe Rest
+          reset_events: [safe_rest]
+          source_ref: Heroes 2.0.1, p. 22
+          source_quote: "You can do this INT times/Safe Rest."
+        - key: coordinated_strike_initiative_uses
+          name: Coordinated Strike · Initiative refund
+          max_formula: "1"
+          start_level: 5
+          initial_current: 0
+          reset: Encounter ends
+          reset_events: [encounter_end]
+          source_ref: Heroes 2.0.1, p. 20
+          source_quote: "When you roll Initiative, regain 1 spent use of Coordinated Strike (it is lost if not spent during that encounter)."
     subclasses: [Champion of the Bulwark, Champion of the Vanguard]
     story_based_subclasses:
       - name: Spellblade
@@ -1660,6 +1678,17 @@ initiative_resource_grants:
         action_label: "Record Initiative Roll · gain %{amount} Combat Dice"
         source_ref: Heroes 2.0.1, p. 19
         source_quote: "When you roll Initiative, gain STR Combat Dice, each a d6."
+      - feature_name: Master Commander
+        minimum_level: 5
+        resource_key: coordinated_strike_initiative_uses
+        amount: 1
+        amount_from_spent_resource: coordinated_strike_uses
+        summary: "Initiative rolled; regained %{amount} temporary Coordinated Strike use"
+        feature_label: "Commander · Master Commander"
+        description: "When you roll Initiative, regain 1 spent use of Coordinated Strike; the refund expires at encounter end. From level 5, Coordinated Strikes also ignore disadvantage."
+        action_label: "Record Initiative Roll · regain %{amount} Coordinated Strike use"
+        source_ref: Heroes 2.0.1, p. 20
+        source_quote: "When you roll Initiative, regain 1 spent use of Coordinated Strike (it is lost if not spent during that encounter). Attacks made from your Coordinated Strikes also now ignore disadvantage."
     Spellblade:
       - feature_name: Arcane Command
         resource_key: spellblade_initiative_mana
@@ -1670,6 +1699,18 @@ initiative_resource_grants:
         action_label: "Record Initiative Roll · gain %{amount} mana"
         source_ref: Heroes 2.0.1, p. 76
         source_quote: "You gain INT mana when you roll Initiative; this mana is lost if unspent when combat ends."
+    "Champion of the Vanguard":
+      - feature_name: Survey the Battlefield
+        minimum_level: 11
+        resource_key: coordinated_strike_initiative_uses
+        amount: 1
+        amount_from_spent_resource: coordinated_strike_uses
+        summary: "Initiative rolled; regained %{amount} temporary Coordinated Strike use from Survey the Battlefield"
+        feature_label: "Vanguard · Survey the Battlefield"
+        description: "When you roll Initiative, regain 1 spent Coordinated Strike use. This stacks with Master Commander and expires at encounter end; maximum Combat Dice also increases by 1."
+        action_label: "Record Initiative Roll · apply listed features"
+        source_ref: Heroes 2.0.1, p. 23
+        source_quote: "When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice."
   Zephyr:
     all:
       - feature_name: Burst of Speed
@@ -2074,6 +2115,19 @@ ancestry_resource_pools:
 
 derived_effects:
   classes:
+    Commander:
+      9:
+        resource_max_modifiers: {coordinated_strike_uses: 1}
+        resource_max_modifiers_source_ref: Heroes 2.0.1, p. 20
+        resource_max_modifiers_source_quote: "Master Commander (2). +1 use of Coordinated Strike/Safe Rest."
+      13:
+        resource_max_modifiers: {coordinated_strike_uses: 1}
+        resource_max_modifiers_source_ref: Heroes 2.0.1, p. 21
+        resource_max_modifiers_source_quote: "Master Commander (3). +1 use of Coordinated Strike/Safe Rest."
+      17:
+        resource_max_modifiers: {coordinated_strike_uses: 1}
+        resource_max_modifiers_source_ref: Heroes 2.0.1, p. 21
+        resource_max_modifiers_source_quote: "Master Commander (4). +1 use of Coordinated Strike/Safe Rest."
     Hunter:
       4:
         speed_modifier: 2
@@ -2102,10 +2156,16 @@ derived_effects:
   subclasses:
     Commander:
       "Champion of the Vanguard":
+        7:
+          resource_max_modifiers:
+            coordinated_strike_uses: 1
+          resource_max_modifiers_source_ref: Heroes 2.0.1, p. 23
+          resource_max_modifiers_source_quote: "Experienced Commander. Your Coordinated Strike may target 1 additional ally. Gain +1 use of Coordinated Strike/Safe Rest."
         11:
           source_ref: Heroes 2.0.1, p. 23
           resource_max_modifiers:
             combat_dice: 1
+            coordinated_strike_initiative_uses: 1
           resource_max_modifiers_source_ref: Heroes 2.0.1, p. 23
           resource_max_modifiers_source_quote: "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice."
           source_quote: "Survey the Battlefield. When you roll Initiative, regain 1 use of Coordinated Strike. +1 max Combat Dice."

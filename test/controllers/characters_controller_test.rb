@@ -801,6 +801,49 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
+  test "Commander sheet exposes Coordinated Strike uses and applies encounter-only initiative refunds" do
+    Rails.application.load_seed
+    commander = Character.create!(
+      name: "Vanguard Resource Sheet",
+      level: 11,
+      character_class: CharacterClass.find_by!(name: "Commander"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced",
+      stat_assignments: { strength: 2, dexterity: 1, intelligence: 1, will: 0 }
+    )
+    commander.update_columns(status: "playable", subclass_name: "Champion of the Vanguard")
+    stat_values = Character::STAT_NAMES.index_with { |stat| commander.stat_value(stat) }
+    tracks = commander.derived_resource_tracks_for(stat_values:, level: 11, subclass_name: "Champion of the Vanguard")
+    max_strikes = tracks.find { |track| track.fetch("key") == "coordinated_strike_uses" }.fetch("max")
+    tracks = tracks.map do |track|
+      track.fetch("key") == "coordinated_strike_uses" ? track.merge("current" => max_strikes - 2) : track
+    end
+    commander.trait_set.update!(resource_tracks: tracks)
+
+    get character_url(commander)
+
+    assert_response :success
+    assert_select ".resource-summary-item", /Coordinated Strike uses/
+    assert_select ".resource-summary-item", /Coordinated Strike · Initiative refund/
+    assert_select ".resource-rule-note summary", /Heroes 2\.0\.1, p\. 22/
+    assert_select ".safe-rest-action", /Master Commander/
+    assert_select ".safe-rest-action", /Survey the Battlefield/
+
+    patch begin_encounter_character_url(commander)
+
+    assert_redirected_to character_url(commander)
+    assert_includes flash[:notice], "regained 1 temporary Coordinated Strike use"
+    assert_includes flash[:notice], "regained 1 temporary Coordinated Strike use from Survey"
+    tracks = commander.reload.trait_set.resource_tracks.index_by { |track| track.fetch("key") }
+    assert_equal 2, tracks.fetch("coordinated_strike_initiative_uses").fetch("current")
+    assert_equal max_strikes - 2, tracks.fetch("coordinated_strike_uses").fetch("current")
+
+    patch end_encounter_character_url(commander)
+    assert_equal 0, commander.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "coordinated_strike_initiative_uses" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "Mage Initiative asks for real Elemental Surge dice and records legal Steel Will rerolls" do
     Rails.application.load_seed
     mage = Character.create!(

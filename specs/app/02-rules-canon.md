@@ -187,7 +187,7 @@ Each class has one or more special resource pools that must be modeled for legal
 |---|---|---|
 | Berserker | Fury Dice | Starts d4; scales to d6 (L6), d8 (L9), d10 (L13), d12 (L17); max = KEY; gained by Raging |
 | The Cheat | (No pool; ability-based) | Uses per-ability counters (1/turn, 1/day, 1/Safe Rest) |
-| Commander | Combat Dice | Gain STR dice on Initiative from L4; starts d6 and scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades. Heroes 2.0.1, pp. 19–23 |
+| Commander | Combat Dice; Coordinated Strike uses | Combat Dice: gain STR dice on Initiative from L4; starts d6 and scales to d8 (L5), d10 (L9), d12 (L13), d20 (L17); pool size = STR + upgrades. Coordinated Strike: INT uses/Safe Rest, +1 at L9, L13, L17, and Champion of the Vanguard L7; Master Commander L5 and Vanguard L11 each refund 1 spent use on Initiative, expiring at encounter end. Heroes 2.0.1, pp. 19–23 |
 | Hunter | Thrill of the Hunt charges | Gained when quarry dies or hit conditions are met; Shadowpath gains 1 on Initiative at L15; encounter charges expire at encounter end. Heroes 2.0.1, pp. 26, 28 |
 | Mage | Mana | (INT×3)+LVL; recharges on Safe Rest; Elemental Surge grants +WIL temporary mana on Initiative from L5, plus 1d4 at L10 and 2d4 at L17; unused mana expires at encounter end. Control's L11 Steel Will may reroll each Elemental Surge die showing 1 once. Heroes 2.0.1, pp. 32, 35 |
 | Oathsworn | Judgment Dice (2d6 → d8 → d10 → d12 → d20) + Lay on Hands pool (5×LVL) | Judgment triggered by being attacked |

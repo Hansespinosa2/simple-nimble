@@ -512,7 +512,10 @@ class Character < ApplicationRecord
       return 0 if spent_track.blank? || spent_track["max"].blank?
 
       spent_uses = [ spent_track.fetch("max").to_i - spent_track.fetch("current").to_i, 0 ].max
-      amount = [ amount, spent_uses ].min
+      already_refunded = resource_tracks.map(&:to_h).find do |resource|
+        resource.fetch("key") == grant.fetch("resource_key")
+      end&.fetch("current", 0).to_i
+      amount = [ amount, [ spent_uses - already_refunded, 0 ].max ].min
     end
 
     amount
