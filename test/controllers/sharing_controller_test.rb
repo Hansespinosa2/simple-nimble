@@ -156,6 +156,31 @@ class SharingControllerTest < ActionDispatch::IntegrationTest
   end
 
   # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
+  test "a GM viewing a shared Berserker sheet sees Enduring Rage's Dying action limit" do
+    Rails.application.load_seed
+    character = Character.create!(
+      name: "Shared Enduring Rage Berserker",
+      account: @player,
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      level: 4
+    )
+    character.trait_set.update!(current_hp: 0)
+    share = character.character_shares.create!(campaign: @campaign, created_by_account: @player, permission: "read")
+    sign_in(@gm)
+
+    get shared_character_url(share.share_token)
+
+    assert_response :success
+    assert_select ".derived-condition-chip", text: "Dying"
+    assert_select ".condition-rule-note", /have a max of 2 actions instead of 1/
+    assert_select ".condition-rule-note", /Heroes 2.0.1, p\. 8/
+    assert_select ".condition-rule-note", /does not enforce Dying's action limit/
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-08:AC-2 S-09:AC-3
   test "the shared sheet uses the character's calculated maximum Wounds as its death threshold" do
     Rails.application.load_seed
     character = Character.create!(
