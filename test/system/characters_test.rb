@@ -349,6 +349,20 @@ class CharactersTest < ApplicationSystemTestCase
     assert_equal "Wind Whisper", find("select[name='character[spell_choices][Academy Dropout][1][]']").value
   end
 
+  # S-02:AC-4 S-05:AC-1 S-05:AC-3 S-09:AC-3
+  test "changing away from a background clears its now-invalid spell choice" do
+    visit new_character_url
+
+    select "Academy Dropout", from: "Background"
+    select "Wind · Wind Whisper", from: "Academy Dropout · Utility Spell"
+    select "Fearless", from: "Background"
+    assert_selector "[data-character-builder-target='backgroundSpellChoiceField']", visible: false
+
+    select "Academy Dropout", from: "Background"
+    spell_choice = find("select[name='character[spell_choices][Academy Dropout][1][]']")
+    assert_equal "", spell_choice.value
+  end
+
   # S-02:AC-1 S-02:AC-4 S-05:AC-1 S-05:AC-3 S-09:AC-3
   test "builder renders the configured number of distinct background spell picks" do
     catalog = Rules::NimbleCatalog.data
