@@ -205,41 +205,69 @@ class CharactersTest < ApplicationSystemTestCase
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-05:AC-2 S-09:AC-1 S-09:AC-3
   test "the builder previews and saves the level-scaled starting-gold option" do
-    visit new_character_url
+    catalog = Rules::NimbleCatalog.data
+    original_starting_equipment = catalog.fetch("starting_equipment")
+    catalog["starting_equipment"] = original_starting_equipment.merge(
+      "gold_per_level" => 75,
+      "gold_per_level_source_quote" => "75 gp for starting equipment; multiply by starting level."
+    )
 
-    fill_in "Character name", with: "Gold Start Hero"
-    fill_in "Level", with: 3
-    select "Mage", from: "Class"
-    select "Human", from: "Ancestry"
-    select "Fearless", from: "Background"
-    select "Balanced", from: "Stat array"
-    assert_selector "[data-character-builder-target='armorPreview']", text: "1"
-    assert_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
-    select "Starting gold instead (50 gp per level)", from: "Starting equipment"
+    begin
+      visit new_character_url
 
-    assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "150 gp"
-    assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
-    assert_no_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
-    assert_text "Core Rules 2.0.1, pp. 20, 32–33; Heroes 2.0.1, p. 67"
-    assert_text "adding gear does not automatically deduct its cost from tracked gold"
-    click_on "Save draft"
+      fill_in "Character name", with: "Gold Start Hero"
+      fill_in "Level", with: 3
+      select "Mage", from: "Class"
+      select "Human", from: "Ancestry"
+      select "Fearless", from: "Background"
+      select "Balanced", from: "Stat array"
+      assert_selector "[data-character-builder-target='armorPreview']", text: "1"
+      assert_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
+      select "Starting gold instead (75 gp per level)", from: "Starting equipment"
 
-    assert_text "Draft saved"
-    assert_text "150 gp"
-    character = Character.find_by!(name: "Gold Start Hero")
-    assert_equal 150, character.current_gold
-    assert_equal 1, character.inventory_slots_used
-    assert_no_text "Starting class gear"
-    assert_text "Gold carried is counted above"
+      assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "225 gp"
+      assert_selector "[data-character-builder-target='armorPreview']", text: "-1"
+      assert_no_selector "[data-character-builder-target='backgroundEquipmentNote']", visible: true
+      assert_text "Core Rules 2.0.1, pp. 20, 32–33; Heroes 2.0.1, p. 67"
+      assert_text "adding gear does not automatically deduct its cost from tracked gold"
+      click_on "Save draft"
 
-    fill_in "Gold (gp)", with: 501
-    click_on "Save game state"
+      assert_text "Draft saved"
+      assert_text "225 gp"
+      character = Character.find_by!(name: "Gold Start Hero")
+      assert_equal 225, character.current_gold
+      assert_equal 1, character.inventory_slots_used
+      assert_no_text "Starting class gear"
+      assert_text "Gold carried is counted above"
 
-    assert_text "Game state saved."
-    character.reload
-    assert_equal 501, character.current_gold
-    assert_equal 2, character.inventory_slots_used
-    assert_text "2 / #{character.inventory_slots_capacity} slots used"
+      fill_in "Gold (gp)", with: 501
+      click_on "Save game state"
+
+      assert_text "Game state saved."
+      character.reload
+      assert_equal 501, character.current_gold
+      assert_equal 2, character.inventory_slots_used
+      assert_text "2 / #{character.inventory_slots_capacity} slots used"
+    ensure
+      catalog["starting_equipment"] = original_starting_equipment
+    end
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2
+  test "the builder reports when starting-gold rules are unavailable" do
+    catalog = Rules::NimbleCatalog.data
+    original_starting_equipment = catalog.fetch("starting_equipment")
+    catalog["starting_equipment"] = original_starting_equipment.merge("gold_per_level" => nil)
+
+    begin
+      visit new_character_url
+
+      find("[data-character-builder-target='startingEquipmentChoice'] option[value='starting_gold']").select_option
+
+      assert_selector "[data-character-builder-target='startingEquipmentPreview']", text: "Starting gold rules unavailable"
+    ensure
+      catalog["starting_equipment"] = original_starting_equipment
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-1 S-09:AC-3

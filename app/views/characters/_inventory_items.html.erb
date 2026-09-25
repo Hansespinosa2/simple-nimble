@@ -4,6 +4,8 @@
 <% over_capacity = slots_used > character.inventory_slots_capacity %>
 <% armor_rules = Rules::NimbleCatalog.equipment_armor_rules %>
 <% nonproficient_armor_rule = armor_rules.fetch("nonproficient_worn_armor") %>
+<% starting_equipment_rules = Rules::NimbleCatalog.starting_equipment_rules %>
+<% base_inventory_slots = Character::BASE_INVENTORY_SLOTS %>
 
 <%= render "characters/starting_equipment_panel", character: character %>
 
@@ -15,7 +17,7 @@
 
   <details class="inventory-rule-note">
     <summary>Slot rules · Core Rules 2.0.1, p. 21</summary>
-    <p>Each hero has 10 + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, 500 gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
+    <p>Each hero has <%= base_inventory_slots %> + STR inventory slots. One slot holds a one-handed weapon, shield, worn armor, a stack of javelins, <%= number_with_delimiter(starting_equipment_rules.fetch("gold_per_inventory_slot").to_i) %> gp, or 2 potions. Two slots hold a two-handed weapon, unworn armor, or a similarly bulky item. Small related items may be grouped into one slot.</p>
     <p>When class gear is selected, its known item slots are included in the total automatically. Starting items can be adjusted or removed; unusual item sizes may be grouped with your GM.</p>
     <p>Known body armor and shields add their listed Armor only while equipped. Catalog STR requirements must be met for the Armor benefit to apply. Core Rules 2.0.1, p. 33.</p>
     <p>Defending while wearing body armor without its listed proficiency costs <%= pluralize(nonproficient_armor_rule.fetch("defend_action_surcharge").to_i, "additional action") %>. <%= nonproficient_armor_rule.fetch("source_ref") %>.</p>

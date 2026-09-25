@@ -97,6 +97,26 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # S-02:AC-1 S-02:AC-4 S-09:AC-3
+  test "inventory slot guidance follows canonical capacity and currency values" do
+    catalog = Rules::NimbleCatalog.data
+    original_starting_equipment = catalog.fetch("starting_equipment")
+    catalog["starting_equipment"] = original_starting_equipment.merge(
+      "gold_per_inventory_slot" => 600,
+      "gold_per_inventory_slot_source_quote" => "600 gp"
+    )
+
+    begin
+      get character_url(@character)
+
+      assert_response :success
+      assert_select ".inventory-rule-note p", /Each hero has #{Character::BASE_INVENTORY_SLOTS} \+ STR inventory slots/
+      assert_select ".inventory-rule-note p", /600 gp/
+    ensure
+      catalog["starting_equipment"] = original_starting_equipment
+    end
+  end
+
   # S-02:AC-1 S-02:AC-2 S-09:AC-3
   test "the sheet save DC formula caption follows the catalog base" do
     catalog = Rules::NimbleCatalog.data

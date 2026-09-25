@@ -75,9 +75,12 @@ export default class extends Controller {
     if (!this.hasStartingEquipmentPreviewTarget) return
 
     if (startingGold) {
-      const goldPerLevel = Number(this.rulesValue.starting_equipment?.gold_per_level || 50)
+      const goldPerLevel = Number(this.rulesValue.starting_equipment?.gold_per_level)
       const level = Number(this.element.querySelector("[data-character-builder-target='level']")?.value || 1)
-      this.setTargetText("startingEquipmentPreview", `${goldPerLevel * Math.max(level, 1)} gp`)
+      const preview = Number.isFinite(goldPerLevel) && goldPerLevel > 0
+        ? `${goldPerLevel * Math.max(level, 1)} gp`
+        : "Starting gold rules unavailable"
+      this.setTargetText("startingEquipmentPreview", preview)
     } else {
       this.setTargetText("startingEquipmentPreview", characterClass?.starting_gear?.join(", ") || "Choose a class to see its gear")
     }
