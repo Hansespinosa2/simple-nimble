@@ -29,8 +29,8 @@ class LevelUp < ApplicationRecord
     status == "finalized"
   end
 
-  def roll_hit_die!(sides)
-    self.hit_die_roll_one = SecureRandom.random_number(sides) + 1
-    self.hit_die_roll_two = SecureRandom.random_number(sides) + 1
+  def roll_hit_die!(sides, random_number: SecureRandom.method(:random_number))
+    self.hit_die_roll_one ||= random_number.call(sides) + 1
+    self.hit_die_roll_two ||= random_number.call(sides) + 1
   end
 end

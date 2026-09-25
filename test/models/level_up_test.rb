@@ -37,6 +37,20 @@ class LevelUpTest < ActiveSupport::TestCase
     assert_equal 20, @character.trait_set.max_hp
   end
 
+  # S-06:AC-3 S-09:AC-3
+  test "the planner preserves an entered Hit Die roll when generating a missing roll" do
+    level_up = @character.level_ups.build(from_level: 3, to_level: 4, hit_die_roll_one: 4)
+    generated_sides = []
+    random_number = ->(sides) { generated_sides << sides; 6 }
+    planner = LevelUpPlanner.new(@character, level_up, random_number:)
+
+    assert_equal 4, level_up.hit_die_roll_one
+    assert_equal 7, level_up.hit_die_roll_two
+    assert_equal [ 12 ], generated_sides, "only the missing die should be rolled using the class Hit Die size"
+    assert_equal 7, planner.preview.fetch("hp_gain"), "the higher preserved/generated roll determines max HP increase"
+    assert_equal 27, planner.preview.fetch("traits").fetch("max_hp")
+  end
+
   test "finalizing a legal level-up applies a skill, stat, derived values, and revision" do
     level_up = @character.level_ups.create!(
       from_level: 3,

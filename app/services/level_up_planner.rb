@@ -1,9 +1,10 @@
 class LevelUpPlanner
   attr_reader :character, :level_up
 
-  def initialize(character, level_up)
+  def initialize(character, level_up, random_number: SecureRandom.method(:random_number))
     @character = character
     @level_up = level_up
+    @random_number = random_number
     ensure_hit_die_rolls
   end
 
@@ -486,7 +487,7 @@ class LevelUpPlanner
     def ensure_hit_die_rolls
       return if level_up.hit_die_roll_one.present? && level_up.hit_die_roll_two.present?
 
-      level_up.roll_hit_die!(hit_die_size)
+      level_up.roll_hit_die!(hit_die_size, random_number: @random_number)
     end
 
     def projected_skill_values(include_skill_grant: true, include_skill_transfer: true)
