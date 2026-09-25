@@ -598,6 +598,24 @@ class CharacterTest < ActiveSupport::TestCase
     assert_equal 9, character.trait_set.max_hp
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "Back Out of Retirement applies Old Bones to maximum Wounds with its source note" do
+    Rails.application.load_seed
+    background = Background.find_by!(name: "Back Out of Retirement")
+    character = Character.create!(
+      name: "Retired Hero",
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: background,
+      stat_array: "balanced"
+    )
+
+    assert_equal(-1, background.max_wounds_modifier)
+    assert_equal Character::DEFAULT_MAX_WOUNDS - 1, character.trait_set.max_wounds
+    assert_includes background.description, "maximum Wounds by 1"
+    assert_includes background.description, "Core Rules 2.0.1, p. 28"
+  end
+
   test "per-skill ancestry bonuses are part of the governing skill baseline" do
     character_class = CharacterClass.create!(
       name: "Skill Bonus Class",

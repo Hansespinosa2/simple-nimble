@@ -96,6 +96,19 @@ class CharactersTest < ApplicationSystemTestCase
     assert_selector "[data-character-builder-target='armorPreview']", text: "2"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
+  test "the builder explains and previews Back Out of Retirement's Wound effects" do
+    visit new_character_url
+
+    select "Mage", from: "Class"
+    select "Human", from: "Ancestry"
+    select "Back Out of Retirement", from: "Background"
+    select "Balanced", from: "Stat array"
+
+    assert_selector "[data-character-builder-target='backgroundHint']", text: /take 1 Wound to treat an ability or spell as one level higher; age reduces your maximum Wounds by 1\. \(Core Rules 2\.0\.1, p\. 28\)/
+    assert_selector "[data-character-builder-target='woundsPreview']", text: "5"
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2
   test "the builder only offers Songweaver's source-defined other spell schools" do
     visit new_character_url
