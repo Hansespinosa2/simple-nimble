@@ -1,4 +1,6 @@
 require "test_helper"
+require "json"
+require "stringio"
 
 # S-01:AC-1 S-01:AC-2 S-02:AC-6 S-05:AC-6 S-06:AC-8 S-09:AC-1 S-09:AC-2 S-09:AC-3 S-09:AC-4 S-09:AC-5
 class RulesCoverageTest < ActiveSupport::TestCase
@@ -69,6 +71,31 @@ class RulesCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  # S-10:AC-3 S-09:AC-1 S-09:AC-3
+  test "a level-twenty export imports only after replaying all nineteen finalized transitions" do
+    original = legal_berserker_through_level_twenty
+    payload = original.snapshot_payload.merge(
+      "format" => CharacterImportService::FORMAT_NAME,
+      "format_version" => CharacterImportService::FORMAT_VERSION,
+      "creation" => original.import_creation_snapshot,
+      "level_ups" => original.interchange_level_ups
+    )
+
+    result = CharacterImportService.call(upload: StringIO.new(JSON.generate(payload)))
+
+    assert result.success?, result.errors.to_sentence
+    imported = result.character
+    assert imported.draft?
+    assert_equal Character::MAX_LEVEL, imported.level
+    assert_equal Character::MAX_LEVEL - 1, imported.level_ups.count
+    assert_equal (2..Character::MAX_LEVEL).to_a, imported.level_ups.order(:to_level).pluck(:to_level)
+    assert_equal original.interchange_level_ups, imported.interchange_level_ups
+    assert_equal original.snapshot_payload.fetch("progression"), imported.snapshot_payload.fetch("progression")
+    assert_equal original.snapshot_payload.fetch("stats"), imported.snapshot_payload.fetch("stats")
+    assert_equal original.snapshot_payload.fetch("skills"), imported.snapshot_payload.fetch("skills")
+    assert_equal original.snapshot_payload.fetch("traits"), imported.snapshot_payload.fetch("traits")
+  end
+
   test "every seeded ancestry can create legally and every seeded spell can be attached" do
     canonical_ancestries = Ancestry.where.not(name: "MyString").order(:name)
     canonical_spells = Spell.where.not(name: [ "MyString", "Fixture Flame", "Fixture Frost" ]).order(:tier, :name)
@@ -110,6 +137,48 @@ class RulesCoverageTest < ActiveSupport::TestCase
   end
 
   private
+    def legal_berserker_through_level_twenty
+      character_class = CharacterClass.find_by!(name: "Berserker")
+      character = Character.create!(
+        name: "Maximum-level import source",
+        level: 1,
+        character_class:,
+        ancestry: @ancestry,
+        background: @background,
+        stat_array: "standard",
+        ruleset_version: @ruleset
+      )
+      assign_required_languages(character)
+      skill = Character::SKILL_TO_STAT.find { |_name, stat| character_class.key_stats.include?(stat) }.first
+      character.skill_set.public_send("#{skill}=", character.skill_initial_value(skill) + 4)
+      character.finalize_creation!
+
+      (2..Character::MAX_LEVEL).each do |target_level|
+        level_up = character.level_ups.build(from_level: target_level - 1, to_level: target_level)
+        if target_level == character_class.subclass_choice_level
+          level_up.subclass_name = character.subclass_options.first
+        end
+
+        planner = LevelUpPlanner.new(character, level_up)
+        choose_feature_options!(character, level_up, planner)
+        planner = LevelUpPlanner.new(character, level_up)
+        choose_spell_options!(character, level_up, planner)
+        choose_stat_increases!(character, level_up, planner)
+        planner = LevelUpPlanner.new(character, level_up)
+        choose_feature_languages!(level_up, planner)
+        choose_intelligence_languages!(character, level_up, planner)
+        planner = LevelUpPlanner.new(character, level_up)
+        level_up.skill_name = planner.skill_options.first
+        level_up.save!
+
+        assert planner.valid?, "Berserker level #{target_level} should be legal: #{planner.issues.map { |issue| issue.fetch(:message) }.join('; ')}"
+        LevelUpService.finalize!(level_up)
+        character.reload
+      end
+
+      character
+    end
+
     def choose_feature_options!(character, level_up, planner)
       selections = {}
       5.times do
