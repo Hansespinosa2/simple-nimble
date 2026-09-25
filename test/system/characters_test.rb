@@ -601,6 +601,7 @@ class CharactersTest < ApplicationSystemTestCase
 
     visit character_url(hunter)
     assert_text "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
+    assert_text "Saving an increased charge total automatically records this triggered free movement. Save separate gain events separately; resolve up to half speed ignoring difficult terrain at the table. Heroes 2.0.1, p. 29."
     click_on "Record Initiative Roll · resolve triggered movement"
 
     assert_text "I Have the High Ground triggered its free movement on Initiative"

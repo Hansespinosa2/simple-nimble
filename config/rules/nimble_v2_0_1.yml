@@ -1959,6 +1959,7 @@ resource_event_grants:
         trigger_resource_key: thrill_of_the_hunt
         event_type: wild_heart_high_ground_trigger
         event_summary: "I Have the High Ground triggered one free movement after a gain of one or more Thrill of the Hunt charges; resolve up to half speed ignoring difficult terrain at the table"
+        tracker_note: "Saving an increased charge total automatically records this triggered free movement. Save separate gain events separately; resolve up to half speed ignoring difficult terrain at the table."
         source_ref: Heroes 2.0.1, p. 29
         source_quote: "When you roll Initiative or gain one or more Thrill of the Hunt charges, move up to half your speed for free, ignoring difficult terrain."
 

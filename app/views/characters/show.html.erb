@@ -135,8 +135,8 @@
                     <%= hidden_field_tag "character[trait_set_attributes][resource_tracks][][key]", track.fetch("key") %>
                     <%= number_field_tag "character[trait_set_attributes][resource_tracks][][current]", track["current"], min: 0, max: track["max"] %>
                   </label>
-                  <% if track.fetch("key") == "thrill_of_the_hunt" && @character.character_class&.name == "Hunter" && @character.subclass_name == "Wild Heart" && @character.level.to_i >= 3 %>
-                    <span class="field-hint">Saving an increased charge total automatically records I Have the High Ground's triggered free movement. Save separate gain events separately; resolve up to half speed ignoring difficult terrain at the table. Heroes 2.0.1, p. 29.</span>
+                  <% @character.tracker_resource_event_guidance_for(track.fetch("key")).each do |guidance| %>
+                    <span class="field-hint resource-event-guidance"><%= guidance.fetch("tracker_note") %> <%= guidance.fetch("source_ref") %>.</span>
                   <% end %>
                 <% end %>
               <% else %>

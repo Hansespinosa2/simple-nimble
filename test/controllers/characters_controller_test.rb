@@ -873,7 +873,7 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name='initiative_roll[feature_actions][wild_heart_high_ground_initiative][used]']", count: 0
     assert_select "input[name='character[wild_heart_high_ground_movement_used]']", count: 0
-    assert_includes response.body, "Saving an increased charge total automatically records I Have the High Ground's triggered free movement"
+    assert_select ".resource-event-guidance", text: /Saving an increased charge total automatically records this triggered free movement.*Heroes 2\.0\.1, p\. 29/
 
     patch begin_encounter_character_url(hunter)
     assert_redirected_to character_url(hunter)
@@ -910,6 +910,46 @@ class CharactersControllerTest < ActionDispatch::IntegrationTest
 
     patch end_encounter_character_url(hunter)
     assert_equal 0, hunter.reload.trait_set.resource_tracks.find { |track| track.fetch("key") == "thrill_of_the_hunt" }.fetch("current")
+  end
+
+  # S-02:AC-1 S-02:AC-2 S-02:AC-4 S-09:AC-3
+  test "tracker resource guidance follows catalog text and unlock eligibility" do
+    Rails.application.load_seed unless CharacterClass.exists?(name: "Hunter")
+    hunter = Character.create!(
+      name: "Catalog Guidance Hero",
+      level: 3,
+      character_class: CharacterClass.find_by!(name: "Hunter"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    hunter.update_column(:subclass_name, "Wild Heart")
+    stat_values = Character::STAT_NAMES.index_with { |stat| hunter.stat_value(stat) }
+    hunter.trait_set.update!(resource_tracks: hunter.derived_resource_tracks_for(stat_values:, level: 3, subclass_name: "Wild Heart"))
+
+    catalog = Rules::NimbleCatalog.data
+    original_resource_event_grants = catalog.fetch("resource_event_grants")
+    changed_resource_event_grants = original_resource_event_grants.deep_dup
+    changed_rule = changed_resource_event_grants.dig("resource_increased", "Hunter")
+      .select { |rule| rule.fetch("feature_name") == "I Have the High Ground" }
+      .sole
+    changed_rule["minimum_level"] = 4
+    changed_rule["tracker_note"] = "Test-defined tracker guidance."
+    changed_rule["source_ref"] = "Test Rules, p. 99"
+    catalog["resource_event_grants"] = changed_resource_event_grants
+
+    begin
+      get character_url(hunter)
+      assert_response :success
+      assert_select ".resource-event-guidance", { count: 0 }, "a level-4 catalog rule must not be shown to a level-3 character"
+
+      changed_rule["minimum_level"] = 3
+      get character_url(hunter)
+      assert_response :success
+      assert_select ".resource-event-guidance", { text: "Test-defined tracker guidance. Test Rules, p. 99.", count: 1 }
+    ensure
+      catalog["resource_event_grants"] = original_resource_event_grants
+    end
   end
 
   # S-02:AC-1 S-02:AC-2 S-09:AC-3

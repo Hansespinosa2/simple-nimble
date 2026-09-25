@@ -1516,17 +1516,16 @@ class Character < ApplicationRecord
     submitted = Array(submitted_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
     previous = Array(trait_set&.resource_tracks).map { |track| track.to_h.stringify_keys }.index_by { |track| track["key"] }
 
-    Rules::NimbleCatalog.resource_event_grants_for(
-      "resource_increased",
-      character_class&.name,
-      level,
-      subclass_name: subclass_name
-    ).select do |grant|
+    tracker_resource_event_rules.select do |grant|
       resource_key = grant.fetch("trigger_resource_key")
       previous_value = previous.dig(resource_key, "current")
       submitted_value = submitted.dig(resource_key, "current")
       previous_value.present? && submitted_value.present? && submitted_value.to_i > previous_value.to_i
     end
+  end
+
+  def tracker_resource_event_guidance_for(resource_key)
+    tracker_resource_event_rules.select { |grant| grant["trigger_resource_key"] == resource_key.to_s }
   end
 
   def normalized_resource_tracks(submitted_tracks, current_wounds: nil, current_hp: nil, gained_wounds: nil)
@@ -1848,6 +1847,15 @@ class Character < ApplicationRecord
   end
 
   private
+    def tracker_resource_event_rules
+      Rules::NimbleCatalog.resource_event_grants_for(
+        "resource_increased",
+        character_class&.name,
+        level,
+        subclass_name: subclass_name
+      )
+    end
+
     def normalize_interchange_choices(choices)
       choices.to_h.stringify_keys.transform_values do |selections|
         Array(selections).compact_blank.map(&:to_s)
