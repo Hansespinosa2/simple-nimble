@@ -231,12 +231,12 @@ class CharactersTest < ApplicationSystemTestCase
       select "Standard", from: "Stat array"
       fill_in "Level", with: "2"
 
-      assert_selector "[data-character-builder-target='speedPreview']", text: "6"
-      assert_selector "[data-character-builder-target='initiativePreview']", text: "+4"
+      assert_equal "6", find("[data-character-builder-target='speedPreview']").text
+      assert_equal "+4", find("[data-character-builder-target='initiativePreview']").text
 
       select "Starting gold instead (50 gp per level)", from: "Starting equipment"
-      assert_selector "[data-character-builder-target='speedPreview']", text: "8"
-      assert_selector "[data-character-builder-target='initiativePreview']", text: "+6"
+      assert_equal "8", find("[data-character-builder-target='speedPreview']").text
+      assert_equal "+6", find("[data-character-builder-target='initiativePreview']").text
     ensure
       zephyr_rules["starting_gear"] = original_gear
     end
