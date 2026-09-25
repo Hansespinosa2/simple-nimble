@@ -839,6 +839,25 @@ class CharactersTest < ApplicationSystemTestCase
     assert_text "Heroes 2.0.1, p. 69"
   end
 
+  # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-3
+  test "a level-four Berserker sheet shows Enduring Rage's Dying action limit" do
+    character = Character.create!(
+      name: "Enduring Rage Sheet Hero",
+      level: 4,
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: @ancestry,
+      background: @background,
+      stat_array: "balanced"
+    )
+    character.trait_set.update!(current_hp: 0)
+
+    visit character_url(character)
+
+    find("details.condition-rule-note summary").click
+    assert_text "have a max of 2 actions instead of 1"
+    assert_text "Heroes 2.0.1, p. 8"
+  end
+
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-07:AC-2 S-09:AC-1 S-09:AC-3
   test "the sheet explains and tracks a limited-use ancestry ability" do
     character = Character.create!(

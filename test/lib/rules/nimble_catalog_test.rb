@@ -465,6 +465,11 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_equal %w[Charged Distracted Smoldering], conditions.fetch("minor_status_examples")
     assert_equal 1, @catalog.dying_action_limit_for("Mage", 1).fetch("actions_limited_to")
     assert_equal "Core Rules 2.0.1, p. 9", @catalog.dying_action_limit_for("Mage", 1).fetch("source_ref")
+    assert_equal 1, @catalog.dying_action_limit_for("Berserker", 3).fetch("actions_limited_to")
+    berserker_dying_limit = @catalog.dying_action_limit_for("Berserker", 4)
+    assert_equal 2, berserker_dying_limit.fetch("actions_limited_to")
+    assert_equal "Heroes 2.0.1, p. 8", berserker_dying_limit.fetch("source_ref")
+    assert_includes berserker_dying_limit.fetch("source_quote"), "have a max of 2 actions instead of 1"
     assert_equal 2, @catalog.dying_action_limit_for("Zephyr", 20).fetch("actions_limited_to")
     assert_equal "Heroes 2.0.1, p. 69", @catalog.dying_action_limit_for("Zephyr", 20).fetch("source_ref")
     assert_includes @catalog.dying_action_limit_for("Zephyr", 20).fetch("source_quote"), "max of 2 actions"

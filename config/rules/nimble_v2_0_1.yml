@@ -125,6 +125,11 @@ condition_tracking:
     source_ref: "Core Rules 2.0.1, p. 9"
     source_quote: "While Dying, actions are limited to 1."
     exceptions:
+      - character_class: Berserker
+        min_level: 4
+        actions_limited_to: 2
+        source_ref: "Heroes 2.0.1, p. 8"
+        source_quote: "Enduring Rage. While Dying, you Rage automatically for free at the beginning of your turn, have a max of 2 actions instead of 1, and ignore the STR saves to make attacks."
       - character_class: Zephyr
         min_level: 20
         actions_limited_to: 2

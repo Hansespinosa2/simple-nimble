@@ -153,6 +153,20 @@ class CharacterTest < ActiveSupport::TestCase
     dying = zephyr.derived_condition_entries.find { |entry| entry.fetch("name") == "Dying" }
     assert_equal 2, dying.fetch("actions_limited_to")
     assert_equal "Heroes 2.0.1, p. 69", dying.fetch("effects_source_ref")
+
+    berserker = Character.create!(
+      name: "Enduring Rage Berserker",
+      character_class: CharacterClass.find_by!(name: "Berserker"),
+      ancestry: Ancestry.find_by!(name: "Human"),
+      background: Background.find_by!(name: "Fearless"),
+      stat_array: "balanced",
+      level: 4
+    )
+    berserker.trait_set.update!(current_hp: 0)
+    dying = berserker.derived_condition_entries.find { |entry| entry.fetch("name") == "Dying" }
+    assert_equal 2, dying.fetch("actions_limited_to")
+    assert_equal "Heroes 2.0.1, p. 8", dying.fetch("effects_source_ref")
+    assert_includes dying.fetch("effects_source_quote"), "have a max of 2 actions instead of 1"
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-2 S-09:AC-3
