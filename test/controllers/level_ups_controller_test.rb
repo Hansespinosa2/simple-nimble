@@ -46,6 +46,26 @@ class LevelUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".field-hint", /Choose a subclass at level #{@character.character_class.subclass_choice_level}/
   end
 
+  # S-02:AC-2 S-06:AC-2 S-07:AC-2 S-09:AC-3
+  test "level-twenty form explains that capstone stat gains may exceed the typical maximum" do
+    level_eighteen_berserker!
+    post character_level_ups_url(@character), params: {
+      level_up: {
+        from_level: 18,
+        to_level: 19,
+        skill_name: "might",
+        feature_choices: { "Epic Boon" => [ "Epic Speed" ] }
+      },
+      finalize: "1"
+    }
+
+    assert_redirected_to character_url(@character)
+    get new_character_level_up_url(@character)
+
+    assert_response :success
+    assert_select ".field-hint", /The Core Rules describe \+5 as typical; this level-20 capstone may raise stats above it \(Core Rules 2\.0\.1, p\. 6\)/
+  end
+
   # S-02:AC-2 S-02:AC-4 S-06:AC-2
   test "level-three page separates story-based subclasses and explains the GM rule" do
     commander = Character.create!(

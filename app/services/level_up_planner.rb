@@ -77,6 +77,16 @@ class LevelUpPlanner
     stat_increase_mechanic.fetch("distinct", false)
   end
 
+  def stat_increase_can_exceed_typical_stat_max?
+    stat_increase_mechanic.fetch("allow_exceeding_typical_stat_max", false)
+  end
+
+  def stat_increase_maximum_note
+    return unless stat_increase_can_exceed_typical_stat_max?
+
+    "The Core Rules describe +#{max_stat_value} as typical; this level-20 capstone may raise stats above it (#{max_stat_source_ref})."
+  end
+
   def stat_increase_label
     stat_increase_mechanic.fetch("label", stat_increase_type.to_s.humanize)
   end
@@ -304,9 +314,9 @@ class LevelUpPlanner
       selected_stats.each do |stat_name|
         if !stat_options.include?(stat_name)
           result << issue("#{stat_name.to_s.humanize} is not eligible for this level's stat increase.", stat_increase_source_ref, stat_increase_quote)
-        elsif character.stat_value(stat_name) >= max_stat_value
+        elsif !stat_increase_can_exceed_typical_stat_max? && character.stat_value(stat_name) >= max_stat_value
           result << issue("#{stat_name.to_s.humanize} is already at the +#{max_stat_value} stat maximum.", max_stat_source_ref, max_stat_source_quote)
-        elsif character.stat_value(stat_name) + stat_increase_amount > max_stat_value
+        elsif !stat_increase_can_exceed_typical_stat_max? && character.stat_value(stat_name) + stat_increase_amount > max_stat_value
           result << issue("#{stat_name.to_s.humanize} would exceed the +#{max_stat_value} stat maximum.", max_stat_source_ref, max_stat_source_quote)
         end
       end
@@ -837,12 +847,14 @@ class LevelUpPlanner
         }
       end
       [ level_up.stat_name, level_up.second_stat_name ].compact_blank.each do |stat_name|
-        explanations << {
+        explanation = {
           type: "applied",
           message: "#{stat_name.humanize} increases to #{stats.fetch(stat_name)}.",
           source_ref: stat_increase_source_ref,
           quote: stat_increase_quote
         }
+        explanation[:rule_note] = stat_increase_maximum_note if stat_increase_maximum_note.present?
+        explanations << explanation
       end
       if level_up.skill_from.present? && level_up.skill_from != level_up.skill_name
         explanations << {

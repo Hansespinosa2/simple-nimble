@@ -430,7 +430,7 @@ class NimbleCatalogTest < ActiveSupport::TestCase
     assert_match(/Songweaver's Jack of All Trades.*Safe Rest/, derived.fetch("skill_point_progression_note"))
     assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Key Stat" }, @catalog.stat_increase_mechanic_for("key"))
     assert_equal({ "choice_count" => 1, "amount" => 1, "distinct" => true, "label" => "Secondary Stat" }, @catalog.stat_increase_mechanic_for("secondary"))
-    assert_equal({ "choice_count" => 2, "amount" => 1, "distinct" => true, "label" => "stat" }, @catalog.stat_increase_mechanic_for("any_two"))
+    assert_equal({ "choice_count" => 2, "amount" => 1, "distinct" => true, "label" => "stat", "allow_exceeding_typical_stat_max" => true }, @catalog.stat_increase_mechanic_for("any_two"))
   end
 
   # S-02:AC-1 S-02:AC-2 S-05:AC-1 S-06:AC-2

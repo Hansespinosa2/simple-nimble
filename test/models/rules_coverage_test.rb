@@ -43,7 +43,12 @@ class RulesCoverageTest < ActiveSupport::TestCase
         end
 
         planner = LevelUpPlanner.new(character, level_up)
-        choose_feature_options!(character, level_up, planner)
+        feature_overrides = if class_name == "Berserker" && target_level == 19
+          { "Epic Boon" => [ "Epic Stats" ], "Epic Stats · stat increases" => %w[dexterity intelligence will] }
+        else
+          {}
+        end
+        choose_feature_options!(character, level_up, planner, overrides: feature_overrides)
         planner = LevelUpPlanner.new(character, level_up)
         choose_spell_options!(character, level_up, planner)
         choose_stat_increases!(character, level_up, planner)
@@ -55,10 +60,20 @@ class RulesCoverageTest < ActiveSupport::TestCase
         level_up.save!
 
         assert planner.valid?, "#{class_name} level #{target_level} should have a legal transition: #{planner.issues.map { |issue| issue.fetch(:message) }.join('; ')}"
+        if class_name == "Berserker" && target_level == Character::MAX_LEVEL
+          assert_equal 5, character.stat_value("strength"), "Berserker Strength should reach the typical maximum before its level-20 capstone"
+          assert_equal 6, planner.preview.fetch("stats").fetch("strength"), "the level-20 capstone should raise Strength above the typical maximum"
+          stat_explanation = planner.preview.fetch("explanations").find { |explanation| explanation.fetch(:message) == "Strength increases to 6." }
+          assert_includes stat_explanation.fetch(:rule_note), "typical"
+          assert_includes stat_explanation.fetch(:rule_note), "Core Rules 2.0.1, p. 6"
+        end
         LevelUpService.finalize!(level_up)
         character.reload
 
         assert_equal target_level, character.level, "#{class_name} should advance exactly one level"
+        if class_name == "Berserker" && target_level == Character::MAX_LEVEL
+          assert_equal 6, character.stat_value("strength"), "the finalized capstone gain should persist above +5"
+        end
         assert character.playable?, "#{class_name} should remain playable after level #{target_level}"
         assert level_up.reload.finalized?, "#{class_name} level #{target_level} should record a finalized transition"
         assert_equal target_level, character.trait_set.max_hit_dice, "#{class_name} Hit Dice should track level #{target_level}"
@@ -179,8 +194,8 @@ class RulesCoverageTest < ActiveSupport::TestCase
       character
     end
 
-    def choose_feature_options!(character, level_up, planner)
-      selections = {}
+    def choose_feature_options!(character, level_up, planner, overrides: {})
+      selections = overrides.transform_values(&:dup)
       5.times do
         level_up.feature_choices = selections
         pools = planner.feature_choice_pools
@@ -222,7 +237,7 @@ class RulesCoverageTest < ActiveSupport::TestCase
       return if count.zero?
 
       eligible_stats = planner.stat_options.select do |stat_name|
-        character.stat_value(stat_name) + planner.stat_increase_amount <= planner.max_stat_value
+        planner.stat_increase_can_exceed_typical_stat_max? || character.stat_value(stat_name) + planner.stat_increase_amount <= planner.max_stat_value
       end
       selected_stats = eligible_stats.first(count)
       raise "No legal stat increase remains at level #{planner.target_level}." if selected_stats.length < count

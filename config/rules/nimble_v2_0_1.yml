@@ -33,7 +33,7 @@ derived_values:
   stat_increase_mechanics:
     key: {choice_count: 1, amount: 1, distinct: true, label: "Key Stat"}
     secondary: {choice_count: 1, amount: 1, distinct: true, label: "Secondary Stat"}
-    any_two: {choice_count: 2, amount: 1, distinct: true, label: "stat"}
+    any_two: {choice_count: 2, amount: 1, distinct: true, label: "stat", allow_exceeding_typical_stat_max: true}
   max_level: 20
   max_level_source_ref: "Heroes 2.0.1, class progressions"
   max_level_source_quote: "Each published class progression ends at level 20."
